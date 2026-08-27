@@ -22,7 +22,7 @@ import { createWorkflowContext } from "./context.js";
 import { draftQuery } from "./draft.js";
 import { finalizeWorkflow } from "./finalize.js";
 import { probeQuery } from "./probe.js";
-import { readWorkflowStatus } from "./status.js";
+import { readWorkflowStatus, reconcileWorkflowStatus } from "./status.js";
 import { verifyQuery } from "./verify.js";
 
 /** Public CodeQL workflow facade. Domain transactions live in command modules. */
@@ -46,11 +46,11 @@ export class QueryWorkflowService {
   }
 
   start(input: unknown, options: CodeqlOperationOptions = { timeoutMs: 30_000 }): Promise<QueryWorkflowStatus> {
-    return startWorkflow(this.context, input, options, (runId: RunId) => readWorkflowStatus(this.context, runId));
+    return startWorkflow(this.context, input, options, (runId: RunId) => this.status(runId));
   }
 
   status(input: unknown): Promise<QueryWorkflowStatus> {
-    return readWorkflowStatus(this.context, input);
+    return reconcileWorkflowStatus(this.context, input).then(() => readWorkflowStatus(this.context, input));
   }
 
   probe(inputRunId: unknown, inputIntent: unknown, options: CodeqlOperationOptions): Promise<ProbeEvidence> {

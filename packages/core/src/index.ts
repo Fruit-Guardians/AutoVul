@@ -17,6 +17,7 @@ export {
 export type { ProbeRole, QueryLanguagePack } from "./language-packs.js";
 export { assertTransition, canTransition } from "./state.js";
 export type {
+  ArtifactBundleFile,
   ArtifactStorePort,
   ClockPort,
   CodeqlOperationOptions,
@@ -28,6 +29,7 @@ export type {
   ProcessOptions,
   ProcessPort,
   ProcessResult,
+  StagedArtifactBundle,
   QueryExecutionPort,
   QueryExecutionRequest,
   QueryExecutionResult,

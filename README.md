@@ -4,7 +4,7 @@ PureAutoCodeQL V2 is a host-independent **vulnerability-research extension and d
 
 > The host Agent owns understanding, reasoning and orchestration. PureAutoCodeQL owns vulnerability-research capabilities, deterministic execution, evidence and verification.
 
-See [AGENTS.md](./AGENTS.md) for the project charter and engineering rules, and [SPEC.md](./SPEC.md) for accepted product behavior and validation requirements. Material behavior changes follow the workflow in [specs/README.md](./specs/README.md).
+See [AGENTS.md](./AGENTS.md) for the project charter and engineering rules, and [SPEC.md](./SPEC.md) for accepted product behavior and validation requirements. Material behavior changes follow the workflow in [specs/README.md](./specs/README.md). The non-normative [Flow-Based direction note](./docs/design/FLOW_BASED_DIRECTION.md) records the current long-term design thinking without authorizing implementation.
 
 This workspace contains the isolated TypeScript M0 foundation for V2. The Python V1 remains the repository's existing runtime and is not imported by these packages.
 

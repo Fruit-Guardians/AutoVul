@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { access, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -104,6 +104,42 @@ describe("LocalArtifactStore", () => {
       await expect(access(join(runRoot, ".lock"))).rejects.toThrow();
     } finally {
       await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("promotes a complete staged artifact bundle as one directory operation", async () => {
+    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-artifact-stage-"));
+    try {
+      const store = new LocalArtifactStore(root, new NodeFileSystemPort());
+      const bundle = await store.stageArtifactBundle("run_store01", "stage-one", "query-pack", [
+        { relativePath: "query.ql", content: "select 1\n" },
+        { relativePath: "query-pack-manifest.json", content: "{}\n" },
+      ]);
+      expect(await store.readArtifact("run_store01", "query-pack/query.ql")).toBeUndefined();
+      expect(await store.readStagedArtifact("run_store01", bundle.operationId, "query.ql")).toBe("select 1\n");
+      await store.promoteArtifactBundle("run_store01", bundle);
+      expect(await store.readArtifact("run_store01", "query-pack/query.ql")).toBe("select 1\n");
+      expect(await store.listStagedArtifactOperations("run_store01")).toEqual([]);
+      await store.discardPromotedArtifactBundle("run_store01", "query-pack");
+      expect(await store.readArtifact("run_store01", "query-pack/query.ql")).toBeUndefined();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a symlink escape before artifact writes", async () => {
+    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-artifact-symlink-"));
+    const outside = await mkdtemp(join(tmpdir(), "pure-auto-codeql-artifact-outside-"));
+    try {
+      const store = new LocalArtifactStore(root, new NodeFileSystemPort());
+      const runRoot = join(root, "run_store01");
+      await mkdir(runRoot, { recursive: true });
+      await symlink(outside, join(runRoot, "escape"));
+      await expect(store.writeArtifact("run_store01", "escape/secret.txt", "secret")).rejects.toMatchObject({ code: "INVALID_INPUT" });
+      await expect(access(join(outside, "secret.txt"))).rejects.toThrow();
+    } finally {
+      await rm(root, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
     }
   });
 });

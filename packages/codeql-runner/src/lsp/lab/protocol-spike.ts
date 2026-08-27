@@ -1,7 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { readFile } from "node:fs/promises";
 import { delimiter } from "node:path";
-import { pathToFileURL } from "node:url";
 import { performance } from "node:perf_hooks";
 
 import {
@@ -26,7 +24,6 @@ import {
 import {
   CompletionRequest,
   ConfigurationRequest,
-  DefinitionRequest,
   DidChangeConfigurationNotification,
   DidChangeTextDocumentNotification,
   DidChangeWatchedFilesNotification,
@@ -35,26 +32,58 @@ import {
   DidOpenTextDocumentNotification,
   ExitNotification,
   FileChangeType,
-  HoverRequest,
   InitializeRequest,
   InitializedNotification,
   PublishDiagnosticsNotification,
   ShutdownRequest,
   WorkspaceFoldersRequest,
   WorkDoneProgressCreateRequest,
-  type CompletionList,
-  type CompletionItem,
   type ConfigurationParams,
   type Diagnostic,
-  type Hover,
   type InitializeParams,
   type InitializeResult,
-  type Location,
-  type LocationLink,
-  type Position,
   type PublishDiagnosticsParams,
   type WorkspaceFolder,
 } from "vscode-languageserver-protocol";
+import {
+  readL0Document,
+  severityName,
+  summarizeCapabilities,
+  summarizeHover,
+  toDiagnosticObservation,
+} from "./protocol-helpers.js";
+import { requestCompletion, requestDefinition, requestHover } from "./protocol-requests.js";
+import type {
+  CodeqlLspProtocolSpikeOptions,
+  L0DiagnosticEvent as DiagnosticEvent,
+  L0DiagnosticObservation,
+  L0DiagnosticWaiter as DiagnosticWaiter,
+  L0DocumentObservation,
+  L0ProtocolDocument,
+  L0ProtocolSnapshot,
+  L0RequestObservation,
+  L0SymbolLocation,
+  L0TimelineEvent,
+  L0VisibleFilesMode,
+  L0WorkspaceFolder,
+  L0WorkspaceUpdate,
+} from "./protocol-types.js";
+
+export type {
+  CodeqlLspProtocolSpikeOptions,
+  L0DiagnosticItem,
+  L0DiagnosticObservation,
+  L0DocumentObservation,
+  L0ProtocolDocument,
+  L0ProtocolSnapshot,
+  L0RequestObservation,
+  L0SymbolLocation,
+  L0TimelineEvent,
+  L0VisibleFilesMode,
+  L0WorkspaceFolder,
+  L0WorkspaceUpdate,
+} from "./protocol-types.js";
+export { l0UriForPath, readL0Document } from "./protocol-helpers.js";
 
 const VisibleFilesNotification = new NotificationType<{
   readonly visibleFiles: readonly string[];
@@ -69,165 +98,6 @@ const DEFAULT_DIAGNOSTICS_TIMEOUT_MS = 60_000;
 const DEFAULT_DIAGNOSTICS_QUIET_WINDOW_MS = 250;
 const DEFAULT_STARTUP_SETTLING_MS = 1_500;
 const MAX_STDERR_TAIL_LINES = 80;
-
-export interface L0WorkspaceFolder {
-  readonly uri: string;
-  readonly name: string;
-}
-
-export interface L0ProtocolDocument {
-  readonly language: string;
-  readonly uri: string;
-  readonly invalidUri?: string;
-  readonly text: string;
-  readonly invalidText: string;
-  readonly definitionToken: string;
-  readonly completionToken: string;
-  readonly expectedDefinitionUriContains?: readonly string[];
-}
-
-export type L0VisibleFilesMode = "all" | "active-document" | "explicit";
-
-export interface L0WorkspaceUpdate {
-  readonly watchedUri: string;
-  readonly type?: FileChangeType;
-}
-
-export interface CodeqlLspProtocolSpikeOptions {
-  readonly codeqlPath: string;
-  readonly searchPaths: readonly string[];
-  readonly workspaceFolders: readonly L0WorkspaceFolder[];
-  readonly dynamicWorkspaceFolder?: L0WorkspaceFolder;
-  readonly dynamicWorkspaceFolders?: readonly L0WorkspaceFolder[];
-  readonly dynamicWorkspaceAddMode?: "batch" | "one-by-one";
-  readonly documents: readonly L0ProtocolDocument[];
-  readonly visibleFiles?: readonly string[];
-  readonly visibleFilesMode?: L0VisibleFilesMode;
-  readonly workspaceUpdates?: readonly L0WorkspaceUpdate[];
-  readonly workspaceUpdateHook?: () => Promise<void>;
-  readonly commonCaches?: string;
-  readonly cwd?: string;
-  readonly initializationTimeoutMs?: number;
-  readonly requestTimeoutMs?: number;
-  readonly diagnosticsTimeoutMs?: number;
-  readonly diagnosticsQuietWindowMs?: number;
-  readonly startupSettlingMs?: number;
-  readonly synchronous?: boolean;
-  readonly includeInvalidProbe?: boolean;
-}
-
-export interface L0DiagnosticObservation {
-  readonly uri: string;
-  readonly version?: number;
-  readonly count: number;
-  readonly severities: readonly string[];
-  readonly messages: readonly string[];
-  readonly received: boolean;
-  readonly elapsedMs?: number;
-  readonly items?: readonly L0DiagnosticItem[];
-}
-
-export interface L0DiagnosticItem {
-  readonly uri: string;
-  readonly severity?: string;
-  readonly message: string;
-  readonly code?: string;
-  readonly source?: string;
-  readonly range: { readonly start: Position; readonly end: Position };
-  readonly relatedLocations: readonly L0SymbolLocation[];
-}
-
-export interface L0SymbolLocation {
-  readonly uri: string;
-  readonly range?: {
-    readonly start: Position;
-    readonly end: Position;
-  };
-  readonly targetSelectionRange?: {
-    readonly start: Position;
-    readonly end: Position;
-  };
-}
-
-export interface L0DocumentObservation {
-  readonly language: string;
-  readonly uri: string;
-  readonly valid: L0DiagnosticObservation;
-  readonly invalid: L0DiagnosticObservation;
-  readonly definition: L0RequestObservation;
-  readonly hover: L0RequestObservation;
-  readonly completion: L0RequestObservation;
-}
-
-export interface L0RequestObservation {
-  readonly supportedByCapabilities: boolean;
-  readonly completed: boolean;
-  readonly resultKind: string;
-  readonly resultCount?: number;
-  readonly locations?: readonly L0SymbolLocation[];
-  readonly hoverText?: string;
-  readonly completionLabels?: readonly string[];
-  readonly error?: string;
-}
-
-export interface L0ProtocolSnapshot {
-  readonly schemaVersion: "v2.l0.codeql-lsp/1";
-  readonly codeqlPath: string;
-  readonly searchPaths: readonly string[];
-  readonly workspaceFolders: readonly L0WorkspaceFolder[];
-  readonly initialize: {
-    readonly serverInfo?: { readonly name: string; readonly version?: string };
-    readonly capabilities: InitializeResult["capabilities"];
-    readonly observedServerRequests: Readonly<Record<string, number>>;
-  };
-  readonly capabilitySummary: {
-    readonly diagnostics: boolean;
-    readonly definition: boolean;
-    readonly hover: boolean;
-    readonly completion: boolean;
-    readonly workspaceFolders: boolean;
-    readonly dynamicWorkspaceFolders: boolean;
-    readonly experimental: readonly string[];
-  };
-  readonly workspace: {
-    readonly configurationNotificationSent: boolean;
-    readonly dynamicWorkspaceFoldersNotificationSent: boolean;
-    readonly watchedFilesNotificationSent: boolean;
-    readonly visibleFilesNotificationSent: boolean;
-    readonly visibleFilesUpdateCount: number;
-    readonly initialWorkspaceFolders: readonly L0WorkspaceFolder[];
-    readonly dynamicWorkspaceFolders: readonly L0WorkspaceFolder[];
-    readonly workspaceUpdates: readonly L0WorkspaceUpdate[];
-  };
-  readonly documents: readonly L0DocumentObservation[];
-  readonly timeline: readonly L0TimelineEvent[];
-  readonly transport: {
-    readonly errors: readonly string[];
-    readonly stderrTail: readonly string[];
-    readonly cleanShutdown: boolean;
-  };
-}
-
-export interface L0TimelineEvent {
-  readonly atMs: number;
-  readonly direction: "client" | "server";
-  readonly method: string;
-  readonly uri?: string;
-  readonly detail?: string;
-}
-
-interface DiagnosticWaiter {
-  readonly afterSequence: number;
-  readonly resolve: (event: DiagnosticEvent) => void;
-  readonly reject: (error: Error) => void;
-  readonly timer: NodeJS.Timeout;
-  quietTimer?: NodeJS.Timeout;
-  latestEvent?: DiagnosticEvent;
-}
-
-interface DiagnosticEvent extends PublishDiagnosticsParams {
-  readonly sequence: number;
-}
 
 /**
  * L0 only: exercise the real CodeQL Language Server protocol before the V2
@@ -723,20 +593,23 @@ export class CodeqlLspProtocolSpike {
       elapsedMs: Math.round(performance.now() - validStartedAt),
     };
 
-    const definition = await this.requestDefinition(
+    const definition = await requestDefinition(
       connection,
       document,
       capabilities.definition,
+      this.options.requestTimeoutMs,
     );
-    const hover = await this.requestHover(
+    const hover = await requestHover(
       connection,
       document,
       capabilities.hover,
+      this.options.requestTimeoutMs,
     );
-    const completion = await this.requestCompletion(
+    const completion = await requestCompletion(
       connection,
       document,
       capabilities.completion,
+      this.options.requestTimeoutMs,
     );
 
     if (!this.options.includeInvalidProbe) {
@@ -832,138 +705,6 @@ export class CodeqlLspProtocolSpike {
       hover,
       completion,
     };
-  }
-
-  private async requestDefinition(
-    connection: MessageConnection,
-    document: L0ProtocolDocument,
-    supported: boolean,
-  ): Promise<L0RequestObservation> {
-    if (!supported) {
-      return {
-        supportedByCapabilities: false,
-        completed: false,
-        resultKind: "unsupported",
-      };
-    }
-    try {
-      const result = await withTimeout(
-        connection.sendRequest<Location[] | LocationLink[] | null>(
-          DefinitionRequest.method,
-          {
-            textDocument: { uri: document.uri },
-            position: positionAt(document.text, document.definitionToken),
-          },
-        ),
-        this.options.requestTimeoutMs,
-        "textDocument/definition",
-      );
-      const locations = normalizeLocations(result);
-      return {
-        supportedByCapabilities: true,
-        completed: true,
-        resultKind:
-          result === null ? "null" : Array.isArray(result) ? "array" : "single",
-        resultCount: locations.length,
-        locations,
-      };
-    } catch (error: unknown) {
-      return {
-        supportedByCapabilities: true,
-        completed: false,
-        resultKind: "error",
-        error: errorMessage(error),
-      };
-    }
-  }
-
-  private async requestHover(
-    connection: MessageConnection,
-    document: L0ProtocolDocument,
-    supported: boolean,
-  ): Promise<L0RequestObservation> {
-    if (!supported) {
-      return {
-        supportedByCapabilities: false,
-        completed: false,
-        resultKind: "unsupported",
-      };
-    }
-    try {
-      const result = await withTimeout(
-        connection.sendRequest<Hover | null>(HoverRequest.method, {
-          textDocument: { uri: document.uri },
-          position: positionAt(document.text, document.definitionToken),
-        }),
-        this.options.requestTimeoutMs,
-        "textDocument/hover",
-      );
-      const hover = result as Hover | null;
-      return {
-        supportedByCapabilities: true,
-        completed: true,
-        resultKind: hover === null ? "null" : "hover",
-        ...(hover === null ? {} : { hoverText: summarizeHover(hover) }),
-      };
-    } catch (error: unknown) {
-      return {
-        supportedByCapabilities: true,
-        completed: false,
-        resultKind: "error",
-        error: errorMessage(error),
-      };
-    }
-  }
-
-  private async requestCompletion(
-    connection: MessageConnection,
-    document: L0ProtocolDocument,
-    supported: boolean,
-  ): Promise<L0RequestObservation> {
-    if (!supported) {
-      return {
-        supportedByCapabilities: false,
-        completed: false,
-        resultKind: "unsupported",
-      };
-    }
-    try {
-      const result = await withTimeout(
-        connection.sendRequest<CompletionItem[] | CompletionList | null>(
-          CompletionRequest.method,
-          {
-            textDocument: { uri: document.uri },
-            position: positionAt(document.text, document.completionToken, true),
-            context: { triggerKind: 1 },
-          },
-        ),
-        this.options.requestTimeoutMs,
-        "textDocument/completion",
-      );
-      const count = completionCount(result);
-      const completionLabels = completionItems(result)
-        .slice(0, 20)
-        .map((item) => item.label);
-      return {
-        supportedByCapabilities: true,
-        completed: true,
-        resultKind:
-          result === null
-            ? "null"
-            : isCompletionList(result)
-              ? "list"
-              : "array",
-        resultCount: count,
-        completionLabels,
-      };
-    } catch (error: unknown) {
-      return {
-        supportedByCapabilities: true,
-        completed: false,
-        resultKind: "error",
-        error: errorMessage(error),
-      };
-    }
   }
 
   private waitForDiagnostics(
@@ -1176,166 +917,3 @@ export class CodeqlLspProtocolSpike {
     }
   }
 }
-
-function summarizeCapabilities(
-  capabilities: InitializeResult["capabilities"],
-): L0ProtocolSnapshot["capabilitySummary"] {
-  const workspaceFolders = capabilities.workspace?.workspaceFolders;
-  return {
-    diagnostics: false,
-    definition: Boolean(capabilities.definitionProvider),
-    hover: Boolean(capabilities.hoverProvider),
-    completion: Boolean(capabilities.completionProvider),
-    workspaceFolders: Boolean(workspaceFolders),
-    dynamicWorkspaceFolders:
-      typeof workspaceFolders === "object" &&
-      workspaceFolders !== null &&
-      workspaceFolders.changeNotifications === true,
-    experimental:
-      capabilities.experimental !== undefined &&
-      typeof capabilities.experimental === "object" &&
-      capabilities.experimental !== null
-        ? Object.keys(capabilities.experimental)
-        : [],
-  };
-}
-
-function toDiagnosticObservation(
-  event: DiagnosticEvent,
-): L0DiagnosticObservation {
-  return {
-    uri: event.uri,
-    ...(event.version === undefined ? {} : { version: event.version }),
-    count: event.diagnostics.length,
-    severities: event.diagnostics.map((diagnostic) => severityName(diagnostic)),
-    messages: event.diagnostics.map((diagnostic) => diagnostic.message),
-    received: true,
-    items: event.diagnostics.map((diagnostic) => ({
-      uri: event.uri,
-      ...(diagnostic.severity === undefined
-        ? {}
-        : { severity: severityName(diagnostic) }),
-      message: diagnostic.message,
-      ...(diagnostic.code === undefined
-        ? {}
-        : { code: String(diagnostic.code) }),
-      ...(diagnostic.source === undefined ? {} : { source: diagnostic.source }),
-      range: diagnostic.range,
-      relatedLocations: (diagnostic.relatedInformation ?? []).map(
-        (related) => ({
-          uri: related.location.uri,
-          range: related.location.range,
-        }),
-      ),
-    })),
-  };
-}
-
-function severityName(diagnostic: Diagnostic): string {
-  switch (diagnostic.severity) {
-    case 1:
-      return "error";
-    case 2:
-      return "warning";
-    case 3:
-      return "information";
-    case 4:
-      return "hint";
-    default:
-      return "unspecified";
-  }
-}
-
-function positionAt(text: string, token: string, after = false): Position {
-  const index = text.indexOf(token);
-  if (index < 0) {
-    return { line: 0, character: 0 };
-  }
-  const offset = after ? index + token.length : index;
-  const prefix = text.slice(0, offset);
-  const lines = prefix.split("\n");
-  return { line: lines.length - 1, character: lines.at(-1)?.length ?? 0 };
-}
-
-function completionCount(
-  result: CompletionItem[] | CompletionList | null,
-): number {
-  if (result === null) {
-    return 0;
-  }
-  return Array.isArray(result) ? result.length : result.items.length;
-}
-
-function completionItems(
-  result: CompletionItem[] | CompletionList | null,
-): readonly CompletionItem[] {
-  if (result === null) {
-    return [];
-  }
-  return Array.isArray(result) ? result : result.items;
-}
-
-function isCompletionList(
-  result: CompletionItem[] | CompletionList,
-): result is CompletionList {
-  return !Array.isArray(result) && "items" in result;
-}
-
-function normalizeLocations(
-  result: Location[] | LocationLink[] | null,
-): readonly L0SymbolLocation[] {
-  if (result === null) {
-    return [];
-  }
-  return result.map((location) => {
-    if ("targetUri" in location) {
-      return {
-        uri: location.targetUri,
-        range: location.targetRange,
-        targetSelectionRange: location.targetSelectionRange,
-      };
-    }
-    return { uri: location.uri, range: location.range };
-  });
-}
-
-function summarizeHover(hover: Hover): string {
-  const contents = Array.isArray(hover.contents)
-    ? hover.contents
-    : [hover.contents];
-  const text = contents
-    .map((content) => {
-      if (typeof content === "string") {
-        return content;
-      }
-      if ("value" in content) {
-        return content.value;
-      }
-      return "";
-    })
-    .join("\n");
-  return text.length > 2_000 ? `${text.slice(0, 2_000)}…` : text;
-}
-
-export function l0UriForPath(path: string): string {
-  return pathToFileURL(path).href;
-}
-
-export async function readL0Document(
-  path: string,
-  language: string,
-  invalidText: string,
-  definitionToken: string,
-  completionToken: string,
-): Promise<L0ProtocolDocument> {
-  const text = await readFile(path, "utf8");
-  return {
-    language,
-    uri: l0UriForPath(path),
-    text,
-    invalidText,
-    definitionToken,
-    completionToken,
-  };
-}
-

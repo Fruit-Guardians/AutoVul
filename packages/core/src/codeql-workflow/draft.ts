@@ -34,11 +34,11 @@ export async function draftQuery(
         });
       }
       assertCandidateProbeForUserCase(candidate, state.spec);
-      const run = await context.status.get(runId);
+      const run = await context.repository.getRun(runId);
       if (isTerminalWorkflowStatus(run.status)) {
         throw new DomainError("INVALID_STATE_TRANSITION", "state", `Cannot draft in ${run.status} run`, false, { runId, status: run.status });
       }
-      if (run.status === "created" || run.status === "checkpointed") await context.status.start(runId, "query_draft");
+      if (run.status === "created" || run.status === "checkpointed") await context.repository.startRun(runId, "query_draft");
       const draftRevisionBudget = state.spec.draft_revision_budget ?? 6;
       const revision = (state.draft_revisions ?? 0) + 1;
       if (revision > draftRevisionBudget) {
@@ -62,8 +62,8 @@ export async function draftQuery(
   } catch (error: unknown) {
     const domainError = asDomainError(error);
     const withId = addRunId(domainError, runId);
-    if (withId.code === "PROCESS_CANCELLED" && withId.details.waitingForWorkflowLease !== true) await context.status.cancel(runId, withId.toRecord()).catch(() => undefined);
-    else if (withId.category !== "input" && withId.code !== "WORKFLOW_BUSY" && withId.code !== "QUERY_BUDGET_EXCEEDED") await context.status.fail(runId, withId.toRecord()).catch(() => undefined);
+    if (withId.code === "PROCESS_CANCELLED" && withId.details.waitingForWorkflowLease !== true) await context.repository.cancelRun(runId, withId.toRecord()).catch(() => undefined);
+    else if (withId.category !== "input" && withId.code !== "WORKFLOW_BUSY" && withId.code !== "QUERY_BUDGET_EXCEEDED") await context.repository.failRun(runId, withId.toRecord()).catch(() => undefined);
     throw withId;
   }
 }

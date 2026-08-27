@@ -23,12 +23,12 @@ export async function probeQuery(
     return await context.repository.withRunOperation(runId, options, async () => {
       const state = await context.repository.load(runId);
       const intent = normalizeTaintIntent(inputIntent, state.spec.language);
-      const run = await context.status.get(runId);
+      const run = await context.repository.getRun(runId);
       if (isTerminalWorkflowStatus(run.status)) {
         throw newDomainStateError(runId, run.status);
       }
       if (run.status === "created" || run.status === "checkpointed") {
-        await context.status.start(runId, "query_probe");
+        await context.repository.startRun(runId, "query_probe");
       }
       const evidence = parseSchema(
         ProbeEvidenceSchema,
@@ -50,9 +50,9 @@ export async function probeQuery(
     const domainError = asDomainError(error);
     const withId = addRunId(domainError, runId);
     if (withId.code === "PROCESS_CANCELLED" && withId.details.waitingForWorkflowLease !== true) {
-      await context.status.cancel(runId, withId.toRecord()).catch(() => undefined);
+      await context.repository.cancelRun(runId, withId.toRecord()).catch(() => undefined);
     } else if (withId.category !== "input" && withId.code !== "WORKFLOW_BUSY") {
-      await context.status.fail(runId, withId.toRecord()).catch(() => undefined);
+      await context.repository.failRun(runId, withId.toRecord()).catch(() => undefined);
     }
     throw withId;
   }

@@ -1,5 +1,6 @@
 import { DomainError, type CaseRunSummary, type CodeqlEnvironment, type DatabaseManifest, type RunId, type RunManifest } from "@pure-auto-codeql/contracts";
 import type {
+  ArtifactBundleFile,
   ArtifactStorePort,
   ClockPort,
   CodeqlOperationOptions,
@@ -9,6 +10,7 @@ import type {
   ProcessOptions,
   ProcessPort,
   ProcessResult,
+  StagedArtifactBundle,
 } from "@pure-auto-codeql/core";
 
 export class MemoryArtifactStore implements ArtifactStorePort {
@@ -17,6 +19,7 @@ export class MemoryArtifactStore implements ArtifactStorePort {
   private readonly locks = new Set<RunId>();
   private readonly operationLocks = new Set<RunId>();
   readonly caseSummaries = new Map<string, CaseRunSummary>();
+  readonly staged = new Map<string, { targetRelativePath: string; files: Map<string, string> }>();
   private readonly caseLocks = new Set<string>();
 
   artifactRoot(runId: RunId): string {
@@ -37,6 +40,53 @@ export class MemoryArtifactStore implements ArtifactStorePort {
 
   async writeArtifact(runId: RunId, relativePath: string, content: string): Promise<void> {
     this.artifacts.set(`${runId}/${relativePath}`, content);
+  }
+
+  async listArtifactPaths(runId: RunId, relativeDirectory: string): Promise<readonly string[]> {
+    const prefix = `${runId}/${relativeDirectory.replace(/\/$/, "")}/`;
+    return [...this.artifacts.keys()]
+      .filter((key) => key.startsWith(prefix))
+      .map((key) => key.slice(`${runId}/`.length));
+  }
+
+  async stageArtifactBundle(runId: RunId, operationId: string, targetRelativePath: string, files: readonly ArtifactBundleFile[]): Promise<StagedArtifactBundle> {
+    const stagedFiles = new Map<string, string>();
+    for (const file of files) {
+      if (stagedFiles.has(file.relativePath)) throw new DomainError("INVALID_INPUT", "input", "Artifact bundle contains duplicate paths", false, { operationId, relativePath: file.relativePath });
+      stagedFiles.set(file.relativePath, file.content);
+    }
+    this.staged.set(`${runId}/${operationId}`, { targetRelativePath, files: stagedFiles });
+    return { operationId, targetRelativePath, files: [...stagedFiles.keys()] };
+  }
+
+  async readStagedArtifact(runId: RunId, operationId: string, relativePath: string): Promise<string | undefined> {
+    return this.staged.get(`${runId}/${operationId}`)?.files.get(relativePath);
+  }
+
+  async promoteArtifactBundle(runId: RunId, bundle: StagedArtifactBundle): Promise<void> {
+    const staged = this.staged.get(`${runId}/${bundle.operationId}`);
+    if (staged === undefined) throw new DomainError("ARTIFACT_NOT_FOUND", "artifact", "Staged artifact bundle was not found", false, { runId, operationId: bundle.operationId });
+    const targetPrefix = `${runId}/${bundle.targetRelativePath}/`;
+    if ([...this.artifacts.keys()].some((key) => key.startsWith(targetPrefix))) throw new DomainError("INVALID_STATE_TRANSITION", "state", "Artifact bundle target already exists", false, { runId, targetRelativePath: bundle.targetRelativePath });
+    for (const [relativePath, content] of staged.files) this.artifacts.set(`${targetPrefix}${relativePath}`, content);
+    this.staged.delete(`${runId}/${bundle.operationId}`);
+  }
+
+  async discardArtifactBundle(runId: RunId, bundle: StagedArtifactBundle | string): Promise<void> {
+    const operationId = typeof bundle === "string" ? bundle : bundle.operationId;
+    this.staged.delete(`${runId}/${operationId}`);
+  }
+
+  async discardPromotedArtifactBundle(runId: RunId, targetRelativePath: string): Promise<void> {
+    const prefix = `${runId}/${targetRelativePath}/`;
+    for (const key of [...this.artifacts.keys()]) {
+      if (key.startsWith(prefix)) this.artifacts.delete(key);
+    }
+  }
+
+  async listStagedArtifactOperations(runId: RunId): Promise<readonly string[]> {
+    const prefix = `${runId}/`;
+    return [...this.staged.keys()].filter((key) => key.startsWith(prefix)).map((key) => key.slice(prefix.length));
   }
 
   async withRunLock<T>(runId: RunId, operation: () => Promise<T>): Promise<T> {

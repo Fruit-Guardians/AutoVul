@@ -66,6 +66,19 @@ export class NodeFileSystemPort implements FileSystemPort {
     await rm(path, { force: true });
   }
 
+  async removeTree(path: string): Promise<void> {
+    await rm(path, { force: true, recursive: true });
+  }
+
+  async promoteDirectory(sourcePath: string, targetPath: string): Promise<void> {
+    await rename(sourcePath, targetPath);
+  }
+
+  async listDirectory(path: string): Promise<readonly { name: string; isDirectory: boolean }[]> {
+    const entries = await readdir(path, { withFileTypes: true });
+    return entries.map((entry) => ({ name: entry.name, isDirectory: entry.isDirectory() }));
+  }
+
   async canonicalize(path: string): Promise<string> {
     return realpath(path);
   }

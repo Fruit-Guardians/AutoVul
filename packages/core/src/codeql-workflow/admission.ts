@@ -33,7 +33,7 @@ export async function startWorkflow(
   try {
     persistedSpec = await inspectAndPersistSpec(context, spec, databaseOptions);
   } catch (error: unknown) {
-    const run = await context.status.create();
+    const run = await context.repository.createRun();
     createdRunId = run.runId;
     const domainError = asDomainError(error);
     const withId = withRunId(domainError, run.runId);
@@ -47,8 +47,8 @@ export async function startWorkflow(
       candidates: [],
       verifications: [],
     });
-    if (withId.code === "PROCESS_CANCELLED") await context.status.cancel(run.runId, withId.toRecord());
-    else await context.status.fail(run.runId, withId.toRecord());
+    if (withId.code === "PROCESS_CANCELLED") await context.repository.cancelRun(run.runId, withId.toRecord());
+    else await context.repository.failRun(run.runId, withId.toRecord());
     const summary = emptyCaseSummary(failureFingerprint, run.runId, failureSpec.max_rounds, context.clock.now());
     const { active_run_id: _activeRunId, ...withoutActiveRun } = summary;
     await context.repository.saveCaseSummary({
@@ -66,7 +66,7 @@ export async function startWorkflow(
     return await context.repository.withCaseLock(caseFingerprint, async () => {
       let existingSummary = await context.repository.findCaseSummary(caseFingerprint);
       if (existingSummary?.status === "active" && existingSummary.active_run_id !== undefined) {
-        const activeRun = await context.artifacts.findManifest(existingSummary.active_run_id);
+        const activeRun = await context.repository.tryGetRun(existingSummary.active_run_id);
         if (activeRun === undefined || isTerminalRunStatus(activeRun.status)) {
           const { active_run_id: _activeRunId, ...withoutActiveRun } = existingSummary;
           const recoveredStatus = activeRun?.status === "cancelled"
@@ -94,10 +94,10 @@ export async function startWorkflow(
           : undefined;
       if (existingRunId !== undefined) return readStatus(existingRunId);
 
-      const run = await context.status.create();
+      const run = await context.repository.createRun();
       createdRunId = run.runId;
       try {
-        await context.status.start(run.runId, "workflow_start");
+        await context.repository.startRun(run.runId, "workflow_start");
         await context.repository.save(run.runId, {
           schema_version: CONTRACTS_VERSION,
           case_fingerprint: caseFingerprint,
@@ -115,8 +115,8 @@ export async function startWorkflow(
       } catch (error: unknown) {
         const domainError = asDomainError(error);
         const record = withRunId(domainError, run.runId).toRecord();
-        if (domainError.code === "PROCESS_CANCELLED") await context.status.cancel(run.runId, record).catch(() => undefined);
-        else await context.status.fail(run.runId, record).catch(() => undefined);
+        if (domainError.code === "PROCESS_CANCELLED") await context.repository.cancelRun(run.runId, record).catch(() => undefined);
+        else await context.repository.failRun(run.runId, record).catch(() => undefined);
         const terminalSummary = emptyCaseSummary(caseFingerprint, run.runId, persistedSpec.max_rounds, context.clock.now());
         const { active_run_id: _activeRunId, ...withoutActiveRun } = terminalSummary;
         await context.repository.saveCaseSummary({
@@ -135,8 +135,8 @@ export async function startWorkflow(
     const domainError = asDomainError(error);
     if (createdRunId !== undefined && domainError.details.runId !== createdRunId && domainError.code !== "WORKFLOW_BUSY") {
       const withId = withRunId(domainError, createdRunId);
-      if (withId.code === "PROCESS_CANCELLED") await context.status.cancel(createdRunId, withId.toRecord()).catch(() => undefined);
-      else await context.status.fail(createdRunId, withId.toRecord()).catch(() => undefined);
+      if (withId.code === "PROCESS_CANCELLED") await context.repository.cancelRun(createdRunId, withId.toRecord()).catch(() => undefined);
+      else await context.repository.failRun(createdRunId, withId.toRecord()).catch(() => undefined);
       throw withId;
     }
     throw createdRunId === undefined ? domainError : withRunId(domainError, createdRunId);

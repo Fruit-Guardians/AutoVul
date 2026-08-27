@@ -6,7 +6,6 @@ import {
   QueryDraftReportSchema,
   QueryVerificationSchema,
   RunIdSchema,
-  type CaseRunSummary,
   type QueryCandidate,
   type QueryWorkflowState,
   type QueryDraftReport,
@@ -60,16 +59,19 @@ export async function verifyQuery(
       if (existingCandidate !== undefined && candidateDigest(existingCandidate) !== candidate.candidate_digest) {
         throw new DomainError("QUERY_INVALID_CANDIDATE", "input", "Candidate id was already used with different content", false, { runId, candidateId: candidate.candidate_id });
       }
-      if (existing !== undefined) return existing;
+      if (existing !== undefined) {
+        await context.repository.reconcile(runId);
+        return existing;
+      }
       if (existingIndex < 0 && state.candidates.length >= state.spec.max_rounds) {
         throw new DomainError("QUERY_BUDGET_EXCEEDED", "policy", "The query candidate round budget has been exhausted", false, { runId, maxRounds: state.spec.max_rounds });
       }
 
-      const run = await context.status.get(runId);
+      const run = await context.repository.getRun(runId);
       if (isTerminalWorkflowStatus(run.status)) {
         throw new DomainError("INVALID_STATE_TRANSITION", "state", `Cannot verify a candidate in ${run.status} run`, false, { runId, status: run.status });
       }
-      if (run.status === "checkpointed" || run.status === "created") await context.status.start(runId, "query_verify");
+      if (run.status === "checkpointed" || run.status === "created") await context.repository.startRun(runId, "query_verify");
       await writeCandidateArtifacts(context, runId, candidate, state.spec.language);
 
       let execution: QueryExecutionResult;
@@ -83,8 +85,8 @@ export async function verifyQuery(
       } catch (error: unknown) {
         const domainError = asDomainError(error);
         const withId = addRunId(domainError, runId);
-        if (withId.code === "PROCESS_CANCELLED") await context.status.cancel(runId, withId.toRecord());
-        else await context.status.fail(runId, withId.toRecord());
+        if (withId.code === "PROCESS_CANCELLED") await context.repository.cancelRun(runId, withId.toRecord());
+        else await context.repository.failRun(runId, withId.toRecord());
         throw withId;
       }
 
@@ -96,25 +98,19 @@ export async function verifyQuery(
           : state.candidates.map((item) => item.candidate_id === candidate.candidate_id ? candidate : item),
         verifications: [...state.verifications, baseVerification],
       };
-      if (baseVerification.status === "passed") await context.status.checkpoint(runId, "query_verify", baseVerification.verification_level);
-      let caseSummary = await updateCaseSummary(context, nextState, runId);
       const exhausted = baseVerification.status === "failed" && nextState.candidates.length >= state.spec.max_rounds;
-      if (exhausted) {
-        const exhaustionError = new DomainError("QUERY_BUDGET_EXCEEDED", "policy", "The case candidate budget has been exhausted", false, {
-          caseFingerprint: state.case_fingerprint,
-          runId,
-          maxCandidates: state.spec.max_rounds,
-        });
-        await context.status.exhaust(runId, exhaustionError.toRecord());
-        caseSummary = await updateCaseSummary(context, nextState, runId, "budget_exhausted");
-      }
       const terminalReason = baseVerification.status === "passed"
         ? "candidate_passed"
         : baseVerification.status === "cancelled"
           ? "cancelled"
-          : exhausted
-            ? "budget_exhausted"
-            : "candidate_failed";
+            : exhausted
+              ? "budget_exhausted"
+              : "candidate_failed";
+      const caseSummary = await context.repository.deriveCaseSummary(
+        nextState,
+        run,
+        exhausted ? "budget_exhausted" : undefined,
+      );
       const verification = parseSchema(QueryVerificationSchema, {
         ...baseVerification,
         case_summary: compactCaseSummary(caseSummary),
@@ -125,14 +121,26 @@ export async function verifyQuery(
         verifications: nextState.verifications.map((item) => item.candidate_id === candidate.candidate_id ? verification : item),
       };
       await context.repository.writeArtifact(runId, `candidates/${candidate.candidate_id}/verification.json`, `${JSON.stringify(verification, null, 2)}\n`);
-      await context.repository.save(runId, finalState);
+      await context.repository.commitState(runId, finalState, {
+        operationId: `verify-${candidateDigest({ ...candidate, ql_text: `${runId}:${candidate.candidate_id}` })}`,
+        idempotencyKey: `verify:${candidateDigest(candidate)}`,
+        kind: "verification",
+        workflowPhase: "query_verify",
+        candidateId: candidate.candidate_id,
+        referencedArtifacts: [
+          `candidates/${candidate.candidate_id}/query.ql`,
+          `candidates/${candidate.candidate_id}/qlpack.yml`,
+          `candidates/${candidate.candidate_id}/candidate.json`,
+          `candidates/${candidate.candidate_id}/verification.json`,
+        ],
+      }, options);
       return verification;
     });
   } catch (error: unknown) {
     const domainError = asDomainError(error);
     if (domainError.code === "PROCESS_CANCELLED" && domainError.details.waitingForWorkflowLease !== true) {
       const withId = addRunId(domainError, runId);
-      await context.status.cancel(runId, withId.toRecord()).catch(() => undefined);
+      await context.repository.cancelRun(runId, withId.toRecord()).catch(() => undefined);
       throw withId;
     }
     if (domainError.code === "PROCESS_CANCELLED") throw addRunId(domainError, runId);
@@ -167,11 +175,6 @@ async function writeCandidateArtifacts(context: CodeqlWorkflowContext, runId: st
   await context.repository.writeArtifact(runId, `candidates/${candidate.candidate_id}/query.ql`, candidate.ql_text);
   await context.repository.writeArtifact(runId, `candidates/${candidate.candidate_id}/qlpack.yml`, candidate.qlpack_yml ?? qlpackForLanguage(language));
   await context.repository.writeArtifact(runId, `candidates/${candidate.candidate_id}/candidate.json`, `${JSON.stringify(candidate, null, 2)}\n`);
-}
-
-async function updateCaseSummary(context: CodeqlWorkflowContext, state: QueryWorkflowState, runId: string, statusOverride?: CaseRunSummary["status"]): Promise<CaseRunSummary> {
-  const run = await context.status.get(runId);
-  return context.cases.update(state, run, statusOverride);
 }
 
 function addRunId(error: DomainError, runId: string): DomainError {

@@ -20,7 +20,7 @@ export class CaseLedger {
 
   async summaryFor(state: QueryWorkflowState, run: { runId: RunId; status: string }): Promise<CaseRunSummary> {
     const existing = await this.artifacts.findCaseSummary(state.case_fingerprint);
-    return existing ?? caseSummaryFromState(state, run, this.clock.now());
+    return caseSummaryFromState(state, run, this.clock.now(), existing, state.pack === undefined ? undefined : "completed", state.pack?.pack_id);
   }
 
   async update(
@@ -93,7 +93,7 @@ export function caseSummaryFromState(
   const exhausted = statusOverride === undefined && state.candidates.length >= state.spec.max_rounds && state.verifications.length >= state.spec.max_rounds && state.verifications.every((verification) => verification.status === "failed");
   const effectiveStatus = exhausted ? "budget_exhausted" : status;
   const runIds = existing?.run_ids.includes(run.runId) === true ? existing.run_ids : [...(existing?.run_ids ?? []), run.runId];
-  const retainedPackId = packId ?? existing?.pack_id;
+  const retainedPackId = packId ?? state.pack?.pack_id;
   return {
     schema_version: CONTRACTS_VERSION,
     case_fingerprint: state.case_fingerprint,
@@ -105,7 +105,7 @@ export function caseSummaryFromState(
     budget_remaining: Math.max(0, state.spec.max_rounds - state.candidates.length),
     status: effectiveStatus,
     ...(effectiveStatus === "active" ? {} : { final_run_id: run.runId }),
-    finalized: statusOverride === "completed" || existing?.finalized === true,
+    finalized: statusOverride === "completed" || state.pack !== undefined,
     ...(retainedPackId === undefined ? {} : { pack_id: retainedPackId }),
     ...(effectiveStatus === "active" ? {} : { final_phase: statusOverride === "completed" ? "workflow_finalize" : "query_verify" }),
     candidates: state.candidates.map((candidate) => {

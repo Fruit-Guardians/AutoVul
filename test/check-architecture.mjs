@@ -12,7 +12,6 @@ const productionRoots = [
 const oversized = [];
 for (const relativeRoot of productionRoots) {
   for (const file of await sourceFiles(join(root, relativeRoot))) {
-    if (file.includes(`${join("packages", "codeql-runner", "src", "lsp", "lab")}${process.platform === "win32" ? "\\" : "/"}`)) continue;
     const lines = (await readFile(file, "utf8")).split(/\r?\n/).length - 1;
     if (lines > 1_000) oversized.push(`${relative(root, file)} (${lines} lines)`);
   }
@@ -26,7 +25,7 @@ if (facade.includes("query-workflow-policy")) throw new Error("query-workflow.ts
 const runnerEntry = await readFile(join(root, "packages/codeql-runner/src/index.ts"), "utf8");
 if (runnerEntry.includes("CodeqlLspProtocolSpike") || runnerEntry.includes("protocol-spike")) throw new Error("protocol spike leaked into the production runner export surface");
 
-console.log("Architecture check passed: production size and boundary checks are clean; protocol lab is isolated under codeql-runner/lab.");
+console.log("Architecture check passed: production and LSP lab size/boundary checks are clean; protocol lab is isolated under codeql-runner/lab.");
 
 async function assertAtMost(relativePath, maximum) {
   const file = join(root, relativePath);

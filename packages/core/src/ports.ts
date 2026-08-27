@@ -56,8 +56,22 @@ export interface FileSystemPort {
   exists(path: string): Promise<boolean>;
   stat(path: string): Promise<{ exists: boolean; isDirectory: boolean; modifiedAtMs?: number }>;
   remove(path: string): Promise<void>;
+  removeTree(path: string): Promise<void>;
+  promoteDirectory(sourcePath: string, targetPath: string): Promise<void>;
+  listDirectory(path: string): Promise<readonly { name: string; isDirectory: boolean }[]>;
   canonicalize(path: string): Promise<string>;
   acquireLock(path: string): Promise<FileLock>;
+}
+
+export interface ArtifactBundleFile {
+  readonly relativePath: string;
+  readonly content: string;
+}
+
+export interface StagedArtifactBundle {
+  readonly operationId: string;
+  readonly targetRelativePath: string;
+  readonly files: readonly string[];
 }
 
 export interface ArtifactStorePort {
@@ -66,6 +80,18 @@ export interface ArtifactStorePort {
   saveManifest(manifest: RunManifest): Promise<void>;
   readArtifact(runId: RunId, relativePath: string): Promise<string | undefined>;
   writeArtifact(runId: RunId, relativePath: string, content: string): Promise<void>;
+  listArtifactPaths(runId: RunId, relativeDirectory: string): Promise<readonly string[]>;
+  stageArtifactBundle(
+    runId: RunId,
+    operationId: string,
+    targetRelativePath: string,
+    files: readonly ArtifactBundleFile[],
+  ): Promise<StagedArtifactBundle>;
+  readStagedArtifact(runId: RunId, operationId: string, relativePath: string): Promise<string | undefined>;
+  promoteArtifactBundle(runId: RunId, bundle: StagedArtifactBundle): Promise<void>;
+  discardArtifactBundle(runId: RunId, bundle: StagedArtifactBundle | string): Promise<void>;
+  discardPromotedArtifactBundle(runId: RunId, targetRelativePath: string): Promise<void>;
+  listStagedArtifactOperations(runId: RunId): Promise<readonly string[]>;
   withRunLock<T>(runId: RunId, operation: () => Promise<T>): Promise<T>;
   /**
    * Serialize workflow mutations independently from the manifest lock. The

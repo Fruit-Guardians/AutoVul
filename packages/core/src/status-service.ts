@@ -127,6 +127,35 @@ export class RunStatusService {
     });
   }
 
+  /** Repair a projection from authoritative workflow state, including after a stale terminal projection. */
+  async reconcileCheckpoint(runId: RunId, phase: RunPhase, verificationLevel: VerificationLevel): Promise<RunManifest> {
+    return this.artifacts.withRunLock(runId, async () => this.mutateLocked(runId, (manifest) => {
+      const { error: _error, ...withoutError } = manifest;
+      return this.updated(withoutError, {
+        status: "checkpointed",
+        phase,
+        verificationLevel,
+        checkpoint: { phase, completedAt: this.clock.now(), verificationLevel },
+      });
+    }));
+  }
+
+  /** Repair a completed projection after the authoritative Query Pack commit. */
+  async reconcileComplete(runId: RunId, verificationLevel: VerificationLevel, phase: RunPhase): Promise<RunManifest> {
+    return this.artifacts.withRunLock(runId, async () => this.mutateLocked(runId, (manifest) => {
+      const { error: _error, ...withoutError } = manifest;
+      return this.updated(withoutError, { status: "completed", phase, verificationLevel });
+    }));
+  }
+
+  /** Repair budget exhaustion from committed candidate state. */
+  async reconcileExhausted(runId: RunId, error: DomainErrorRecord): Promise<RunManifest> {
+    return this.artifacts.withRunLock(runId, async () => this.mutateLocked(runId, (manifest) => {
+      const { checkpoint: _checkpoint, ...withoutCheckpoint } = manifest;
+      return this.updated(withoutCheckpoint, { status: "budget_exhausted", error });
+    }));
+  }
+
   /** Apply a manifest mutation while the caller owns the workflow lease. */
   async mutateLocked(runId: RunId, operation: (manifest: RunManifest) => RunManifest): Promise<RunManifest> {
     const current = await this.get(runId);
