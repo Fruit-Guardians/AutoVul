@@ -31,11 +31,7 @@ export class WorkflowController {
       return { schemaVersion: CONTRACTS_VERSION, environment, run: completed };
     } catch (error: unknown) {
       const domainError = withRunId(asDomainError(error), run.runId);
-      if (domainError.code === "PROCESS_CANCELLED") {
-        await this.statusService.cancel(run.runId, domainError.toRecord());
-      } else {
-        await this.statusService.fail(run.runId, domainError.toRecord());
-      }
+      await this.finishFailure(run.runId, domainError);
       throw domainError;
     }
   }
@@ -81,12 +77,19 @@ export class WorkflowController {
       return { schemaVersion: CONTRACTS_VERSION, database, run: completed };
     } catch (error: unknown) {
       const domainError = withRunId(asDomainError(error), run.runId);
-      if (domainError.code === "PROCESS_CANCELLED") {
-        await this.statusService.cancel(run.runId, domainError.toRecord());
-      } else {
-        await this.statusService.fail(run.runId, domainError.toRecord());
-      }
+      await this.finishFailure(run.runId, domainError);
       throw domainError;
     }
+  }
+
+  private async finishFailure(
+    runId: RunId,
+    error: ReturnType<typeof withRunId>,
+  ): Promise<void> {
+    if (error.code === "PROCESS_CANCELLED") {
+      await this.statusService.cancel(runId, error.toRecord());
+      return;
+    }
+    await this.statusService.fail(runId, error.toRecord());
   }
 }

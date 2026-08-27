@@ -4,6 +4,7 @@ import { DomainError } from "@pure-auto-codeql/contracts";
 import type { ProcessCommand, ProcessOptions, ProcessPort, ProcessResult } from "@pure-auto-codeql/core";
 
 import { limitOutput, sanitizeOutput } from "./output.js";
+import { terminateProcessTree } from "./lsp/process-lifecycle.js";
 
 interface CapturedOutput {
   chunks: Buffer[];
@@ -113,21 +114,6 @@ function captureStream(stream: NodeJS.ReadableStream, maxBytes: number): Capture
     capture.truncated ||= buffer.byteLength > remaining;
   });
   return capture;
-}
-
-function terminateProcessTree(child: ChildProcess, signal: NodeJS.Signals = "SIGTERM"): void {
-  if (child.pid === undefined) {
-    return;
-  }
-  try {
-    if (process.platform === "win32") {
-      child.kill(signal);
-    } else {
-      process.kill(-child.pid, signal);
-    }
-  } catch {
-    child.kill(signal);
-  }
 }
 
 function assertSafeCommand(command: ProcessCommand): void {

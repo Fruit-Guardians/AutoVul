@@ -18,6 +18,16 @@ import {
 
 import { FixedClock, FixedIdGenerator, MemoryArtifactStore, FakeCodeqlPort } from "./helpers.js";
 
+async function waitFor(condition: () => boolean, timeoutMs = 1_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!condition()) {
+    if (Date.now() >= deadline) {
+      throw new Error("Timed out waiting for the workflow operation lease");
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
+}
+
 const spec: VulnerabilitySpec = {
   schema_version: CONTRACTS_VERSION,
   spec_id: "python-command-injection",
@@ -371,19 +381,20 @@ describe("M2 Python query workflow", () => {
   it("cancels a waiter without cancelling the operation that already owns the lease", async () => {
     const queries = new FakeQueryExecution();
     queries.delayMs = 40;
+    const artifacts = new MemoryArtifactStore();
     const app = new Application({
       codeql: new FakeCodeqlPort(),
       queries,
-      artifacts: new MemoryArtifactStore(),
+      artifacts,
       clock: new FixedClock(),
       ids: new FixedIdGenerator("run_m2waitcancel"),
     });
     await app.workflowStart(spec);
     const first = app.queryVerify("run_m2waitcancel", candidate("candidate-owner"));
-    await new Promise((resolve) => setTimeout(resolve, 5));
+    await waitFor(() => artifacts.isRunOperationLocked("run_m2waitcancel"));
     const controller = new AbortController();
     const waiter = app.queryVerify("run_m2waitcancel", candidate("candidate-waiter"), { signal: controller.signal, timeoutMs: 1000 });
-    setTimeout(() => controller.abort(), 5);
+    controller.abort();
     await expect(waiter).rejects.toMatchObject({ code: "PROCESS_CANCELLED", details: { runId: "run_m2waitcancel", waitingForWorkflowLease: true } });
     await expect(first).resolves.toMatchObject({ passed: true });
     expect((await app.workflowStatus("run_m2waitcancel")).run.status).toBe("checkpointed");

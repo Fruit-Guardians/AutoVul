@@ -10,6 +10,7 @@ import {
   type QueryCandidateInput,
   type VulnerabilitySpec,
 } from "@pure-auto-codeql/contracts";
+import { qlDoc, qlString } from "./ql-text.js";
 
 const FORBIDDEN_DRAFT_TOKENS = /(^|\W)(?:import|module|select|from|@kind|@id)(?=\W|$)/i;
 
@@ -110,12 +111,4 @@ export function renderPythonPathQuery(candidate: PythonPathQueryCandidate, spec:
 
 function indent(value: string): string {
   return value.trim().split(/\r?\n/).map((line) => line.trim().length === 0 ? "" : "    " + line).join("\n    ");
-}
-
-function qlDoc(value: string): string {
-  return value.replaceAll("\\", "\\\\").replaceAll("\n", " ").replaceAll("*/", "* /");
-}
-
-function qlString(value: string): string {
-  return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll("\n", " ");
 }

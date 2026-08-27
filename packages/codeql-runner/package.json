@@ -12,6 +12,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./lab": {
+      "types": "./dist/lsp/lab/index.d.ts",
+      "import": "./dist/lsp/lab/index.js"
     }
   },
   "scripts": {

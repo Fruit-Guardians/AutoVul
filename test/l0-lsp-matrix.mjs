@@ -8,7 +8,7 @@ import {
   CodeqlLspProtocolSpike,
   SessionRouter,
   l0UriForPath,
-} from "@pure-auto-codeql/codeql-runner";
+} from "@pure-auto-codeql/codeql-runner/lab";
 
 const testRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(testRoot, "..");

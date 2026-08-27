@@ -70,6 +70,10 @@ export class MemoryArtifactStore implements ArtifactStorePort {
     }
   }
 
+  isRunOperationLocked(runId: RunId): boolean {
+    return this.operationLocks.has(runId);
+  }
+
   async findCaseSummary(fingerprint: string): Promise<CaseRunSummary | undefined> {
     const value = this.caseSummaries.get(fingerprint);
     return value === undefined ? undefined : structuredClone(value);

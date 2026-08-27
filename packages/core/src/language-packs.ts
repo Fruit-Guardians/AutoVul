@@ -11,6 +11,8 @@ import {
   type TaintQueryIntent,
 } from "@pure-auto-codeql/contracts";
 
+import { qlDoc, qlString } from "./ql-text.js";
+
 export interface QueryLanguagePack {
   readonly language: LanguageFamily;
   readonly aliases: readonly string[];
@@ -656,12 +658,4 @@ function capability(
 
 function safeId(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9._/-]+/g, "-").replace(/\/+$/g, "");
-}
-
-function qlDoc(value: string): string {
-  return value.replaceAll("\\", "\\\\").replaceAll("\n", " ").replaceAll("*/", "* /");
-}
-
-function qlString(value: string): string {
-  return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll("\n", " ");
 }

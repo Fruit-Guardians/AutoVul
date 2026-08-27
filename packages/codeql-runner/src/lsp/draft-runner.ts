@@ -19,11 +19,11 @@ import type {
 import { allLanguagePacks, languagePackFor, qlpackForLanguage } from "@pure-auto-codeql/core";
 
 import {
-  CodeqlLspProtocolSpike,
-  type L0DiagnosticItem,
-  type L0ProtocolDocument,
-  l0UriForPath,
-} from "./protocol-spike.js";
+  CodeqlLspSession,
+  type LspDiagnosticItem,
+  type LspDocument,
+} from "./session.js";
+import { lspUriForPath } from "./uri.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -47,7 +47,7 @@ export interface LspDraftRunnerOptions {
  */
 export class CodeqlLspDraftRunner implements QueryDraftExecutionPort {
   private readonly executable: string;
-  private session: CodeqlLspProtocolSpike | undefined;
+  private session: CodeqlLspSession | undefined;
   private workspacePromise: Promise<StableLspWorkspace> | undefined;
   private operation = Promise.resolve();
   private consecutiveFailures = 0;
@@ -107,14 +107,13 @@ export class CodeqlLspDraftRunner implements QueryDraftExecutionPort {
       const packText = request.candidate.qlpack_yml ?? qlpackForLanguage(request.spec.language);
       if ((await readFile(packFile, "utf8")) !== packText) {
         await writeFile(packFile, packText, "utf8");
-        await this.session?.notifyWorkspaceUpdate([{ watchedUri: l0UriForPath(packFile) }]);
+        await this.session?.notifyWorkspaceUpdate([{ watchedUri: lspUriForPath(packFile) }]);
       }
       const documentPath = join(packRoot, "documents", safePathSegment(request.candidate.candidate_id), `revision-${request.revision}.ql`);
-      const document: L0ProtocolDocument = {
+      const document: LspDocument = {
         language: request.spec.language,
-        uri: l0UriForPath(documentPath),
+        uri: lspUriForPath(documentPath),
         text: request.candidate.ql_text,
-        invalidText: "this is deliberately invalid QL syntax",
         definitionToken: "DataFlow",
         completionToken: "DataFlow::",
       };
@@ -188,9 +187,9 @@ export class CodeqlLspDraftRunner implements QueryDraftExecutionPort {
     return this.workspacePromise;
   }
 
-  private async ensureSession(workspace: StableLspWorkspace, distributionRoot: string | undefined, operationTimeoutMs: number): Promise<CodeqlLspProtocolSpike> {
+  private async ensureSession(workspace: StableLspWorkspace, distributionRoot: string | undefined, operationTimeoutMs: number): Promise<CodeqlLspSession> {
     if (this.session !== undefined) return this.session;
-    const session = new CodeqlLspProtocolSpike({
+    const session = new CodeqlLspSession({
       codeqlPath: this.executable,
       searchPaths: uniquePaths([
         ...workspace.packRoots.values(),
@@ -198,15 +197,12 @@ export class CodeqlLspDraftRunner implements QueryDraftExecutionPort {
         ...(distributionRoot === undefined ? [] : [distributionRoot]),
       ]),
       workspaceFolders: workspace.workspaceFolders,
-      documents: [],
-      visibleFilesMode: "active-document",
       initializationTimeoutMs: Math.min(this.options.initializationTimeoutMs ?? 60_000, operationTimeoutMs),
       requestTimeoutMs: Math.min(this.options.requestTimeoutMs ?? 15_000, operationTimeoutMs),
       diagnosticsTimeoutMs: Math.min(this.options.diagnosticsTimeoutMs ?? 60_000, operationTimeoutMs),
       ...(this.options.diagnosticsQuietWindowMs === undefined ? {} : { diagnosticsQuietWindowMs: this.options.diagnosticsQuietWindowMs }),
       ...(this.options.startupSettlingMs === undefined ? {} : { startupSettlingMs: this.options.startupSettlingMs }),
       synchronous: this.options.synchronous ?? false,
-      includeInvalidProbe: false,
       ...(this.options.cwd === undefined ? {} : { cwd: this.options.cwd }),
     });
     this.session = session;
@@ -256,7 +252,7 @@ async function createStableWorkspace(): Promise<StableLspWorkspace> {
       await mkdir(packRoot, { recursive: true });
       await writeFile(join(packRoot, "qlpack.yml"), `name: pure-auto-codeql/lsp-${pack.language}\nversion: 0.0.1\ndependencies:\n  ${pack.dependency}: "*"\n`, "utf8");
       packRoots.set(pack.language, packRoot);
-      workspaceFolders.push({ uri: l0UriForPath(packRoot), name: `pure-auto-codeql-lsp-${pack.language}` });
+      workspaceFolders.push({ uri: lspUriForPath(packRoot), name: `pure-auto-codeql-lsp-${pack.language}` });
     }
     return { root, packRoots, workspaceFolders };
   } catch (error) {
@@ -266,14 +262,14 @@ async function createStableWorkspace(): Promise<StableLspWorkspace> {
 }
 
 async function runWithDeadline(
-  session: CodeqlLspProtocolSpike,
-  document: L0ProtocolDocument,
+  session: CodeqlLspSession,
+  document: LspDocument,
   options: CodeqlOperationOptions,
-): Promise<Awaited<ReturnType<CodeqlLspProtocolSpike["diagnoseDocument"]>>> {
+): Promise<Awaited<ReturnType<CodeqlLspSession["diagnose"]>>> {
   let timer: NodeJS.Timeout | undefined;
   let abortHandler: (() => void) | undefined;
   let completed = false;
-  const run = session.diagnoseDocument(document);
+  const run = session.diagnose(document);
   void run.catch(() => undefined);
   const deadline = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(() => reject(new Error("CodeQL LSP draft timed out")), Math.max(1_000, options.timeoutMs));
@@ -296,7 +292,7 @@ async function runWithDeadline(
   }
 }
 
-function toDraftDiagnostic(item: L0DiagnosticItem, draftPath: string, documentUri: string): QueryDraftDiagnostic {
+function toDraftDiagnostic(item: LspDiagnosticItem, draftPath: string, documentUri: string): QueryDraftDiagnostic {
   const file = item.uri === documentUri ? draftPath : fileForUri(item.uri);
   return {
     schema_version: CONTRACTS_VERSION,

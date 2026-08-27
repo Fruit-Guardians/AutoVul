@@ -2,3 +2,23 @@ node_modules/
 .vite/
 packages/*/dist/
 runs/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+*.log
+
+# Test, package and editor artifacts
+coverage/
+*.tgz
+.DS_Store
+Thumbs.db
+.claude/settings.local.json
+.gemini/settings.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak

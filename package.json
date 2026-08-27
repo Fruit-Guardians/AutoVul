@@ -27,7 +27,9 @@
     "test:l0-lsp:snapshot": "npm run build && node test/l0-lsp-snapshot.mjs",
     "test:lsp:conformance": "npm run build && node test/l0-lsp-snapshot.mjs && node test/lsp-conformance.mjs",
     "test:l0-lsp": "npm run test:l0-lsp:snapshot",
-    "lint": "npm run typecheck && node test/check-dependencies.mjs",
+    "lint": "npm run typecheck && node test/check-dependencies.mjs && npm run architecture:check && npm run spec:check",
+    "architecture:check": "node test/check-architecture.mjs",
+    "spec:check": "node test/check-specs.mjs",
     "pack:check": "npm pack --dry-run --workspace @pure-auto-codeql/contracts --workspace @pure-auto-codeql/core --workspace @pure-auto-codeql/codeql-runner --workspace @pure-auto-codeql/pi-extension --workspace @pure-auto-codeql/cli",
     "check": "npm run lint && npm test && npm run pack:check"
   },

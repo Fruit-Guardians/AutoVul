@@ -1,5 +1,11 @@
 # PureAutoCodeQL V2 M0/M3/M4
 
+PureAutoCodeQL V2 is a host-independent **vulnerability-research extension and deterministic analysis engine**. It runs under mature Agent/Harness hosts such as Pi Agent and, through future integrations, DeepSeek Harness. It does not implement its own general Agent, model provider, Agent Loop, memory, planning or subagent framework.
+
+> The host Agent owns understanding, reasoning and orchestration. PureAutoCodeQL owns vulnerability-research capabilities, deterministic execution, evidence and verification.
+
+See [AGENTS.md](./AGENTS.md) for the project charter and engineering rules, and [SPEC.md](./SPEC.md) for accepted product behavior and validation requirements. Material behavior changes follow the workflow in [specs/README.md](./specs/README.md).
+
 This workspace contains the isolated TypeScript M0 foundation for V2. The Python V1 remains the repository's existing runtime and is not imported by these packages.
 
 ## Packages
