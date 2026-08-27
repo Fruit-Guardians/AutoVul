@@ -1,0 +1,42 @@
+{
+  "name": "pure-auto-codeql-v2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PureAutoCodeQL V2 M0 workspace",
+  "type": "module",
+  "workspaces": [
+    "packages/contracts",
+    "packages/core",
+    "packages/codeql-runner",
+    "packages/pi-extension",
+    "packages/cli"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run build && npm run typecheck --workspaces --if-present",
+    "test": "npm run build && vitest run",
+    "test:integration": "npm run build && vitest run test/cli.test.ts test/codeql-runner.test.ts test/artifact-store.test.ts",
+    "test:lock": "npm run build && vitest run test/lock.test.ts",
+    "test:e2e": "npm run build && node test/pi-rpc-smoke.mjs",
+    "test:m2-golden-fake": "npm run build && vitest run test/m2-workflow.test.ts test/m2-query-runner.test.ts test/m2-cli.test.ts test/m2-cross-process.test.ts test/m2-reference-isolation.test.ts",
+    "test:m2-golden-real": "npm run build && node test/m2-golden-real.mjs",
+    "test:m3-compile": "npm run build && node test/m3-language-pack-compile.mjs",
+    "test:m3-golden-real": "npm run build && node test/m3-golden-real.mjs",
+    "test:m4-golden-real": "npm run build && node test/m4-golden-real.mjs",
+    "test:m4-pi-e2e": "npm run build && node test/m4-pi-rpc-real.mjs",
+    "test:l0-lsp:snapshot": "npm run build && node test/l0-lsp-snapshot.mjs",
+    "test:lsp:conformance": "npm run build && node test/l0-lsp-snapshot.mjs && node test/lsp-conformance.mjs",
+    "test:l0-lsp": "npm run test:l0-lsp:snapshot",
+    "lint": "npm run typecheck && node test/check-dependencies.mjs",
+    "pack:check": "npm pack --dry-run --workspace @pure-auto-codeql/contracts --workspace @pure-auto-codeql/core --workspace @pure-auto-codeql/codeql-runner --workspace @pure-auto-codeql/pi-extension --workspace @pure-auto-codeql/cli",
+    "check": "npm run lint && npm test && npm run pack:check"
+  },
+  "devDependencies": {
+    "@types/node": "24.12.4",
+    "typescript": "5.9.3",
+    "vitest": "4.1.9"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  }
+}

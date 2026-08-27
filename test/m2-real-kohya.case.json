@@ -1,0 +1,42 @@
+{
+  "case_schema_version": "golden.case/v1",
+  "case_id": "kohya_command_injection",
+  "query_id": "kohya-command-injection",
+  "fixture_root": "external/kohya_ss",
+  "language": "python",
+  "cwe": "CWE-078",
+  "vulnerability_category": "command injection",
+  "description": "The images_dir parameter is interpolated into a shell command and reaches subprocess.run with shell=True in kohya_ss basic_caption_gui.py.",
+  "patch_description": "Commit 831af8babeb75faff62bcc6a8c6a4f80354f1ff1 removes shell=True from the subprocess invocation.",
+  "build": { "mode": "none" },
+  "expected": {
+    "vulnerable": {
+      "min_results": 1,
+      "max_results": 1,
+      "min_code_flows": 1,
+      "max_code_flows": 1,
+      "requires_code_flow": true,
+      "rule_id": "pure-auto-codeql/kohya-command-injection",
+      "location": { "path": "kohya_gui/basic_caption_gui.py", "line": 86 },
+      "source": { "path": "kohya_gui/basic_caption_gui.py", "line": 24, "semantic_id": "images-dir-parameter" },
+      "sink": { "path": "kohya_gui/basic_caption_gui.py", "line": 86, "semantic_id": "subprocess-run-shell-true" }
+    },
+    "fixed": {
+      "min_results": 0,
+      "max_results": 0,
+      "min_code_flows": 0,
+      "max_code_flows": 0,
+      "requires_code_flow": false,
+      "rule_id": "pure-auto-codeql/kohya-command-injection"
+    }
+  },
+  "timeout_seconds": 300,
+  "platforms": ["posix", "macos", "linux"],
+  "extractor_preconditions": ["codeql resolve languages includes python", "CodeQL supports Python build-mode none"],
+  "input_provenance": "user_provided",
+  "provenance": {
+    "fixture": "bmaltais/kohya_ss",
+    "license": "Apache-2.0",
+    "source": "GHSL-2024-019 / CVE-2024-32022; vulnerable parent of 831af8b and fixed commit 831af8b"
+  }
+}

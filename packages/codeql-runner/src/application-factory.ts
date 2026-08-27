@@ -1,0 +1,54 @@
+import { resolve } from "node:path";
+
+import {
+  Application,
+  RandomIdGenerator,
+  SystemClock,
+  type ApplicationApi,
+} from "@pure-auto-codeql/core";
+
+import { LocalArtifactStore } from "./artifact-store.js";
+import { CodeqlRunner } from "./codeql-runner.js";
+import { NodeFileSystemPort } from "./node-filesystem.js";
+import { CodeqlQueryRunner } from "./query-runner.js";
+import { CodeqlLspDraftRunner } from "./lsp/draft-runner.js";
+
+export interface LocalApplicationOptions {
+  readonly cwd?: string;
+  readonly runsDir?: string;
+  readonly workspaceRoot?: string;
+  readonly codeqlPath?: string;
+  readonly timeoutMs?: number;
+}
+
+export function createLocalApplication(options: LocalApplicationOptions = {}): ApplicationApi {
+  const cwd = resolve(options.cwd ?? process.cwd());
+  const filesystem = new NodeFileSystemPort();
+  const runsDir = resolve(options.runsDir ?? `${cwd}/runs`);
+  const executable = options.codeqlPath ?? process.env.CODEQL_PATH ?? "codeql";
+  const codeql = options.codeqlPath === undefined
+    ? new CodeqlRunner({ cwd, ...(options.workspaceRoot === undefined ? {} : { workspaceRoot: options.workspaceRoot }) })
+    : new CodeqlRunner({ cwd, ...(options.workspaceRoot === undefined ? {} : { workspaceRoot: options.workspaceRoot }), executable: options.codeqlPath });
+  const queries = new CodeqlQueryRunner({ filesystem, executable, cwd });
+  const drafts = new CodeqlLspDraftRunner({
+    executable,
+    cwd,
+    ...(process.env.CODEQL_DISTRIBUTION_ROOT === undefined ? {} : { distributionRoot: process.env.CODEQL_DISTRIBUTION_ROOT }),
+  });
+  const dependencies = {
+    codeql,
+    queries,
+    probes: queries,
+    drafts,
+    artifacts: new LocalArtifactStore(runsDir, filesystem),
+    clock: new SystemClock(),
+    ids: new RandomIdGenerator(),
+  };
+  if (options.timeoutMs === undefined) {
+    return new Application(dependencies);
+  }
+  return new Application({
+    ...dependencies,
+    defaultTimeoutMs: options.timeoutMs,
+  });
+}
