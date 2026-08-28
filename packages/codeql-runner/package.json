@@ -25,7 +25,7 @@
   "dependencies": {
     "@autovul/contracts": "0.1.0",
     "@autovul/core": "0.1.0",
-    "vscode-jsonrpc": "8.2.0",
-    "vscode-languageserver-protocol": "3.17.5"
+    "vscode-jsonrpc": "9.0.1",
+    "vscode-languageserver-protocol": "3.18.2"
   }
 }
