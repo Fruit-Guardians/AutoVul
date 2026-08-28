@@ -9,7 +9,7 @@ import {
   type DoctorResult,
   type RunId,
   type RunManifest,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import { DoctorService } from "./doctor-service.js";
 import type { CodeqlOperationOptions } from "./ports.js";

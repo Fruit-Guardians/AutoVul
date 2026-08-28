@@ -4,7 +4,7 @@ import {
   type QueryCandidate,
   type QueryWorkflowState,
   type RunId,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import { normalizeQueryCandidate } from "../query-candidate.js";
 import type { CodeqlWorkflowContext } from "./context.js";

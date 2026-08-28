@@ -4,9 +4,9 @@ import { dirname, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-import { createLocalApplication } from "@pure-auto-codeql/codeql-runner";
-import { runCli } from "@pure-auto-codeql/cli";
-import { GoldenManifestSchema, parseSchema } from "@pure-auto-codeql/contracts";
+import { createLocalApplication } from "@autovul/codeql-runner";
+import { runCli } from "@autovul/cli";
+import { GoldenManifestSchema, parseSchema } from "@autovul/contracts";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const manifest = parseSchema(GoldenManifestSchema, JSON.parse(await readFile(join(repoRoot, "test/golden/manifest.json"), "utf8")), "golden manifest");
@@ -25,7 +25,7 @@ const cases = manifest.cases.filter((item) => selectedCase === undefined || item
 }));
 if (cases.length === 0) throw new Error(`Unknown M3 Golden case: ${selectedCase}`);
 
-const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-m3-golden-"));
+const root = await mkdtemp(join(tmpdir(), "autovul-m3-golden-"));
 const output = [];
 let failed = false;
 const app = createLocalApplication({ runsDir: join(root, "runs"), workspaceRoot: root, codeqlPath: codeql, timeoutMs: 300_000 });

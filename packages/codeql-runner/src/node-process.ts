@@ -1,7 +1,7 @@
 import { spawn, type ChildProcess } from "node:child_process";
 
-import { DomainError } from "@pure-auto-codeql/contracts";
-import type { ProcessCommand, ProcessOptions, ProcessPort, ProcessResult } from "@pure-auto-codeql/core";
+import { DomainError } from "@autovul/contracts";
+import type { ProcessCommand, ProcessOptions, ProcessPort, ProcessResult } from "@autovul/core";
 
 import { limitOutput, sanitizeOutput } from "./output.js";
 import { terminateProcessTree } from "./lsp/process-lifecycle.js";

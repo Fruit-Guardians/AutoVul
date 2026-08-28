@@ -1,14 +1,14 @@
-# PureAutoCodeQL V2 项目章程
+# AutoVul V2 项目章程
 
 ## 项目定位
 
-PureAutoCodeQL V2 是一个**面向漏洞研究的专业能力扩展与确定性分析引擎**。
+AutoVul V2 是一个**面向漏洞研究的专业能力扩展与确定性分析引擎**。
 
 本项目不实现 Agent，也不实现通用 Agent Harness。它依附于 Pi Agent、DeepSeek Harness 等成熟宿主，以 Extension、Plugin、MCP 或稳定 API 的形式，为宿主提供可组合、可验证、可重放的漏洞研究能力。
 
 一句话边界：
 
-> 宿主 Agent 负责理解、推理和编排；PureAutoCodeQL 负责漏洞研究能力、确定性执行、证据固化和结果验证。
+> 宿主 Agent 负责理解、推理和编排；AutoVul 负责漏洞研究能力、确定性执行、证据固化和结果验证。
 
 “通用”在本项目中表示**宿主无关、语言与分析器可扩展、能够支持多类漏洞研究流程**，不表示建设通用 Coding Agent。
 
@@ -22,7 +22,7 @@ PureAutoCodeQL V2 是一个**面向漏洞研究的专业能力扩展与确定性
 - 使用宿主已有的文件、Shell、Git、Web、搜索、记忆和子 Agent 能力。
 - 向用户发起必要的审批和交互，并负责最终自然语言表达。
 
-### PureAutoCodeQL 负责
+### AutoVul 负责
 
 - 定义版本化的漏洞研究输入、假设、证据、发现和验证契约。
 - 暴露少量、稳定、结构化的安全研究工具。

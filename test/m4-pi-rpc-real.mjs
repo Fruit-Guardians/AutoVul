@@ -2,10 +2,10 @@ import { cp, mkdir, mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
-import { runCli } from "@pure-auto-codeql/cli";
+import { runCli } from "@autovul/cli";
 import { startPiRpc } from "./pi-rpc-client.mjs";
 
-const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-m4-pi-rpc-"));
+const root = await mkdtemp(join(tmpdir(), "autovul-m4-pi-rpc-"));
 const configDir = join(root, "pi-config");
 const runsDir = join(root, "runs");
 const vulnerableSource = join(root, "vulnerable-source");
@@ -75,15 +75,15 @@ function startRpc() {
     configDir,
     extension,
     provider,
-    providerId: "pure-auto-codeql-m4-test",
-    modelId: "pure-auto-codeql-m4-test",
+    providerId: "autovul-m4-test",
+    modelId: "autovul-m4-test",
     includeBuiltInExtensions: false,
     timeoutMs: 30_000,
     environment: {
-      PURE_AUTO_CODEQL_V2_RUNS_DIR: runsDir,
-      PURE_AUTO_CODEQL_PI_M4_VULNERABLE_DB: vulnerableDatabase,
-      PURE_AUTO_CODEQL_PI_M4_FIXED_DB: fixedDatabase,
-      PURE_AUTO_CODEQL_PI_M4_PROJECT_ROOT: vulnerableSource,
+      AUTOVUL_RUNS_DIR: runsDir,
+      AUTOVUL_PI_M4_VULNERABLE_DB: vulnerableDatabase,
+      AUTOVUL_PI_M4_FIXED_DB: fixedDatabase,
+      AUTOVUL_PI_M4_PROJECT_ROOT: vulnerableSource,
       CODEQL_PATH: codeql,
     },
   });

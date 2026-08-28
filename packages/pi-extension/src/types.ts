@@ -7,7 +7,7 @@ import type {
   QueryPackManifest,
   QueryVerification,
   QueryWorkflowStatus,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 export type ToolDetails = DoctorResult | DatabaseResult | ProbeEvidence | QueryDraftReport | QueryWorkflowStatus | QueryVerification | QueryPackManifest | DomainErrorRecord;
 

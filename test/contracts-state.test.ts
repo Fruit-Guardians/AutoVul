@@ -7,8 +7,8 @@ import {
   RunManifestSchema,
   parseSchema,
   type RunManifest,
-} from "@pure-auto-codeql/contracts";
-import { Application, RunStatusService, assertTransition, canTransition } from "@pure-auto-codeql/core";
+} from "@autovul/contracts";
+import { Application, RunStatusService, assertTransition, canTransition } from "@autovul/core";
 
 import { FakeCodeqlPort, FixedClock, FixedIdGenerator, MemoryArtifactStore } from "./helpers.js";
 

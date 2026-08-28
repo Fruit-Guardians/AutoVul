@@ -3,9 +3,9 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { CodeqlQueryRunner, NodeFileSystemPort } from "@pure-auto-codeql/codeql-runner";
-import { CONTRACTS_VERSION, type QueryCandidate, type VulnerabilitySpec } from "@pure-auto-codeql/contracts";
-import type { QueryExecutionRequest } from "@pure-auto-codeql/core";
+import { CodeqlQueryRunner, NodeFileSystemPort } from "@autovul/codeql-runner";
+import { CONTRACTS_VERSION, type QueryCandidate, type VulnerabilitySpec } from "@autovul/contracts";
+import type { QueryExecutionRequest } from "@autovul/core";
 
 import { processResult, ScriptedProcessPort } from "./helpers.js";
 
@@ -54,7 +54,7 @@ function request(root: string): QueryExecutionRequest {
 
 describe("M2 CodeQL query adapter", () => {
   it("compiles, analyzes both databases, and extracts SARIF flow facts", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-query-runner-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-query-runner-"));
     try {
       const process = new ScriptedProcessPort(async (command) => {
         if (command.args[0] === "version") {
@@ -102,7 +102,7 @@ describe("M2 CodeQL query adapter", () => {
   });
 
   it("returns a structured compile diagnostic and does not analyze databases after compile failure", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-query-compile-fail-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-query-compile-fail-"));
     try {
       const process = new ScriptedProcessPort((command) => command.args[0] === "version"
         ? processResult({ stdout: "CodeQL CLI version 2.26.1\n" })
@@ -121,7 +121,7 @@ describe("M2 CodeQL query adapter", () => {
   });
 
   it("stops at metadata preflight before spawning CodeQL processes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-query-metadata-preflight-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-query-metadata-preflight-"));
     try {
       const process = new ScriptedProcessPort(() => processResult({ exitCode: 99, stderr: "must not run" }));
       const result = await new CodeqlQueryRunner({ process, filesystem: new NodeFileSystemPort() }).execute({
@@ -142,7 +142,7 @@ describe("M2 CodeQL query adapter", () => {
   });
 
   it("does not run the fixed database when vulnerable analysis fails", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-query-vulnerable-fail-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-query-vulnerable-fail-"));
     try {
       const process = new ScriptedProcessPort((command) => {
         if (command.args[0] === "version") return processResult({ stdout: "CodeQL CLI version 2.26.1\n" });

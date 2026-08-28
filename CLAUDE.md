@@ -1,4 +1,4 @@
-# PureAutoCodeQL V2 — Claude 工作说明
+# AutoVul V2 — Claude 工作说明
 
 @AGENTS.md
 
@@ -8,7 +8,7 @@
 
 ## 必须保持的定位
 
-PureAutoCodeQL V2 **不是 Agent，也不是通用 Agent Harness**。它是面向漏洞研究的专业能力扩展，运行在 Pi Agent、DeepSeek Harness 等成熟宿主之下。
+AutoVul V2 **不是 Agent，也不是通用 Agent Harness**。它是面向漏洞研究的专业能力扩展，运行在 Pi Agent、DeepSeek Harness 等成熟宿主之下。
 
 ```text
 宿主 Agent：模型、Agent Loop、上下文、计划、工具选择和用户交互

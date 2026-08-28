@@ -1,4 +1,4 @@
-import { DomainError, type RunPhase, type RunStatus } from "@pure-auto-codeql/contracts";
+import { DomainError, type RunPhase, type RunStatus } from "@autovul/contracts";
 
 const TRANSITIONS: Readonly<Record<RunStatus, readonly RunStatus[]>> = {
   created: ["running", "failed", "cancelled"],

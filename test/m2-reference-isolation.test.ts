@@ -5,7 +5,7 @@ import {
   QueryCandidateSchema,
   VulnerabilitySpecSchema,
   parseSchema,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 describe("M2 generator/reference isolation contract", () => {
   it("does not accept reference query content in the generator-facing spec", () => {

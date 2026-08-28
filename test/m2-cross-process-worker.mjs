@@ -1,5 +1,5 @@
-import { Application } from "@pure-auto-codeql/core";
-import { LocalArtifactStore, NodeFileSystemPort } from "@pure-auto-codeql/codeql-runner";
+import { Application } from "@autovul/core";
+import { LocalArtifactStore, NodeFileSystemPort } from "@autovul/codeql-runner";
 
 const [runsDir, runId, candidateId] = process.argv.slice(2);
 const filesystem = new NodeFileSystemPort();

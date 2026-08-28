@@ -10,13 +10,13 @@ import {
   type QueryDraftDiagnostic,
   type QueryDraftReport,
   type QueryLocation,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 import type {
   CodeqlOperationOptions,
   QueryDraftExecutionPort,
   QueryDraftRequest,
-} from "@pure-auto-codeql/core";
-import { allLanguagePacks, languagePackFor, qlpackForLanguage } from "@pure-auto-codeql/core";
+} from "@autovul/core";
+import { allLanguagePacks, languagePackFor, qlpackForLanguage } from "@autovul/core";
 
 import {
   CodeqlLspSession,
@@ -243,16 +243,16 @@ interface StableLspWorkspace {
 }
 
 async function createStableWorkspace(): Promise<StableLspWorkspace> {
-  const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-lsp-session-"));
+  const root = await mkdtemp(join(tmpdir(), "autovul-lsp-session-"));
   try {
     const packRoots = new Map<string, string>();
     const workspaceFolders = [];
     for (const pack of allLanguagePacks()) {
       const packRoot = join(root, pack.language);
       await mkdir(packRoot, { recursive: true });
-      await writeFile(join(packRoot, "qlpack.yml"), `name: pure-auto-codeql/lsp-${pack.language}\nversion: 0.0.1\ndependencies:\n  ${pack.dependency}: "*"\n`, "utf8");
+      await writeFile(join(packRoot, "qlpack.yml"), `name: autovul/lsp-${pack.language}\nversion: 0.0.1\ndependencies:\n  ${pack.dependency}: "*"\n`, "utf8");
       packRoots.set(pack.language, packRoot);
-      workspaceFolders.push({ uri: lspUriForPath(packRoot), name: `pure-auto-codeql-lsp-${pack.language}` });
+      workspaceFolders.push({ uri: lspUriForPath(packRoot), name: `autovul-lsp-${pack.language}` });
     }
     return { root, packRoots, workspaceFolders };
   } catch (error) {

@@ -8,8 +8,8 @@ import {
   type RunPhase,
   type RunStatus,
   type VerificationLevel,
-} from "@pure-auto-codeql/contracts";
-import { parseSchema } from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
+import { parseSchema } from "@autovul/contracts";
 
 import type { ArtifactStorePort, ClockPort, IdGeneratorPort } from "./ports.js";
 import { assertTransition, phaseOrDefault } from "./state.js";

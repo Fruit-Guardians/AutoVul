@@ -5,8 +5,8 @@ import {
   type DatabaseResult,
   type DoctorResult,
   type RunManifest,
-} from "@pure-auto-codeql/contracts";
-import type { ApplicationApi } from "@pure-auto-codeql/core";
+} from "@autovul/contracts";
+import type { ApplicationApi } from "@autovul/core";
 
 import { generationPrompt } from "./prompts.js";
 import type { PiUiState } from "./types.js";
@@ -14,7 +14,7 @@ import { absorbDetails, formatCommandResult, hideWidget, renderFooter } from "./
 
 export function registerCommands(pi: ExtensionAPI, application: ApplicationApi, state: PiUiState): void {
   pi.registerCommand("codeql", {
-    description: "Show PureAutoCodeQL help, doctor, or persisted status",
+    description: "Show AutoVul help, doctor, or persisted status",
     handler: async (args: string, ctx: ExtensionCommandContext) => {
       const tokens = args.trim().split(/\s+/).filter(Boolean);
       const action = tokens[0] ?? "help";
@@ -85,7 +85,7 @@ async function showResult(ctx: ExtensionCommandContext, state: PiUiState, toolNa
 async function sendGeneratePrompt(pi: ExtensionAPI, ctx: ExtensionCommandContext, args: string): Promise<void> {
   let request = args;
   if (request.length === 0 && ctx.hasUI) {
-    request = (await ctx.ui.editor("PureAutoCodeQL · Describe the vulnerability and database paths", "Project source root:\nVulnerable database:\nFixed database (optional):\n\nVulnerability description or patch:\n"))?.trim() ?? "";
+    request = (await ctx.ui.editor("AutoVul · Describe the vulnerability and database paths", "Project source root:\nVulnerable database:\nFixed database (optional):\n\nVulnerability description or patch:\n"))?.trim() ?? "";
   }
   if (request.length === 0) {
     ctx.ui.notify("Cancelled. Use /codeql-generate <vulnerability description> or type the request directly.", "info");
@@ -100,7 +100,7 @@ async function sendGeneratePrompt(pi: ExtensionAPI, ctx: ExtensionCommandContext
 
 function showHelp(ctx: ExtensionCommandContext): void {
   ctx.ui.notify([
-    "PureAutoCodeQL native Pi workflow",
+    "AutoVul native Pi workflow",
     "Normal CodeQL/vulnerability requests are handled automatically by the host Pi Agent Loop.",
     "/codeql-generate [description]  force-start M4; opens an editor when omitted",
     "/codeql doctor                  inspect CodeQL CLI and extractors",

@@ -56,9 +56,9 @@ export function parsePiJsonOutput(stdout) {
 async function main() {
   const input = JSON.parse(await readStdin());
   const args = buildPiArgs(input, process.env);
-  const provider = process.env.PURE_AUTO_CODEQL_M4_PI_PROVIDER;
-  const model = process.env.PURE_AUTO_CODEQL_M4_PI_MODEL;
-  const thinking = process.env.PURE_AUTO_CODEQL_M4_PI_THINKING ?? "medium";
+  const provider = process.env.AUTOVUL_M4_PI_PROVIDER;
+  const model = process.env.AUTOVUL_M4_PI_MODEL;
+  const thinking = process.env.AUTOVUL_M4_PI_THINKING ?? "medium";
   const result = await runPi(args);
   const parsed = parsePiJsonOutput(result.stdout);
   const candidate = parsed.value?.candidate ?? parsed.value;
@@ -88,9 +88,9 @@ async function main() {
 }
 
 export function buildPiArgs(input, env = process.env) {
-  const provider = env.PURE_AUTO_CODEQL_M4_PI_PROVIDER;
-  const model = env.PURE_AUTO_CODEQL_M4_PI_MODEL;
-  const thinking = env.PURE_AUTO_CODEQL_M4_PI_THINKING ?? "medium";
+  const provider = env.AUTOVUL_M4_PI_PROVIDER;
+  const model = env.AUTOVUL_M4_PI_MODEL;
+  const thinking = env.AUTOVUL_M4_PI_THINKING ?? "medium";
   const args = [
     "--no-session",
     "--no-tools",
@@ -105,7 +105,7 @@ export function buildPiArgs(input, env = process.env) {
     "--mode",
     "json",
   ];
-  if (env.PURE_AUTO_CODEQL_M4_PI_NO_EXTENSIONS === "true") args.push("--no-extensions");
+  if (env.AUTOVUL_M4_PI_NO_EXTENSIONS === "true") args.push("--no-extensions");
   if (provider !== undefined) args.push("--provider", provider);
   if (model !== undefined) args.push("--model", model);
   args.push(

@@ -8,15 +8,15 @@ import {
   type RunId,
   type RunManifest,
   type CaseRunSummary,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 import type {
   ArtifactBundleFile,
   ArtifactStorePort,
   FileLock,
   FileSystemPort,
   StagedArtifactBundle,
-} from "@pure-auto-codeql/core";
-import type { CodeqlOperationOptions } from "@pure-auto-codeql/core";
+} from "@autovul/core";
+import type { CodeqlOperationOptions } from "@autovul/core";
 
 export class LocalArtifactStore implements ArtifactStorePort {
   private readonly root: string;

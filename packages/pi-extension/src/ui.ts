@@ -2,7 +2,7 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 import type { PiUiState } from "./types.js";
 
-export const UI_KEY = "pure-auto-codeql";
+export const UI_KEY = "autovul";
 
 export function renderUi(ctx: ExtensionContext, state: PiUiState): void {
   if (!ctx.hasUI) return;

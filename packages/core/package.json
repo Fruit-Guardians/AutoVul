@@ -1,5 +1,5 @@
 {
-  "name": "@pure-auto-codeql/core",
+  "name": "@autovul/core",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -17,6 +17,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@pure-auto-codeql/contracts": "0.1.0"
+    "@autovul/contracts": "0.1.0"
   }
 }

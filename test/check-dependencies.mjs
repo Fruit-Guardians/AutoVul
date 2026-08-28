@@ -11,7 +11,7 @@ const packageRoots = {
 };
 
 const forbiddenImports = {
-  contracts: ["@pure-auto-codeql/", "@earendil-works/pi-", "node:"],
+  contracts: ["@autovul/", "@earendil-works/pi-", "node:"],
   core: ["@earendil-works/pi-", "node:"],
   "codeql-runner": ["@earendil-works/pi-"],
   cli: ["@earendil-works/pi-"],
@@ -19,15 +19,15 @@ const forbiddenImports = {
 
 const allowedInternal = {
   contracts: [],
-  core: ["@pure-auto-codeql/contracts"],
-  "codeql-runner": ["@pure-auto-codeql/contracts", "@pure-auto-codeql/core"],
+  core: ["@autovul/contracts"],
+  "codeql-runner": ["@autovul/contracts", "@autovul/core"],
   "pi-extension": [
-    "@pure-auto-codeql/contracts",
-    "@pure-auto-codeql/core",
-    "@pure-auto-codeql/codeql-runner",
+    "@autovul/contracts",
+    "@autovul/core",
+    "@autovul/codeql-runner",
     "@earendil-works/pi-coding-agent",
   ],
-  cli: ["@pure-auto-codeql/contracts", "@pure-auto-codeql/core", "@pure-auto-codeql/codeql-runner"],
+  cli: ["@autovul/contracts", "@autovul/core", "@autovul/codeql-runner"],
 };
 
 for (const [name, relativeRoot] of Object.entries(packageRoots)) {
@@ -38,7 +38,7 @@ for (const [name, relativeRoot] of Object.entries(packageRoots)) {
     ...Object.keys(packageJson.peerDependencies ?? {}),
   ]);
   for (const internal of allowedInternal[name]) {
-    if (internal.startsWith("@pure-auto-codeql/") && !declared.has(internal)) {
+    if (internal.startsWith("@autovul/") && !declared.has(internal)) {
       throw new Error(`${name} uses undeclared internal dependency ${internal}`);
     }
   }
@@ -52,7 +52,7 @@ for (const [name, relativeRoot] of Object.entries(packageRoots)) {
     }
     for (const match of contents.matchAll(/from\s+["']([^"']+)["']/g)) {
       const imported = match[1];
-      if (imported.startsWith("@pure-auto-codeql/") && !(allowedInternal[name] ?? []).includes(imported)) {
+      if (imported.startsWith("@autovul/") && !(allowedInternal[name] ?? []).includes(imported)) {
         throw new Error(`${name} has forbidden reverse dependency ${imported}: ${source}`);
       }
     }

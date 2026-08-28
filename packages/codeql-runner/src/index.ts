@@ -5,6 +5,7 @@ export { CodeqlQueryRunner, type QueryRunnerOptions, summarizeSarif } from "./qu
 export { NodeFileSystemPort, makeTemporaryRoot } from "./node-filesystem.js";
 export { NodeProcessPort } from "./node-process.js";
 export { limitOutput, sanitizeOutput } from "./output.js";
+export { readAutovulEnv, type AutovulEnvironmentKey } from "./environment.js";
 export {
   CodeqlLspSession,
   type LspDiagnosticItem,

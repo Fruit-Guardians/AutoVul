@@ -10,7 +10,7 @@ import {
   type QueryWorkflowState,
   type QueryDraftReport,
   type QueryVerification,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import type { CodeqlOperationOptions, QueryExecutionResult } from "../ports.js";
 import { qlpackForLanguage } from "../language-packs.js";

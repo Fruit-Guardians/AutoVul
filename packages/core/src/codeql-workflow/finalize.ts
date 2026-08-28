@@ -6,7 +6,7 @@ import {
   RunIdSchema,
   stableDigest,
   type QueryPackManifest,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import type { ArtifactBundleFile, CodeqlOperationOptions, StagedArtifactBundle } from "../ports.js";
 import { qlpackForLanguage } from "../language-packs.js";
@@ -208,5 +208,5 @@ function cancelledBeforeCommit(runId: string, operationId: string): DomainError 
 }
 
 function reproduceText(vulnerableDatabase: string, fixedDatabase: string | undefined): string {
-  return `# Reproduce\n\nRun from the Query Pack directory:\n\n\`codeql query compile query.ql --threads=1\`\n\n\`codeql database analyze <vulnerable_database> query.ql --rerun --format=sarif-latest --output=vulnerable.sarif --threads=1\`\n${fixedDatabase === undefined ? "" : "\n\`codeql database analyze <fixed_database> query.ql --rerun --format=sarif-latest --output=fixed.sarif --threads=1\`\n"}\nThe original vulnerable database path was: ${vulnerableDatabase}\n${fixedDatabase === undefined ? "No fixed database was provided.\n" : `The original fixed database path was: ${fixedDatabase}\n`}For relocated replay use: pure-auto-codeql query-pack verify <pack-dir> --vulnerable-db <path> [--fixed-db <path>]\nWhen the Query Pack and databases share a non-root directory, the CLI infers that directory as the trusted workspace. Use --workspace-root <path> when they are in separate locations.\n`;
+  return `# Reproduce\n\nRun from the Query Pack directory:\n\n\`codeql query compile query.ql --threads=1\`\n\n\`codeql database analyze <vulnerable_database> query.ql --rerun --format=sarif-latest --output=vulnerable.sarif --threads=1\`\n${fixedDatabase === undefined ? "" : "\n\`codeql database analyze <fixed_database> query.ql --rerun --format=sarif-latest --output=fixed.sarif --threads=1\`\n"}\nThe original vulnerable database path was: ${vulnerableDatabase}\n${fixedDatabase === undefined ? "No fixed database was provided.\n" : `The original fixed database path was: ${fixedDatabase}\n`}For relocated replay use: autovul query-pack verify <pack-dir> --vulnerable-db <path> [--fixed-db <path>]\nWhen the Query Pack and databases share a non-root directory, the CLI infers that directory as the trusted workspace. Use --workspace-root <path> when they are in separate locations.\n`;
 }

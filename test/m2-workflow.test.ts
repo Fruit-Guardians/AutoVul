@@ -7,14 +7,14 @@ import {
   parseSchema,
   type QueryVerification,
   type VulnerabilitySpec,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 import {
   Application,
   type CodeqlOperationOptions,
   type QueryExecutionPort,
   type QueryExecutionRequest,
   type QueryExecutionResult,
-} from "@pure-auto-codeql/core";
+} from "@autovul/core";
 
 import { FixedClock, FixedIdGenerator, MemoryArtifactStore, FakeCodeqlPort } from "./helpers.js";
 
@@ -54,7 +54,7 @@ const spec: VulnerabilitySpec = {
   provenance: {
     fixture: "test/golden/python_command_injection",
     license: "repository fixture; see repository license",
-    source: "PureAutoCodeQL V1 Golden Cases",
+    source: "AutoVul V1 Golden Cases",
   },
 };
 

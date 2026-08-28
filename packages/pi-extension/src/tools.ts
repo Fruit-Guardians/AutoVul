@@ -13,8 +13,8 @@ import {
   type QueryPackManifest,
   type QueryVerification,
   type QueryWorkflowStatus,
-} from "@pure-auto-codeql/contracts";
-import type { ApplicationApi } from "@pure-auto-codeql/core";
+} from "@autovul/contracts";
+import type { ApplicationApi } from "@autovul/core";
 
 import type { ToolDetails } from "./types.js";
 

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
 
-import { qlpackForLanguage, renderTaintProbe, renderTaintQuery } from "@pure-auto-codeql/core";
+import { qlpackForLanguage, renderTaintProbe, renderTaintQuery } from "@autovul/core";
 
 const intents = [
   {
@@ -41,7 +41,7 @@ const intents = [
 ];
 
 for (const item of intents) {
-  const root = await mkdtemp(join(tmpdir(), `pure-auto-codeql-m3-${item.language}-`));
+  const root = await mkdtemp(join(tmpdir(), `autovul-m3-${item.language}-`));
   try {
     const queries = [{ name: "path", text: renderTaintQuery(`m3-${item.language}`, item.intent) }, ...["source", "sink"].map((role) => ({ name: `probe-${role}`, text: renderTaintProbe(item.intent, role) }))];
     for (const query of queries) {

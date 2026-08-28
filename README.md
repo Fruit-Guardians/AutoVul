@@ -1,146 +1,183 @@
-# PureAutoCodeQL V2 M0/M3/M4
+# AutoVul
 
-PureAutoCodeQL V2 is a host-independent **vulnerability-research extension and deterministic analysis engine**. It runs under mature Agent/Harness hosts such as Pi Agent and, through future integrations, DeepSeek Harness. It does not implement its own general Agent, model provider, Agent Loop, memory, planning or subagent framework.
+AutoVul is a host-independent vulnerability-research extension and deterministic analysis engine.
 
-> The host Agent owns understanding, reasoning and orchestration. PureAutoCodeQL owns vulnerability-research capabilities, deterministic execution, evidence and verification.
+It runs under mature Agent/Harness hosts such as Pi Agent. The host understands the request, reads code, forms a vulnerability hypothesis and decides what to do next. AutoVul validates structured research inputs, executes analyzers, persists evidence and verifies results.
 
-See [AGENTS.md](./AGENTS.md) for the project charter and engineering rules, and [SPEC.md](./SPEC.md) for accepted product behavior and validation requirements. Material behavior changes follow the workflow in [specs/README.md](./specs/README.md). The non-normative [Flow-Based direction note](./docs/design/FLOW_BASED_DIRECTION.md) records the current long-term design thinking without authorizing implementation.
+> The host Agent owns understanding, reasoning and orchestration. AutoVul owns vulnerability-research capabilities, deterministic execution, evidence and verification.
 
-This workspace contains the isolated TypeScript M0 foundation for V2. The Python V1 remains the repository's existing runtime and is not imported by these packages.
+AutoVul does not implement a general Agent, model provider, Agent Loop, conversation memory, planning system or subagent framework.
 
-## Packages
+## Current capability
 
-- `@pure-auto-codeql/contracts`: versioned TypeBox schemas and static types.
-- `@pure-auto-codeql/core`: ports, deterministic run state, database workflow, query verification and Query Pack finalization.
-- `@pure-auto-codeql/codeql-runner`: Node adapters for safe CodeQL inspection, query compile/analyze and SARIF summaries.
-- `@pure-auto-codeql/pi-extension`: thin Pi commands plus `codeql_database`, `codeql_workflow` and `codeql_query` tools.
-- `@pure-auto-codeql/cli`: deterministic local CLI entry point, including model-free candidate replay.
+The current TypeScript V2 implementation provides a verified CodeQL query workflow:
+
+- structured Source/Sink-oriented query intent;
+- Language Packs for Python, JavaScript/TypeScript, Java/Kotlin and C/C++;
+- Source and Sink probes;
+- advisory CodeQL Language Server draft diagnostics;
+- authoritative CodeQL CLI compile and analyze execution;
+- vulnerable/fixed differential verification;
+- persisted run state, bounded candidate budgets and crash recovery;
+- relocatable Query Packs with model-free replay;
+- thin Pi and CLI integrations sharing the same Application API.
+
+CodeQL databases must already exist. AutoVul currently inspects and validates them but does not create databases or execute target-project build/install scripts.
+
+The accepted result levels are:
+
+- `generated`: a candidate exists but has not passed execution verification;
+- `compiled`: the analyzer accepted the rule;
+- `reproduced`: the vulnerable target matched the expected behavior or location;
+- `differential`: the vulnerable target matched and the fixed target satisfied the non-match policy;
+- `variant_validated`: additional positive, negative or cross-project validation passed.
+
+Probe results, model reasoning, mocks and diagnostic wrappers are not vulnerability confirmation.
+
+## Flow-Based direction
+
+AutoVul is evolving toward a Flow-Based vulnerability-research capability layer designed for Agent and LLM consumption:
+
+```text
+Host Agent / LLM
+  -> FlowModel
+  -> ExecuteFlowRequest
+       -> AutoVul Flow Core
+       -> FlowExecutionPort
+            └─ CodeQL Adapter
+  -> FlowExecutionResult
+```
+
+The planned Flow Model describes Source, Sink, explicit propagation steps and barriers. Target references, analyzer selection, budgets and verification policy belong to the execution request. CodeQL becomes an optional execution backend rather than part of the Flow Model.
+
+This Flow API is a design direction and is not implemented or accepted product behavior yet. The existing CodeQL interfaces remain the supported compatibility surface.
+
+See:
+
+- [Flow-Based design direction](./docs/design/FLOW_BASED_DIRECTION.md)
+- [Flow-Based implementation plan](./docs/design/FLOW_BASED_PLAN.md)
+- [Product specification](./SPEC.md)
+- [Project charter](./AGENTS.md)
+- [SPEC workflow](./specs/README.md)
+
+## Architecture
+
+```text
+Host Agent / Harness
+  -> Integration Adapter
+       -> Application API
+            -> Core domain policy and workflow
+                 -> Analyzer Ports
+                      -> CodeQL Runner
+```
+
+Production dependencies follow:
+
+```text
+contracts <- core <- codeql-runner <- pi-extension / cli
+```
+
+The packages are:
+
+- `@autovul/contracts`: versioned TypeBox schemas and stable protocols;
+- `@autovul/core`: deterministic policy, workflow state, budgets and verification decisions;
+- `@autovul/codeql-runner`: CodeQL CLI/LSP, filesystem, process and SARIF adapters;
+- `@autovul/pi-extension`: thin Pi registration, commands, lifecycle and presentation;
+- `@autovul/cli`: deterministic debugging, CI and model-free replay interface.
 
 ## Development
 
+Requirements:
+
+- Node.js and npm;
+- CodeQL CLI for real analyzer tests and normal CodeQL execution;
+- prebuilt vulnerable/fixed CodeQL databases for differential research.
+
+Install and run the standard checks:
+
 ```bash
 npm install
+npm run build
 npm run typecheck
 npm test
+npm run lint
 npm run pack:check
 ```
 
-The local extension can be loaded temporarily without changing `~/.pi`:
+`npm run check` runs the main build, architecture, specification, unit/integration and package gates. Real CodeQL, real-model and Golden commands remain separate when they require external tools or credentials.
 
-```bash
-pi -e ./v2/packages/pi-extension/dist/index.js
-```
+## CLI workflow
 
-The CLI is available after building through its workspace binary:
-
-```bash
-npm run build
-npx --workspace @pure-auto-codeql/cli pure-auto-codeql-v2 doctor --json
-```
-
-M0 intentionally does not create CodeQL databases or run target-project build scripts. `database inspect` and `database validate` are read-only.
-
-## M2 Python query workflow
-
-M2 is limited to Python and keeps query generation in the host Pi Agent Loop. Core never starts a second Agent; it receives a structured `VulnerabilitySpec` and `QueryCandidate`, then deterministically compiles, analyzes, diagnoses, checkpoints and finalizes a complete Query Pack.
-
-For the Python path, Pi should submit a `PythonPathQueryDraft` containing only source/sink predicate bodies and the result message. Core owns the QLDoc metadata, `@kind path-problem`, query id, Python DataFlow imports, module/Flow/PathGraph/select envelope and the case-level three-candidate budget. Raw QL remains available to the CLI for compatibility, but it must pass the same metadata preflight and staged compile before any database analysis.
+Build the workspace, inspect the environment and execute a query workflow:
 
 ```bash
 npm run build
-npx --workspace @pure-auto-codeql/cli pure-auto-codeql-v2 workflow start --spec ./spec.json --json
-npx --workspace @pure-auto-codeql/cli pure-auto-codeql-v2 query draft <run-id> --candidate ./candidate.json --json
-npx --workspace @pure-auto-codeql/cli pure-auto-codeql-v2 query verify <run-id> --candidate ./candidate.json --json
-npx --workspace @pure-auto-codeql/cli pure-auto-codeql-v2 workflow finalize <run-id> --json
-npx --workspace @pure-auto-codeql/cli pure-auto-codeql-v2 query-pack verify ./query-pack --vulnerable-db /path/to/vulnerable --fixed-db /path/to/fixed --json
+npx --workspace @autovul/cli autovul doctor --json
+npx --workspace @autovul/cli autovul workflow start --spec ./spec.json --json
+npx --workspace @autovul/cli autovul query draft <run-id> --candidate ./candidate.json --json
+npx --workspace @autovul/cli autovul query verify <run-id> --candidate ./candidate.json --json
+npx --workspace @autovul/cli autovul workflow finalize <run-id> --json
 ```
 
-When the Query Pack and the supplied databases share a non-root directory, the CLI infers that directory as the trusted workspace. Use `--workspace-root <path>` when they are stored in separate locations.
-
-The final artifact contains relative-root `query.ql`, `candidate.json`, `qlpack.yml`, `spec.json`, `verification.json`, `evidence.json`, `REPRODUCE.md` and `query-pack-manifest.json`. On the accepted POSIX path, `query-pack verify` checks artifact digests, re-runs compile/analyze from the relocated pack, and never calls a model or reads the original run. A run with only a vulnerable database is reported as `reproduced`; `differential` is reserved for a verified fixed database. User-provided cases still require exact Source/Sink file and line locations before workflow start; omitting the fixed database only skips the additional fixed=0 comparison.
-
-### M4 evidence-driven chain
-
-For a real user case, `VulnerabilitySpec.project_root` identifies the supplied source root; the host Pi reads that source and the vulnerability description/patch, proposes Source/Sink, and calls `codeql_query action=probe`. It then calls `codeql_query action=draft` before `verify`. Draft reports live under `drafts/<candidate-id>/report.json`, carry LSP file/line/column diagnostics and symbol observations, and do not use the formal three-candidate budget. Draft revisions have an independent default budget of 6 and a hard maximum of 10. A draft with LSP errors is rejected by `verify`; an unavailable/degraded LSP falls back to the authoritative CodeQL CLI. The CLI result, optional fixed-database zero-result check, and model-free Query Pack replay are the success gates.
-
-### M3 language-neutral intent
-
-M3 adds a structured `TaintQueryIntent` for Python, JavaScript/TypeScript, Java/Kotlin and C/C++. The intent contains Source/Sink matchers and flow semantics; the selected Language Pack owns the imports, AST/data-flow node types, metadata, Flow/PathGraph envelope and qlpack dependency. The current renderer compile gate can be run with:
+Replay a finalized Query Pack without a model or the originating run:
 
 ```bash
-npm run test:m3-compile
+npx --workspace @autovul/cli autovul query-pack verify ./query-pack \
+  --vulnerable-db /path/to/vulnerable \
+  --fixed-db /path/to/fixed \
+  --workspace-root /trusted/root \
+  --json
 ```
 
-This command creates and removes all four compile fixtures under the system temporary directory. For the real vulnerable/fixed Golden gate, use:
+The finalized pack contains the rendered query, candidate, vulnerability specification, qlpack metadata, verification result, evidence, reproduction instructions and a digest manifest.
 
-```bash
-npm run test:m3-golden-real
-```
+## Pi integration
 
-That gate creates temporary databases and runs all 20 cases in the authoritative manifest for Python, JavaScript, Java and C/C++ Language Packs. It checks renderer compile, Source/Sink probes, vulnerable flow, fixed zero-result policy, strict endpoint locations and model-free CLI replay of the relocated Query Pack. It is the deterministic 20-case differential gate; it does not measure LLM first-candidate/three-candidate generation rate or variant/hard-negative validation. Set `M3_GOLDEN_CASE=<case-id>` to run one case while diagnosing a fixture.
-
-### M3 L0/L0.1 CodeQL Language Server protocol matrix
-
-The real headless protocol snapshot is available through:
-
-```bash
-npm run test:l0-lsp:snapshot
-```
-
-It records negative observations as data and always completes the discovery run. L0.1 covers async/synchronous execution, active-only/all visible files, initial versus one-by-one dynamic workspace folders, C/C++ order and cache temperature, three search-path layouts, actual definition locations, and qlpack graph updates. The snapshot is written to `../plan/l0-codeql-lsp-capability-snapshot.json`.
-
-The production draft adapter keeps one lazy CodeQL Language Server session per Application. It initializes four stable scratch pack workspaces up front, routes each draft through a unique `URI + revision`, serializes overlapping draft requests, updates qlpack files through watched-file notifications, and closes the whole process group from `Application.close()`. LSP health failures degrade to the CLI path; they never decide compile/analyze acceptance. The real 20-case harness reuses one Application across all four language families to exercise this shared-session lifecycle.
-
-The product gate is separate:
-
-```bash
-npm run test:lsp:conformance
-```
-
-It reruns the snapshot and returns non-zero when the current product requirements are not met. `test:l0-lsp` remains a compatibility alias for the non-gating snapshot command.
-
-### Native Pi UX
-
-Load the extension in the workspace that contains the allowed source/database paths:
+Load the built extension from the project workspace:
 
 ```bash
 npm run build
 pi -e ./packages/pi-extension/dist/index.js
 ```
 
-Then type a normal-language request: CodeQL/vulnerability requests are automatically guided into the host Pi Agent Loop, without requiring `/codeql-generate`. The command remains available as an explicit force-start path or multi-line case editor: `/codeql-generate` opens the editor when no description is supplied. The extension does not start a second Agent or require hand-written JSON. `/codeql` shows the native help, `/codeql doctor` runs the environment check, and `/codeql-status [run-id]` shows the current persisted run. The footer stays compact (`CodeQL ready` or the final verification summary); the widget appears only during active tool execution and briefly when a pack is ready, with at most two lines, and disappears when the agent settles. Status/doctor commands show human-readable summaries by default; append `--json` for the raw structured result. The tool transcript retains the full structured JSON result; `Ctrl+O` expands it when the result is collapsed.
+The extension exposes the current aggregate tools:
 
-The five-run real Golden evaluator is opt-in and never falls back to fake success. Set `PURE_AUTO_CODEQL_M2_GENERATOR` to an approved no-shell model-wrapper executable, optionally set `PURE_AUTO_CODEQL_M2_GENERATOR_ARGS` to a JSON argument array, and use `PURE_AUTO_CODEQL_M2_GENERATOR_MODE=counted` plus the approved-run gate. The wrapper must return `candidate` and complete `metadata` (`provider`, `model`, `adapter_version`, scalar `parameters`, and input/output/total token usage). Ordinary external wrappers remain diagnostic and cannot enter the 4/5 count. The generator receives sanitized input with no reference query content; the evaluator performs exact-copy leak detection only after the wrapper exits. Set `PURE_AUTO_CODEQL_M2_REPORT=/tmp/m2-golden-report.json` to persist the versioned report without raw model output or secrets. Without the wrapper/key, the command exits with an explicit `BLOCKED` result.
+- `codeql_database`
+- `codeql_workflow`
+- `codeql_query`
 
-The evaluator also accepts an external real-project case and prebuilt databases. Set `PURE_AUTO_CODEQL_M2_CASE_FILE`, `PURE_AUTO_CODEQL_M2_VULNERABLE_DB`, `PURE_AUTO_CODEQL_M2_FIXED_DB` and `PURE_AUTO_CODEQL_M2_WORKSPACE_ROOT`; the workspace root must contain both database paths. `test/m2-real-kohya.case.json` is a reproducible Python example for `bmaltais/kohya_ss` and uses `--build-mode=none` database creation. The OpenAI-compatible adapter is `test/m2-openai-compatible-wrapper.mjs`.
+Pi remains the Agent. The extension converts tool input, calls the shared Application API, handles cancellation and presents compact results. It does not start another Agent Loop.
 
-For the accepted M4 path, `test:m4-golden-real` can invoke the host Pi CLI directly through `test/m4-pi-host-wrapper.mjs`; this is an adapter around Pi's JSONL output, not a model SDK. The evaluator gives the wrapper only a bounded, deterministic vulnerable-source context plus the vulnerability/patch description and prior diagnostics. It never sends reference query/intent, fixed source, or database contents to the model and never accepts raw `ql_text` as a counted candidate. Example configuration (provider/model may be omitted to use Pi's configured default):
+Useful commands include `/codeql`, `/codeql doctor`, `/codeql-status [run-id]` and `/codeql-generate`.
+
+## Real verification gates
+
+Run these gates only when their external dependencies are available:
 
 ```bash
-PURE_AUTO_CODEQL_M4_GENERATOR="$PWD/test/m4-pi-host-wrapper.mjs" \
-PURE_AUTO_CODEQL_M4_GENERATOR_MODE=counted \
-PURE_AUTO_CODEQL_M4_GENERATOR_APPROVED=true \
-PURE_AUTO_CODEQL_M4_PI_PROVIDER=openai-codex \
-PURE_AUTO_CODEQL_M4_PI_MODEL=gpt-5.6-luna \
-PURE_AUTO_CODEQL_M4_PI_NO_EXTENSIONS=true \
+npm run test:m3-compile
+npm run test:m3-golden-real
+npm run test:l0-lsp:snapshot
+npm run test:lsp:conformance
+npm run test:m4-pi-e2e
 npm run test:m4-golden-real
 ```
 
-The wrapper receives only an allowlisted provider environment (`ANTHROPIC_*`, `OPENAI_*`, `PI_CODING_AGENT_DIR`, and `PURE_AUTO_CODEQL_M4_*`); secrets are not written into reports. `PURE_AUTO_CODEQL_M4_PI_NO_EXTENSIONS=true` is useful for built-in providers such as `openai-codex` when an unrelated piagent extension is unavailable; extension-backed providers should leave it unset. A provider transport failure is recorded as blocked and cannot count toward the 4/5 Gate D threshold. Set `M4_GOLDEN_SKIP_FIXED=true` to verify the non-blocking single-database/reproduced path.
+The M3 real Golden gate covers 20 Python, JavaScript, Java and C/C++ vulnerable/fixed cases, strict endpoint checks and relocated replay. LSP results remain advisory; authoritative acceptance comes from CodeQL CLI execution. Model-backed evaluation must use an approved wrapper and reports blocked when the model, credentials or analyzer environment is unavailable. It never falls back to fake success.
 
-`npm run test:m4-pi-e2e` runs a diagnostic real-Pi RPC path against temporary Python databases. It verifies the host extension's inspect → start → probe → draft → verify → finalize sequence and model-free relocated replay; it is infrastructure evidence, not a real-model Gate D count.
+## Safety and platform status
 
-For a model-free smoke of that non-blocking path, use the diagnostic-only source-pattern wrapper (it is never counted):
+- Paths are canonicalized and constrained to configured workspace or trusted roots.
+- Long-running operations support timeout and cancellation and clean up subprocess trees.
+- Critical state and artifacts use atomic persistence and deterministic recovery.
+- Output, execution time, candidate count, revisions and concurrency are bounded.
+- Target build and install scripts are not executed automatically.
+- Recognized secrets and unrestricted environment data must not be persisted.
 
-```bash
-PURE_AUTO_CODEQL_M4_GENERATOR=node \
-PURE_AUTO_CODEQL_M4_GENERATOR_ARGS='["'$PWD'/test/m4-diagnostic-wrapper.mjs"]' \
-M4_GOLDEN_SKIP_FIXED=true \
-node test/m4-golden-real.mjs
-```
+The accepted platform path is POSIX/macOS. Windows process-tree cleanup and Windows CI have not been implemented or verified, so Windows support is not currently claimed.
 
-## Platform support
+## Compatibility
 
-M0 lock and process-cleanup validation currently covers the POSIX/macOS path used by this repository. Windows is not an accepted support target in this milestone: Windows process-tree cleanup and Windows CI have not been implemented or validated. The project must not be treated as cross-platform complete until those gates are added.
+During the pre-1.0 migration window, `pure-auto-codeql-v2` remains a CLI alias. Deprecated `PURE_AUTO_CODEQL_*` environment variables continue to work where documented, while matching `AUTOVUL_*` values take precedence. Stable historical CodeQL rule IDs retain their former namespace where changing them would break replay or compatibility.
 
-The run lock uses an atomically created directory with a unique owner-token file. Stale recovery renames only the exact observed owner entry and then uses non-recursive `rmdir`; release validates the owner token before removing anything, so a previous owner cannot remove a replacement owner’s state.
+The Python V1 runtime is outside this isolated TypeScript workspace and is not imported as a V2 dependency.

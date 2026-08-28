@@ -261,7 +261,7 @@ export class CodeqlLspSession {
     connection.listen();
     const params: InitializeParams = {
       processId: process.pid,
-      clientInfo: { name: "pure-auto-codeql-lsp", version: "0.1.0" },
+      clientInfo: { name: "autovul-lsp", version: "0.1.0" },
       rootUri: this.input.workspaceFolders[0]?.uri ?? null,
       workspaceFolders: [...this.input.workspaceFolders],
       capabilities: {

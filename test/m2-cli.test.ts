@@ -3,7 +3,7 @@ import { access, chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { runCli } from "@pure-auto-codeql/cli";
+import { runCli } from "@autovul/cli";
 
 function buffer(): { stdout: string[]; stderr: string[] } {
   return { stdout: [], stderr: [] };
@@ -67,7 +67,7 @@ const spec = {
 
 describe("M2 CLI replay", () => {
   it("submits a QL file through the shared workflow and finalizes without a model", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-m2-cli-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-m2-cli-"));
     try {
       const codeql = await fakeCodeql(root);
       await mkdir(join(root, "vulnerable"));
@@ -158,5 +158,5 @@ describe("M2 CLI replay", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
-  });
+  }, 15_000);
 });

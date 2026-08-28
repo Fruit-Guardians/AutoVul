@@ -5,7 +5,7 @@ import {
   RandomIdGenerator,
   SystemClock,
   type ApplicationApi,
-} from "@pure-auto-codeql/core";
+} from "@autovul/core";
 
 import { LocalArtifactStore } from "./artifact-store.js";
 import { CodeqlRunner } from "./codeql-runner.js";

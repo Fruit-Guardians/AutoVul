@@ -3,9 +3,9 @@ import { access, mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { LocalArtifactStore, NodeFileSystemPort } from "@pure-auto-codeql/codeql-runner";
-import { DomainError, type RunManifest } from "@pure-auto-codeql/contracts";
-import { RunStatusService } from "@pure-auto-codeql/core";
+import { LocalArtifactStore, NodeFileSystemPort } from "@autovul/codeql-runner";
+import { DomainError, type RunManifest } from "@autovul/contracts";
+import { RunStatusService } from "@autovul/core";
 
 import { FixedClock, FixedIdGenerator } from "./helpers.js";
 
@@ -23,7 +23,7 @@ function manifest(runId: "run_store01" | "run_store02"): RunManifest {
 
 describe("LocalArtifactStore", () => {
   it("writes manifests atomically and restores a checkpoint from disk", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-artifact-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-artifact-"));
     try {
       const store = new LocalArtifactStore(root, new NodeFileSystemPort());
       const service = new RunStatusService(store, new FixedClock(), new FixedIdGenerator("run_store01"));
@@ -42,7 +42,7 @@ describe("LocalArtifactStore", () => {
   });
 
   it("rejects corrupt and half-written manifests", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-artifact-corrupt-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-artifact-corrupt-"));
     const store = new LocalArtifactStore(root, new NodeFileSystemPort());
     const runId = "run_store02" as const;
     const runRoot = join(root, runId);
@@ -59,7 +59,7 @@ describe("LocalArtifactStore", () => {
   });
 
   it("prefers a stable manifest when an interrupted atomic write left a tmp file", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-artifact-fallback-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-artifact-fallback-"));
     const store = new LocalArtifactStore(root, new NodeFileSystemPort());
     const runId = "run_store02" as const;
     const runRoot = join(root, runId);
@@ -73,7 +73,7 @@ describe("LocalArtifactStore", () => {
   });
 
   it("enforces a per-run mutex", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-artifact-lock-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-artifact-lock-"));
     try {
       const store = new LocalArtifactStore(root, new NodeFileSystemPort());
       const runId = "run_store01" as const;
@@ -87,7 +87,7 @@ describe("LocalArtifactStore", () => {
   });
 
   it("takes over a lock left by a dead process after the stale threshold", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-artifact-stale-lock-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-artifact-stale-lock-"));
     try {
       const filesystem = new NodeFileSystemPort({ lockStaleMs: 1_000 });
       const store = new LocalArtifactStore(root, filesystem);
@@ -108,7 +108,7 @@ describe("LocalArtifactStore", () => {
   });
 
   it("promotes a complete staged artifact bundle as one directory operation", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-artifact-stage-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-artifact-stage-"));
     try {
       const store = new LocalArtifactStore(root, new NodeFileSystemPort());
       const bundle = await store.stageArtifactBundle("run_store01", "stage-one", "query-pack", [
@@ -128,8 +128,8 @@ describe("LocalArtifactStore", () => {
   });
 
   it("rejects a symlink escape before artifact writes", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-artifact-symlink-"));
-    const outside = await mkdtemp(join(tmpdir(), "pure-auto-codeql-artifact-outside-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-artifact-symlink-"));
+    const outside = await mkdtemp(join(tmpdir(), "autovul-artifact-outside-"));
     try {
       const store = new LocalArtifactStore(root, new NodeFileSystemPort());
       const runRoot = join(root, "run_store01");

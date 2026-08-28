@@ -1,5 +1,5 @@
 import type { ClockPort, IdGeneratorPort } from "./ports.js";
-import type { RunId } from "@pure-auto-codeql/contracts";
+import type { RunId } from "@autovul/contracts";
 
 export class SystemClock implements ClockPort {
   now(): string {

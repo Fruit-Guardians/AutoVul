@@ -5,7 +5,7 @@ import {
   QueryDraftReportSchema,
   RunIdSchema,
   type QueryDraftReport,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import type { CodeqlOperationOptions } from "../ports.js";
 import { qlpackForLanguage } from "../language-packs.js";

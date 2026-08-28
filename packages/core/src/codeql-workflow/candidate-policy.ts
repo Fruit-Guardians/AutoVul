@@ -3,7 +3,7 @@ import {
   stableDigest,
   type QueryCandidate,
   type VulnerabilitySpec,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import { languagePackFor } from "../language-packs.js";
 

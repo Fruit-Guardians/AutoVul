@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { NodeProcessPort } from "@pure-auto-codeql/codeql-runner";
+import { NodeProcessPort } from "@autovul/codeql-runner";
 
 describe("NodeProcessPort", () => {
   it("uses shell-free argv execution, redacts credentials, and caps output", async () => {

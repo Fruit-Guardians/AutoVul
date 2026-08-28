@@ -5,14 +5,14 @@ import { dirname, join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-import { createLocalApplication } from "@pure-auto-codeql/codeql-runner";
-import { runCli } from "@pure-auto-codeql/cli";
+import { createLocalApplication, readAutovulEnv } from "@autovul/codeql-runner";
+import { runCli } from "@autovul/cli";
 import {
   GoldenManifestSchema,
   TaintQueryIntentSchema,
   parseSchema,
   stableDigest,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 import { buildSourceContext } from "./m4-golden-input.mjs";
 import { sanitizedGeneratorEnvironment } from "./m4-golden-environment.mjs";
 
@@ -23,18 +23,19 @@ const manifest = parseSchema(
   "golden manifest",
 );
 const codeql = process.env.CODEQL_PATH ?? "codeql";
-const generator = process.env.PURE_AUTO_CODEQL_M4_GENERATOR;
-const generatorArgs = process.env.PURE_AUTO_CODEQL_M4_GENERATOR_ARGS === undefined
+const generator = readAutovulEnv("M4_GENERATOR");
+const generatorArgsValue = readAutovulEnv("M4_GENERATOR_ARGS");
+const generatorArgs = generatorArgsValue === undefined
   ? []
-  : JSON.parse(process.env.PURE_AUTO_CODEQL_M4_GENERATOR_ARGS);
-const generatorMode = process.env.PURE_AUTO_CODEQL_M4_GENERATOR_MODE ?? "diagnostic";
-const countedApproved = generatorMode === "counted" && process.env.PURE_AUTO_CODEQL_M4_GENERATOR_APPROVED === "true";
+  : JSON.parse(generatorArgsValue);
+const generatorMode = readAutovulEnv("M4_GENERATOR_MODE") ?? "diagnostic";
+const countedApproved = generatorMode === "counted" && readAutovulEnv("M4_GENERATOR_APPROVED") === "true";
 const selectedCase = process.env.M4_GOLDEN_CASE ?? "python_command_injection";
 const runCount = Number(process.env.M4_GOLDEN_RUNS ?? "5");
 const skipFixed = process.env.M4_GOLDEN_SKIP_FIXED === "true";
 
 if (generator === undefined || generator.length === 0) {
-  console.error("M4 Golden BLOCKED: set PURE_AUTO_CODEQL_M4_GENERATOR to an approved structured-intent model wrapper; no fake result is counted.");
+  console.error("M4 Golden BLOCKED: set AUTOVUL_M4_GENERATOR to an approved structured-intent model wrapper; no fake result is counted.");
   process.exitCode = 2;
 } else if (!Number.isInteger(runCount) || runCount < 1 || runCount > 5) {
   console.error("M4 Golden BLOCKED: M4_GOLDEN_RUNS must be an integer from 1 to 5.");
@@ -50,7 +51,7 @@ async function runGolden() {
     process.exitCode = 2;
     return;
   }
-  const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-m4-golden-"));
+  const root = await mkdtemp(join(tmpdir(), "autovul-m4-golden-"));
   const reports = [];
   try {
     for (let run = 1; run <= runCount; run += 1) {
@@ -74,8 +75,9 @@ async function runGolden() {
       runs: reports,
     };
     process.stdout.write(`${JSON.stringify(envelope, null, 2)}\n`);
-    if (process.env.PURE_AUTO_CODEQL_M4_REPORT !== undefined) {
-      await import("node:fs/promises").then(({ writeFile }) => writeFile(process.env.PURE_AUTO_CODEQL_M4_REPORT, `${JSON.stringify(envelope, null, 2)}\n`, "utf8"));
+    const reportPath = readAutovulEnv("M4_REPORT");
+    if (reportPath !== undefined) {
+      await import("node:fs/promises").then(({ writeFile }) => writeFile(reportPath, `${JSON.stringify(envelope, null, 2)}\n`, "utf8"));
     }
     if (status === "diagnostic") process.exitCode = 2;
     else if (status !== "passed") process.exitCode = 1;

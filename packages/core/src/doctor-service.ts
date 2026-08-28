@@ -1,4 +1,4 @@
-import type { CodeqlEnvironment, DatabaseManifest } from "@pure-auto-codeql/contracts";
+import type { CodeqlEnvironment, DatabaseManifest } from "@autovul/contracts";
 
 import type { CodeqlOperationOptions, CodeqlPort } from "./ports.js";
 

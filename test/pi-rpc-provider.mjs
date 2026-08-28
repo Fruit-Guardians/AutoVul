@@ -5,10 +5,10 @@ import {
   fauxToolCall,
 } from "../node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/index.js";
 
-const scenario = process.env.PURE_AUTO_CODEQL_PI_SCENARIO ?? "success";
+const scenario = process.env.AUTOVUL_PI_SCENARIO ?? "success";
 const faux = fauxProvider({
-  provider: "pure-auto-codeql-test",
-  models: [{ id: "pure-auto-codeql-test", reasoning: false, input: ["text"] }],
+  provider: "autovul-test",
+  models: [{ id: "autovul-test", reasoning: false, input: ["text"] }],
 });
 
 const toolInput = scenario === "error"
@@ -16,7 +16,7 @@ const toolInput = scenario === "error"
   : { action: "doctor" };
 
 if (scenario === "m2" || scenario === "m2-cancel-start") {
-  const dbRoot = process.env.PURE_AUTO_CODEQL_PI_M2_DB_ROOT ?? `${process.cwd()}/test/.pi-m2-db`;
+  const dbRoot = process.env.AUTOVUL_PI_M2_DB_ROOT ?? `${process.cwd()}/test/.pi-m2-db`;
   const spec = {
     schema_version: "v2.contracts/1",
     spec_id: "pi-python-command-injection",
@@ -82,7 +82,7 @@ function workflowRunId(context) {
   throw new Error("M2 faux provider could not find workflow run id");
 }
 
-export default function pureAutoCodeqlRpcProvider(pi) {
+export default function autovulRpcProvider(pi) {
   pi.registerProvider(faux.provider);
   pi.on("session_start", async (event, ctx) => {
     if (event.reason === "reload") {

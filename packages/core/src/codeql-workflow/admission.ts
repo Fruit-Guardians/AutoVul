@@ -7,7 +7,7 @@ import {
   type QueryWorkflowStatus,
   type RunId,
   type VulnerabilitySpec,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import type { CodeqlOperationOptions } from "../ports.js";
 import { databaseRefWithManifest, assertDatabaseLanguage, assertStrictSemanticLocations, assertSupportedSemanticKinds } from "./endpoint-policy.js";

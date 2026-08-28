@@ -1,5 +1,5 @@
 {
-  "name": "@pure-auto-codeql/cli",
+  "name": "@autovul/cli",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -7,6 +7,7 @@
   "types": "./dist/index.d.ts",
   "files": ["dist"],
   "bin": {
+    "autovul": "./dist/main.js",
     "pure-auto-codeql-v2": "./dist/main.js"
   },
   "exports": {
@@ -20,8 +21,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@pure-auto-codeql/codeql-runner": "0.1.0",
-    "@pure-auto-codeql/contracts": "0.1.0",
-    "@pure-auto-codeql/core": "0.1.0"
+    "@autovul/codeql-runner": "0.1.0",
+    "@autovul/contracts": "0.1.0",
+    "@autovul/core": "0.1.0"
   }
 }

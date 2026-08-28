@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { SessionRouter } from "@pure-auto-codeql/codeql-runner";
+import { SessionRouter } from "@autovul/codeql-runner";
 
 describe("SessionRouter", () => {
   it("defaults to one shared deterministic session", () => {

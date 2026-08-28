@@ -1,4 +1,4 @@
-# PureAutoCodeQL V2 Product Specification
+# AutoVul V2 Product Specification
 
 - Status: Accepted baseline
 - Version: 1.0
@@ -6,9 +6,9 @@
 
 ## 1. Purpose
 
-PureAutoCodeQL V2 MUST provide host-independent, structured and verifiable vulnerability-research capabilities to mature Agent/Harness hosts such as Pi Agent and DeepSeek Harness.
+AutoVul V2 MUST provide host-independent, structured and verifiable vulnerability-research capabilities to mature Agent/Harness hosts such as Pi Agent and DeepSeek Harness.
 
-PureAutoCodeQL V2 MUST NOT implement or position itself as a general Agent or general Agent Harness. The host owns model access, the Agent Loop, session context, planning, generic tools and user interaction. This project owns vulnerability-research domain contracts, deterministic analyzer execution, evidence, validation and replayable artifacts.
+AutoVul V2 MUST NOT implement or position itself as a general Agent or general Agent Harness. The host owns model access, the Agent Loop, session context, planning, generic tools and user interaction. This project owns vulnerability-research domain contracts, deterministic analyzer execution, evidence, validation and replayable artifacts.
 
 ## 2. Scope
 

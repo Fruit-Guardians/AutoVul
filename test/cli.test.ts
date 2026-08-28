@@ -3,7 +3,7 @@ import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { runCli } from "@pure-auto-codeql/cli";
+import { runCli } from "@autovul/cli";
 
 interface Envelope {
   readonly ok: boolean;
@@ -42,7 +42,7 @@ function ioBuffer(): { stdout: string[]; stderr: string[] } {
 
 describe("V2 CLI", () => {
   it("runs doctor and status through the same persisted Application API", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-cli-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-cli-"));
     try {
       const codeql = await makeFakeCodeql(root);
       const output = ioBuffer();
@@ -71,7 +71,7 @@ describe("V2 CLI", () => {
   });
 
   it("supports read-only database inspect and stable CLI errors", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-cli-db-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-cli-db-"));
     try {
       const codeql = await makeFakeCodeql(root);
       const database = join(root, "db");

@@ -9,7 +9,7 @@ import {
   type TaintFlowStep,
   type TaintFlowMode,
   type TaintQueryIntent,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import { qlDoc, qlString } from "./ql-text.js";
 
@@ -631,7 +631,7 @@ function assertMatcherKinds(intent: TaintQueryIntent, supported: readonly string
 }
 
 function qlpack(dependency: string): string {
-  return `name: pure-auto-codeql/generated\nversion: 0.0.1\ndependencies:\n  ${dependency}: "*"\n`;
+  return `name: autovul/generated\nversion: 0.0.1\ndependencies:\n  ${dependency}: "*"\n`;
 }
 
 function capability(
@@ -652,7 +652,7 @@ function capability(
     flow_modes: [...flowModes],
     verified_at: "2026-08-24T00:00:00.000Z",
     positive_fixture: fixture,
-    provenance: "PureAutoCodeQL M3 renderer compile gate",
+    provenance: "AutoVul M3 renderer compile gate",
   };
 }
 

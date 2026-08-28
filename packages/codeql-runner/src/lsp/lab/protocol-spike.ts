@@ -231,7 +231,7 @@ export class CodeqlLspProtocolSpike {
       await delay(this.options.startupSettlingMs);
       this.recordTimeline(
         "client",
-        "pure-auto-codeql/startup-settled",
+        "autovul/startup-settled",
         undefined,
         `${this.options.startupSettlingMs}ms`,
       );
@@ -414,7 +414,7 @@ export class CodeqlLspProtocolSpike {
       await delay(this.options.startupSettlingMs);
       this.recordTimeline(
         "client",
-        "pure-auto-codeql/startup-settled",
+        "autovul/startup-settled",
         undefined,
         `${this.options.startupSettlingMs}ms`,
       );
@@ -489,7 +489,7 @@ export class CodeqlLspProtocolSpike {
     const rootUri = this.input.workspaceFolders[0]?.uri ?? null;
     const params: InitializeParams = {
       processId: process.pid,
-      clientInfo: { name: "pure-auto-codeql-l0-spike", version: "0.1.0" },
+      clientInfo: { name: "autovul-l0-spike", version: "0.1.0" },
       rootUri,
       workspaceFolders: this.protocolWorkspaceFolders(),
       capabilities: {

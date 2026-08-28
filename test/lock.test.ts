@@ -5,10 +5,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 
-import { NodeFileSystemPort } from "@pure-auto-codeql/codeql-runner";
-import { DomainError } from "@pure-auto-codeql/contracts";
+import { NodeFileSystemPort } from "@autovul/codeql-runner";
+import { DomainError } from "@autovul/contracts";
 
-const TEST_ROOT_PREFIX = "pure-auto-codeql-lock-";
+const TEST_ROOT_PREFIX = "autovul-lock-";
 const DEAD_PID = 99999999;
 
 describe("NodeFileSystemPort lock protocol", () => {

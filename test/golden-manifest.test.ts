@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { GoldenManifestSchema, parseSchema, type GoldenManifest } from "@pure-auto-codeql/contracts";
+import { GoldenManifestSchema, parseSchema, type GoldenManifest } from "@autovul/contracts";
 
 const manifestPath = join(dirname(fileURLToPath(import.meta.url)), "../../test/golden/manifest.json");
 

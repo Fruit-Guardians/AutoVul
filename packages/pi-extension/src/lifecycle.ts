@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { ApplicationApi } from "@pure-auto-codeql/core";
+import type { ApplicationApi } from "@autovul/core";
 
 import { CODEQL_DISCOVERY_HINT, GENERATE_GUIDANCE, GENERIC_C_CPP_FLOW_GUIDANCE, STRICT_ENDPOINT_GUIDANCE, GENERIC_DYNAMIC_PYTHON_GUIDANCE, PYTHON_ARGUMENT_INDEX_GUIDANCE, isLikelyCodeqlRequest } from "./prompts.js";
 import type { PiUiState } from "./types.js";
@@ -26,7 +26,7 @@ export function registerLifecycle(
     hideWidget(ctx);
   });
   pi.on("before_agent_start", async (event) => {
-    if (event.prompt.includes("Use PureAutoCodeQL M4 inside the host Pi Agent Loop.") || event.prompt.includes("Use PureAutoCodeQL M3 inside the host Pi Agent Loop.")) return undefined;
+    if (event.prompt.includes("Use AutoVul M4 inside the host Pi Agent Loop.") || event.prompt.includes("Use AutoVul M3 inside the host Pi Agent Loop.")) return undefined;
     const guidance = isLikelyCodeqlRequest(event.prompt)
       ? `\n\n${GENERATE_GUIDANCE}\n\n${GENERIC_C_CPP_FLOW_GUIDANCE}\n\n${STRICT_ENDPOINT_GUIDANCE}\n\n${GENERIC_DYNAMIC_PYTHON_GUIDANCE}\n\n${PYTHON_ARGUMENT_INDEX_GUIDANCE}`
       : `\n\n${CODEQL_DISCOVERY_HINT}`;
@@ -38,7 +38,7 @@ export function registerLifecycle(
     state.phase = toolPhase(event.toolName, event.args);
     const candidate = readCandidate(event.args);
     if (candidate?.round !== undefined) state.round = candidate.round;
-    if (ctx.hasUI) ctx.ui.setWorkingMessage(`PureAutoCodeQL · ${toolLabel(event.toolName)}…`);
+    if (ctx.hasUI) ctx.ui.setWorkingMessage(`AutoVul · ${toolLabel(event.toolName)}…`);
     renderUi(ctx, state);
   });
   pi.on("tool_result", async (event, ctx) => {

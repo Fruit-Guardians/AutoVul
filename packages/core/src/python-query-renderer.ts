@@ -9,7 +9,7 @@ import {
   type QueryCandidate,
   type QueryCandidateInput,
   type VulnerabilitySpec,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 import { qlDoc, qlString } from "./ql-text.js";
 
 const FORBIDDEN_DRAFT_TOKENS = /(^|\W)(?:import|module|select|from|@kind|@id)(?=\W|$)/i;

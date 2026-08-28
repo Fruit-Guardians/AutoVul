@@ -10,8 +10,8 @@ import {
   type QueryExecutionResult,
   type QueryProbeExecutionPort,
   type QueryProbeRequest,
-} from "@pure-auto-codeql/core";
-import { CONTRACTS_VERSION, DomainError, type VulnerabilitySpec } from "@pure-auto-codeql/contracts";
+} from "@autovul/core";
+import { CONTRACTS_VERSION, DomainError, type VulnerabilitySpec } from "@autovul/contracts";
 
 import {
   FakeCodeqlPort,

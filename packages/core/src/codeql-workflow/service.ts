@@ -5,7 +5,7 @@ import type {
   QueryWorkflowStatus,
   ProbeEvidence,
   RunId,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import type {
   ArtifactStorePort,

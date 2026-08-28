@@ -7,8 +7,8 @@ import {
   qlpackForLanguage,
   renderTaintProbe,
   renderTaintQuery,
-} from "@pure-auto-codeql/core";
-import type { TaintQueryIntent } from "@pure-auto-codeql/contracts";
+} from "@autovul/core";
+import type { TaintQueryIntent } from "@autovul/contracts";
 
 const intents: readonly TaintQueryIntent[] = [
   {

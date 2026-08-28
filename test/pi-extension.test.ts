@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
-import extension from "@pure-auto-codeql/pi-extension";
+import extension from "@autovul/pi-extension";
 
 interface RegisteredCommand {
   readonly handler: (args: string, context: unknown) => Promise<void>;
@@ -62,11 +62,11 @@ function fakeExtensionApi(): FakePi & ExtensionAPI {
 
 describe("Pi Extension", () => {
   it("registers thin commands/tool and routes tool calls to the shared Application API", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-pi-"));
-    const previousRunsDir = process.env.PURE_AUTO_CODEQL_V2_RUNS_DIR;
+    const root = await mkdtemp(join(tmpdir(), "autovul-pi-"));
+    const previousRunsDir = process.env.AUTOVUL_RUNS_DIR;
     const previousCodeqlPath = process.env.CODEQL_PATH;
     try {
-      process.env.PURE_AUTO_CODEQL_V2_RUNS_DIR = root;
+      process.env.AUTOVUL_RUNS_DIR = root;
       process.env.CODEQL_PATH = await fakeCodeql(root);
       const pi = fakeExtensionApi();
       extension(pi);
@@ -96,8 +96,8 @@ describe("Pi Extension", () => {
       for (const handler of pi.eventHandlers.get("session_start") ?? []) {
         await handler({ type: "session_start", reason: "startup" }, context);
       }
-      expect(pi.widgets.get("pure-auto-codeql")).toBeUndefined();
-      expect(pi.statuses.get("pure-auto-codeql")).toBe("CodeQL ready");
+      expect(pi.widgets.get("autovul")).toBeUndefined();
+      expect(pi.statuses.get("autovul")).toBe("CodeQL ready");
 
       const beforeAgentStart = pi.eventHandlers.get("before_agent_start") ?? [];
       const automaticGuidance = await beforeAgentStart[0]?.({
@@ -107,7 +107,7 @@ describe("Pi Extension", () => {
       }, context);
       expect(automaticGuidance).toMatchObject({ systemPrompt: expect.any(String) });
       expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain(
-        "Use PureAutoCodeQL M4 inside the host Pi Agent Loop.",
+        "Use AutoVul M4 inside the host Pi Agent Loop.",
       );
       expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain("codeql_workflow");
       expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain(
@@ -124,7 +124,7 @@ describe("Pi Extension", () => {
         "Do not require the user to type /codeql-generate.",
       );
       expect((discoveryGuidance as { systemPrompt: string }).systemPrompt).not.toContain(
-        "Use PureAutoCodeQL M4 inside the host Pi Agent Loop.",
+        "Use AutoVul M4 inside the host Pi Agent Loop.",
       );
 
       for (const handler of pi.eventHandlers.get("tool_execution_start") ?? []) {
@@ -135,8 +135,8 @@ describe("Pi Extension", () => {
           args: { candidate: { candidate_id: "candidate-1", round: 1, ql_text: "import python\nselect 1" } },
         }, context);
       }
-      expect(pi.statuses.get("pure-auto-codeql")).toContain("CodeQL ◐ verify");
-      const runningWidget = pi.widgets.get("pure-auto-codeql") ?? [];
+      expect(pi.statuses.get("autovul")).toContain("CodeQL ◐ verify");
+      const runningWidget = pi.widgets.get("autovul") ?? [];
       expect(runningWidget).toHaveLength(1);
       expect(runningWidget.join("\n")).toContain("checking compile");
       expect(runningWidget.join("\n")).not.toContain("commands:");
@@ -163,16 +163,16 @@ describe("Pi Extension", () => {
           },
         }, context);
       }
-      expect(pi.widgets.get("pure-auto-codeql")).toBeUndefined();
-      expect(pi.statuses.get("pure-auto-codeql")).toContain("CodeQL ✓ differential");
-      expect(pi.statuses.get("pure-auto-codeql")).toContain("vulnerable 1 flow");
-      expect(pi.statuses.get("pure-auto-codeql")).toContain("fixed 0 flow");
+      expect(pi.widgets.get("autovul")).toBeUndefined();
+      expect(pi.statuses.get("autovul")).toContain("CodeQL ✓ differential");
+      expect(pi.statuses.get("autovul")).toContain("vulnerable 1 flow");
+      expect(pi.statuses.get("autovul")).toContain("fixed 0 flow");
 
       for (const handler of pi.eventHandlers.get("agent_settled") ?? []) {
         await handler({ type: "agent_settled" }, context);
       }
-      expect(pi.widgets.get("pure-auto-codeql")).toBeUndefined();
-      expect(pi.statuses.get("pure-auto-codeql")).toContain("CodeQL ✓ differential");
+      expect(pi.widgets.get("autovul")).toBeUndefined();
+      expect(pi.statuses.get("autovul")).toContain("CodeQL ✓ differential");
 
       await pi.commands.get("codeql-generate")?.handler(
         "user input reaches subprocess.run(shell=True); vulnerable database /tmp/vuln",
@@ -208,9 +208,9 @@ describe("Pi Extension", () => {
       await pi.shutdownHandlers[0]?.();
     } finally {
       if (previousRunsDir === undefined) {
-        delete process.env.PURE_AUTO_CODEQL_V2_RUNS_DIR;
+        delete process.env.AUTOVUL_RUNS_DIR;
       } else {
-        process.env.PURE_AUTO_CODEQL_V2_RUNS_DIR = previousRunsDir;
+        process.env.AUTOVUL_RUNS_DIR = previousRunsDir;
       }
       if (previousCodeqlPath === undefined) {
         delete process.env.CODEQL_PATH;

@@ -4,7 +4,7 @@ import {
   QueryWorkflowStatusSchema,
   RunIdSchema,
   type QueryWorkflowStatus,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import type { CodeqlOperationOptions } from "../ports.js";
 import { compactCaseSummary } from "./case-ledger.js";

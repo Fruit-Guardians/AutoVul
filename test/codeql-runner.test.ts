@@ -3,8 +3,8 @@ import { mkdtemp, mkdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { CodeqlRunner, NodeFileSystemPort } from "@pure-auto-codeql/codeql-runner";
-import { DomainError } from "@pure-auto-codeql/contracts";
+import { CodeqlRunner, NodeFileSystemPort } from "@autovul/codeql-runner";
+import { DomainError } from "@autovul/contracts";
 
 import { processResult, ScriptedProcessPort } from "./helpers.js";
 
@@ -50,7 +50,7 @@ describe("CodeQL runner error mapping", () => {
   });
 
   it("inspects a directory read-only and rejects invalid databases without leaking secrets", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-runner-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-runner-"));
     const database = join(root, "database");
     await mkdir(database);
     try {
@@ -71,7 +71,7 @@ describe("CodeQL runner error mapping", () => {
         workspaceRoot: root,
       });
       expect((await bounded.inspectDatabase(database, { timeoutMs: 1000 })).valid).toBe(true);
-      const outsideRoot = await mkdtemp(join(tmpdir(), "pure-auto-codeql-runner-outside-"));
+      const outsideRoot = await mkdtemp(join(tmpdir(), "autovul-runner-outside-"));
       try {
         await expect(bounded.inspectDatabase(outsideRoot, { timeoutMs: 1000 })).rejects.toMatchObject({
           code: "DATABASE_PATH_OUTSIDE_WORKSPACE",
@@ -106,7 +106,7 @@ describe("CodeQL runner error mapping", () => {
   });
 
   it("rejects a directory when CodeQL cannot resolve formal database metadata", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-runner-metadata-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-runner-metadata-"));
     const database = join(root, "database");
     await mkdir(database);
     try {
@@ -120,7 +120,7 @@ describe("CodeQL runner error mapping", () => {
   });
 
   it("reads the languages array emitted by a finalized CodeQL database", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-runner-languages-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-runner-languages-"));
     const database = join(root, "database");
     await mkdir(database);
     try {
@@ -139,7 +139,7 @@ describe("CodeQL runner error mapping", () => {
     [JSON.stringify({ primaryLanguage: "python" }), "python"],
     [JSON.stringify({ languages: ["python", "javascript"] }), "python"],
   ])("accepts resolve database metadata shape %s", async (output, language) => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-runner-metadata-shape-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-runner-metadata-shape-"));
     const database = join(root, "database");
     await mkdir(database);
     try {

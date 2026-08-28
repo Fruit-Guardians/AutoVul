@@ -5,9 +5,9 @@ import {
   fauxToolCall,
 } from "../node_modules/@earendil-works/pi-coding-agent/node_modules/@earendil-works/pi-ai/dist/index.js";
 
-const vulnerableDatabase = required("PURE_AUTO_CODEQL_PI_M4_VULNERABLE_DB");
-const fixedDatabase = required("PURE_AUTO_CODEQL_PI_M4_FIXED_DB");
-const projectRoot = required("PURE_AUTO_CODEQL_PI_M4_PROJECT_ROOT");
+const vulnerableDatabase = required("AUTOVUL_PI_M4_VULNERABLE_DB");
+const fixedDatabase = required("AUTOVUL_PI_M4_FIXED_DB");
+const projectRoot = required("AUTOVUL_PI_M4_PROJECT_ROOT");
 const specId = "pi-m4-python-command-injection";
 const intent = {
   schema_version: "v2.contracts/1",
@@ -48,8 +48,8 @@ const spec = {
 };
 
 const faux = fauxProvider({
-  provider: "pure-auto-codeql-m4-test",
-  models: [{ id: "pure-auto-codeql-m4-test", reasoning: false, input: ["text"] }],
+  provider: "autovul-m4-test",
+  models: [{ id: "autovul-m4-test", reasoning: false, input: ["text"] }],
 });
 
 faux.setResponses([
@@ -78,7 +78,7 @@ faux.setResponses([
   fauxAssistantMessage([fauxText("M4 diagnostic Pi workflow complete")]),
 ]);
 
-export default function pureAutoCodeqlM4RpcProvider(pi) {
+export default function autovulM4RpcProvider(pi) {
   pi.registerProvider(faux.provider);
 }
 

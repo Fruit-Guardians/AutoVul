@@ -15,8 +15,8 @@ import { constants } from "node:fs";
 import { dirname, join } from "node:path";
 import { randomUUID } from "node:crypto";
 
-import { DomainError } from "@pure-auto-codeql/contracts";
-import type { FileLock, FileSystemPort } from "@pure-auto-codeql/core";
+import { DomainError } from "@autovul/contracts";
+import type { FileLock, FileSystemPort } from "@autovul/core";
 
 export class NodeFileSystemPort implements FileSystemPort {
   constructor(private readonly options: { readonly lockStaleMs?: number } = {}) {}
@@ -410,6 +410,6 @@ function isConcurrentRenameRace(error: unknown): boolean {
  * CI are separately accepted.
  */
 
-export function makeTemporaryRoot(prefix = "pure-auto-codeql-v2-"): string {
+export function makeTemporaryRoot(prefix = "autovul-v2-"): string {
   return `/tmp/${prefix}${randomUUID()}`;
 }

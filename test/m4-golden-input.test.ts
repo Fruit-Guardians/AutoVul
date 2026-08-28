@@ -7,7 +7,7 @@ import { buildSourceContext } from "./m4-golden-input.mjs";
 
 describe("M4 model input source context", () => {
   it("includes deterministic vulnerable source files and excludes generated directories", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-m4-input-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-m4-input-"));
     try {
       await mkdir(join(root, "src"), { recursive: true });
       await mkdir(join(root, "node_modules", "ignored"), { recursive: true });
@@ -28,7 +28,7 @@ describe("M4 model input source context", () => {
   });
 
   it("enforces per-file and aggregate byte limits deterministically", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-m4-input-limit-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-m4-input-limit-"));
     try {
       await mkdir(join(root, "src"), { recursive: true });
       await writeFile(join(root, "src", "a.py"), "1234567890", "utf8");

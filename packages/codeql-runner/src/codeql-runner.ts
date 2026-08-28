@@ -1,5 +1,5 @@
-import { DomainError, stableDigest, type CodeqlEnvironment, type CodeqlDiagnostic, type DatabaseManifest } from "@pure-auto-codeql/contracts";
-import type { FileSystemPort, ProcessPort, ProcessResult, CodeqlOperationOptions, CodeqlPort } from "@pure-auto-codeql/core";
+import { DomainError, stableDigest, type CodeqlEnvironment, type CodeqlDiagnostic, type DatabaseManifest } from "@autovul/contracts";
+import type { FileSystemPort, ProcessPort, ProcessResult, CodeqlOperationOptions, CodeqlPort } from "@autovul/core";
 import { isAbsolute, relative } from "node:path";
 
 import { NodeFileSystemPort } from "./node-filesystem.js";

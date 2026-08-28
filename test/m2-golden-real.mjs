@@ -4,34 +4,35 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { spawn } from "node:child_process";
 
-import { createLocalApplication } from "@pure-auto-codeql/codeql-runner";
-import { M2GoldenReportSchema, parseSchema, QueryCandidateSchema, stableDigest } from "@pure-auto-codeql/contracts";
-import { runCli } from "@pure-auto-codeql/cli";
+import { createLocalApplication, readAutovulEnv } from "@autovul/codeql-runner";
+import { M2GoldenReportSchema, parseSchema, QueryCandidateSchema, stableDigest } from "@autovul/contracts";
+import { runCli } from "@autovul/cli";
 
 const repoRoot = resolve(new URL("..", import.meta.url).pathname, "..");
 const fixtureRoot = join(repoRoot, "test", "golden", "python_command_injection");
 const manifestPath = join(repoRoot, "test", "golden", "manifest.json");
-const codeql = process.env.PURE_AUTO_CODEQL_M2_CODEQL ?? process.env.CODEQL_PATH ?? "codeql";
-const generator = process.env.PURE_AUTO_CODEQL_M2_GENERATOR;
-const generatorArgs = process.env.PURE_AUTO_CODEQL_M2_GENERATOR_ARGS === undefined
+const codeql = readAutovulEnv("M2_CODEQL") ?? process.env.CODEQL_PATH ?? "codeql";
+const generator = readAutovulEnv("M2_GENERATOR");
+const generatorArgsValue = readAutovulEnv("M2_GENERATOR_ARGS");
+const generatorArgs = generatorArgsValue === undefined
   ? []
-  : JSON.parse(process.env.PURE_AUTO_CODEQL_M2_GENERATOR_ARGS);
-const generatorMode = process.env.PURE_AUTO_CODEQL_M2_GENERATOR_MODE ?? "diagnostic";
-const countedApproved = generatorMode === "counted" && process.env.PURE_AUTO_CODEQL_M2_GENERATOR_APPROVED === "true";
-const caseFilePath = process.env.PURE_AUTO_CODEQL_M2_CASE_FILE;
-const externalVulnerableDatabase = process.env.PURE_AUTO_CODEQL_M2_VULNERABLE_DB;
-const externalFixedDatabase = process.env.PURE_AUTO_CODEQL_M2_FIXED_DB;
-const externalWorkspaceRoot = process.env.PURE_AUTO_CODEQL_M2_WORKSPACE_ROOT;
+  : JSON.parse(generatorArgsValue);
+const generatorMode = readAutovulEnv("M2_GENERATOR_MODE") ?? "diagnostic";
+const countedApproved = generatorMode === "counted" && readAutovulEnv("M2_GENERATOR_APPROVED") === "true";
+const caseFilePath = readAutovulEnv("M2_CASE_FILE");
+const externalVulnerableDatabase = readAutovulEnv("M2_VULNERABLE_DB");
+const externalFixedDatabase = readAutovulEnv("M2_FIXED_DB");
+const externalWorkspaceRoot = readAutovulEnv("M2_WORKSPACE_ROOT");
 
 if (generator === undefined || typeof generator !== "string" || generator.length === 0) {
-  console.error("M2 Golden BLOCKED: set PURE_AUTO_CODEQL_M2_GENERATOR to an approved model-wrapper executable; no fake result is counted.");
+  console.error("M2 Golden BLOCKED: set AUTOVUL_M2_GENERATOR to an approved model-wrapper executable; no fake result is counted.");
   process.exitCode = 2;
 } else {
   await runGolden();
 }
 
 async function runGolden() {
-  const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-m2-golden-"));
+  const root = await mkdtemp(join(tmpdir(), "autovul-m2-golden-"));
   const report = [];
   try {
     const goldenCase = await loadGoldenCase();
@@ -47,8 +48,9 @@ async function runGolden() {
       counted_runs: counted.length, total: report.length, admission: "suggested >=4/5", runs: report,
     })), "M2 Golden report");
     const rendered = JSON.stringify(envelope, null, 2);
-    if (process.env.PURE_AUTO_CODEQL_M2_REPORT !== undefined) {
-      await writeFile(process.env.PURE_AUTO_CODEQL_M2_REPORT, `${rendered}\n`, "utf8");
+    const reportPath = readAutovulEnv("M2_REPORT");
+    if (reportPath !== undefined) {
+      await writeFile(reportPath, `${rendered}\n`, "utf8");
     }
     console.log(rendered);
     if (status === "diagnostic") {
@@ -83,7 +85,7 @@ async function loadGoldenCase() {
 async function createDatabases(root) {
   if (externalVulnerableDatabase !== undefined) {
     if (externalFixedDatabase === undefined) {
-      throw new Error("PURE_AUTO_CODEQL_M2_FIXED_DB is required when using an external vulnerable database");
+      throw new Error("AUTOVUL_M2_FIXED_DB is required when using an external vulnerable database");
     }
     return { vulnerable: externalVulnerableDatabase, fixed: externalFixedDatabase };
   }
@@ -250,10 +252,10 @@ function addUsage(left, right) {
 function sanitizedEnvironment() {
   const allowed = [
     "PATH", "NODE_PATH", "SystemRoot", "TMPDIR", "TMP", "TEMP",
-    "PURE_AUTO_CODEQL_M2_API_KEY", "PURE_AUTO_CODEQL_M2_API_BASE", "PURE_AUTO_CODEQL_M2_MODEL",
-    "PURE_AUTO_CODEQL_M2_PROVIDER", "PURE_AUTO_CODEQL_M2_TEMPERATURE", "PURE_AUTO_CODEQL_M2_MAX_TOKENS",
+    "M2_API_KEY", "M2_API_BASE", "M2_MODEL",
+    "M2_PROVIDER", "M2_TEMPERATURE", "M2_MAX_TOKENS",
   ];
-  return Object.fromEntries(allowed.filter((key) => process.env[key] !== undefined).map((key) => [key, process.env[key]]));
+  return Object.fromEntries(allowed.map((key) => [key, readAutovulEnv(key)]).filter(([, value]) => value !== undefined).map(([key, value]) => [`AUTOVUL_${key}`, value]));
 }
 
 async function invokeCli(args) {

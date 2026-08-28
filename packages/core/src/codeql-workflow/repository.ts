@@ -11,7 +11,7 @@ import {
   type RunId,
   type RunManifest,
   type RunPhase,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import type {
   ArtifactBundleFile,

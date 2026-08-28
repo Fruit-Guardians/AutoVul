@@ -8,7 +8,7 @@ import {
   CodeqlLspProtocolSpike,
   SessionRouter,
   l0UriForPath,
-} from "@pure-auto-codeql/codeql-runner/lab";
+} from "@autovul/codeql-runner/lab";
 
 const testRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repositoryRoot = resolve(testRoot, "..");
@@ -32,7 +32,7 @@ const selectedLanguageCases = requestedLanguages === undefined || requestedLangu
 const matrixScenarioFilter = process.env.CODEQL_L0_MATRIX_SCENARIOS?.split(",").map((value) => value.trim()).filter(Boolean);
 
 export async function runL0Matrix() {
-  const fixtureRoot = await mkdtemp(join(tmpdir(), "pure-auto-codeql-l0-"));
+  const fixtureRoot = await mkdtemp(join(tmpdir(), "autovul-l0-"));
   const cacheRoot = join(fixtureRoot, "common-caches");
   await mkdir(cacheRoot, { recursive: true });
   const distributionRoot = resolveDistributionRoot();
@@ -55,7 +55,7 @@ export async function runL0Matrix() {
       codeqlVersion,
       generatedAt: new Date().toISOString(),
       client: {
-        package: "@pure-auto-codeql/codeql-runner",
+        package: "@autovul/codeql-runner",
         transport: "vscode-jsonrpc/stdio",
         runtime: "headless-node",
       },
@@ -307,7 +307,7 @@ async function createSemanticFixtures(root) {
   const dynamicRoot = join(root, "dynamic-pack");
   await mkdir(dynamicRoot, { recursive: true });
   const dynamicQuery = await readFile(resolve(repositoryRoot, "test", "golden", "python_command_injection", "query.ql"), "utf8");
-  await writeFile(join(dynamicRoot, "qlpack.yml"), "name: pure-auto-codeql/l0-dynamic\nversion: 0.0.1\ndependencies:\n  codeql/python-all: \"*\"\n", "utf8");
+  await writeFile(join(dynamicRoot, "qlpack.yml"), "name: autovul/l0-dynamic\nversion: 0.0.1\ndependencies:\n  codeql/python-all: \"*\"\n", "utf8");
   const dynamicQueryPath = join(dynamicRoot, "query.ql");
   await writeFile(dynamicQueryPath, dynamicQuery, "utf8");
 
@@ -329,14 +329,14 @@ async function createUpdateFixture(root, name) {
   const qlpackPath = join(fixtureRoot, "qlpack.yml");
   const queryPath = join(fixtureRoot, "query.ql");
   const query = "import javascript\n\nselect \"l0 qlpack update\"\n";
-  await writeFile(qlpackPath, "name: pure-auto-codeql/l0-update\nversion: 0.0.1\ndependencies:\n  codeql/python-all: \"*\"\n", "utf8");
+  await writeFile(qlpackPath, "name: autovul/l0-update\nversion: 0.0.1\ndependencies:\n  codeql/python-all: \"*\"\n", "utf8");
   await writeFile(queryPath, query, "utf8");
   return {
     folder: { uri: l0UriForPath(fixtureRoot), name: `l0-${name}` },
     qlpackUri: l0UriForPath(qlpackPath),
     document: makeFixtureDocument(queryPath, "javascript", name, query),
     applyUpdate: async () => {
-      await writeFile(qlpackPath, "name: pure-auto-codeql/l0-update\nversion: 0.0.2\ndependencies:\n  codeql/javascript-all: \"*\"\n", "utf8");
+      await writeFile(qlpackPath, "name: autovul/l0-update\nversion: 0.0.2\ndependencies:\n  codeql/javascript-all: \"*\"\n", "utf8");
     },
   };
 }

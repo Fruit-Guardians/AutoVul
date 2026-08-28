@@ -3,7 +3,7 @@ import {
   VulnerabilitySpecSchema,
   stableDigest,
   type VulnerabilitySpec,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 /** Upgrade only the legacy field that was introduced before case identity was persisted. */
 export function upgradeLegacyState(value: unknown): unknown {

@@ -3,8 +3,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { startPiRpc } from "./pi-rpc-client.mjs";
 
-const configDir = await mkdtemp(join(tmpdir(), "pure-auto-codeql-v2-pi-rpc-config-"));
-const runsDir = await mkdtemp(join(tmpdir(), "pure-auto-codeql-v2-pi-rpc-runs-"));
+const configDir = await mkdtemp(join(tmpdir(), "autovul-v2-pi-rpc-config-"));
+const runsDir = await mkdtemp(join(tmpdir(), "autovul-v2-pi-rpc-runs-"));
 const extension = join(process.cwd(), "packages/pi-extension/dist/index.js");
 const provider = join(process.cwd(), "test/pi-rpc-provider.mjs");
 const fakeCodeql = join(process.cwd(), "test/pi-fake-codeql.mjs");
@@ -15,12 +15,12 @@ function startRpc(scenario, extraEnv = {}) {
     configDir,
     extension,
     provider,
-    providerId: "pure-auto-codeql-test",
-    modelId: "pure-auto-codeql-test",
+    providerId: "autovul-test",
+    modelId: "autovul-test",
     timeoutMs: 10_000,
     environment: {
-      PURE_AUTO_CODEQL_V2_RUNS_DIR: runsDir,
-      PURE_AUTO_CODEQL_PI_SCENARIO: scenario,
+      AUTOVUL_RUNS_DIR: runsDir,
+      AUTOVUL_PI_SCENARIO: scenario,
       CODEQL_PATH: fakeCodeql,
       ...extraEnv,
     },
@@ -50,22 +50,22 @@ try {
     throw new Error(`Pi RPC command registration failed: ${JSON.stringify(commands)}`);
   }
   const state = await success.request({ type: "get_state" });
-  if (!state.success || state.data.model?.provider !== "pure-auto-codeql-test") {
+  if (!state.success || state.data.model?.provider !== "autovul-test") {
     throw new Error(`Pi RPC provider setup failed: ${JSON.stringify(state)}`);
   }
   await success.waitFor((value) => value.type === "extension_ui_request"
     && value.method === "setStatus"
-    && value.statusKey === "pure-auto-codeql"
+    && value.statusKey === "autovul"
     && value.statusText === "CodeQL ready");
   await success.waitFor((value) => value.type === "extension_ui_request"
     && value.method === "setWidget"
-    && value.widgetKey === "pure-auto-codeql"
+    && value.widgetKey === "autovul"
     && value.widgetLines === undefined);
   await success.request({ id: "doctor-prompt", type: "prompt", message: "run the CodeQL doctor tool" });
   await success.waitFor((value) => value.type === "agent_settled");
   await success.waitFor((value) => value.type === "extension_ui_request"
     && value.method === "setStatus"
-    && value.statusKey === "pure-auto-codeql"
+    && value.statusKey === "autovul"
     && value.statusText?.includes("CodeQL ✓"));
   const messages = await success.request({ type: "get_messages" });
   const toolResult = messages.data.messages.find((message) => message.role === "toolResult" && message.toolName === "codeql_database");
@@ -112,7 +112,7 @@ try {
 
 await mkdir(join(m2DbRoot, "vulnerable"), { recursive: true });
 await mkdir(join(m2DbRoot, "fixed"), { recursive: true });
-const cancelledWorkflow = startRpc("m2-cancel-start", { PI_FAKE_CODEQL_SLEEP: "1", PURE_AUTO_CODEQL_PI_M2_DB_ROOT: m2DbRoot });
+const cancelledWorkflow = startRpc("m2-cancel-start", { PI_FAKE_CODEQL_SLEEP: "1", AUTOVUL_PI_M2_DB_ROOT: m2DbRoot });
 try {
   await cancelledWorkflow.request({ id: "m2-cancel-start-prompt", type: "prompt", message: "start the Python CodeQL workflow" });
   await cancelledWorkflow.waitFor((value) => value.type === "tool_execution_start" && value.toolName === "codeql_workflow");
@@ -141,23 +141,23 @@ try {
 
 await mkdir(join(m2DbRoot, "vulnerable"), { recursive: true });
 await mkdir(join(m2DbRoot, "fixed"), { recursive: true });
-const m2 = startRpc("m2", { PURE_AUTO_CODEQL_PI_M2_DB_ROOT: m2DbRoot });
+const m2 = startRpc("m2", { AUTOVUL_PI_M2_DB_ROOT: m2DbRoot });
 let m2Run;
 try {
   await m2.request({ id: "m2-prompt", type: "prompt", message: "run the Python CodeQL workflow" });
   await m2.waitFor((value) => value.type === "extension_ui_request"
     && value.method === "setWidget"
-    && value.widgetKey === "pure-auto-codeql"
+    && value.widgetKey === "autovul"
     && value.widgetLines?.some((line) => line.includes("checking compile")));
   await m2.waitFor((value) => value.type === "extension_ui_request"
     && value.method === "setWidget"
-    && value.widgetKey === "pure-auto-codeql"
+    && value.widgetKey === "autovul"
     && value.widgetLines?.length === 1
     && value.widgetLines[0].includes("pack ready"));
   await m2.waitFor((value) => value.type === "agent_settled");
   await m2.waitFor((value) => value.type === "extension_ui_request"
     && value.method === "setWidget"
-    && value.widgetKey === "pure-auto-codeql"
+    && value.widgetKey === "autovul"
     && value.widgetLines === undefined);
   const m2Messages = await m2.request({ type: "get_messages" });
   const m2Tools = m2Messages.data.messages.filter((message) =>

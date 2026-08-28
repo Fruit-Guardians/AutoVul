@@ -1,13 +1,13 @@
 import { readFile } from "node:fs/promises";
 
-const apiKey = process.env.PURE_AUTO_CODEQL_M2_API_KEY;
-const apiBase = (process.env.PURE_AUTO_CODEQL_M2_API_BASE ?? "https://api.openai.com/v1").replace(/\/$/, "");
-const model = process.env.PURE_AUTO_CODEQL_M2_MODEL;
-const temperature = Number(process.env.PURE_AUTO_CODEQL_M2_TEMPERATURE ?? "0.2");
-const maxTokens = Number(process.env.PURE_AUTO_CODEQL_M2_MAX_TOKENS ?? "4000");
+const apiKey = process.env.AUTOVUL_M2_API_KEY;
+const apiBase = (process.env.AUTOVUL_M2_API_BASE ?? "https://api.openai.com/v1").replace(/\/$/, "");
+const model = process.env.AUTOVUL_M2_MODEL;
+const temperature = Number(process.env.AUTOVUL_M2_TEMPERATURE ?? "0.2");
+const maxTokens = Number(process.env.AUTOVUL_M2_MAX_TOKENS ?? "4000");
 
 if (apiKey === undefined || model === undefined) {
-  throw new Error("PURE_AUTO_CODEQL_M2_API_KEY and PURE_AUTO_CODEQL_M2_MODEL are required");
+  throw new Error("AUTOVUL_M2_API_KEY and AUTOVUL_M2_MODEL are required");
 }
 
 const input = JSON.parse(await readFile(0, "utf8"));
@@ -41,7 +41,7 @@ if (![usage.prompt_tokens, usage.completion_tokens, usage.total_tokens].every((i
 process.stdout.write(JSON.stringify({
   candidate: value.candidate ?? value,
   metadata: {
-    provider: process.env.PURE_AUTO_CODEQL_M2_PROVIDER ?? "openai-compatible",
+    provider: process.env.AUTOVUL_M2_PROVIDER ?? "openai-compatible",
     model,
     adapter_version: "m2-openai-compatible/1",
     parameters: { temperature, output_limit: maxTokens },

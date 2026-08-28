@@ -5,7 +5,7 @@ import {
   ProbeEvidenceSchema,
   RunIdSchema,
   type ProbeEvidence,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import type { CodeqlOperationOptions } from "../ports.js";
 import { normalizeTaintIntent } from "../language-packs.js";

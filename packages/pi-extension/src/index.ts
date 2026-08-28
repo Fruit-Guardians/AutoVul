@@ -1,5 +1,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { createLocalApplication } from "@pure-auto-codeql/codeql-runner";
+import { createLocalApplication, readAutovulEnv } from "@autovul/codeql-runner";
 
 import { registerCommands } from "./commands.js";
 import { registerLifecycle } from "./lifecycle.js";
@@ -7,9 +7,9 @@ import { registerTools } from "./tools.js";
 import type { PiUiState } from "./types.js";
 
 /** Pi integration composition root: assemble the Application and register adapters. */
-export default function pureAutoCodeqlExtension(pi: ExtensionAPI): void {
+export default function autovulExtension(pi: ExtensionAPI): void {
   const applicationOptions = { cwd: process.cwd(), timeoutMs: configuredTimeoutMs() };
-  const runsDir = process.env.PURE_AUTO_CODEQL_V2_RUNS_DIR;
+  const runsDir = readAutovulEnv("RUNS_DIR");
   const application = runsDir === undefined
     ? createLocalApplication(applicationOptions)
     : createLocalApplication({ ...applicationOptions, runsDir });
@@ -26,6 +26,6 @@ export default function pureAutoCodeqlExtension(pi: ExtensionAPI): void {
 }
 
 function configuredTimeoutMs(): number {
-  const parsed = Number.parseInt(process.env.PURE_AUTO_CODEQL_TIMEOUT_MS ?? "120000", 10);
+  const parsed = Number.parseInt(readAutovulEnv("TIMEOUT_MS") ?? "120000", 10);
   return Number.isFinite(parsed) && parsed >= 1_000 ? Math.min(parsed, 600_000) : 120_000;
 }

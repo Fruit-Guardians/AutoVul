@@ -5,7 +5,7 @@ import {
   type QueryVerification,
   type QueryWorkflowState,
   type RunId,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import type { ArtifactStorePort, ClockPort } from "../ports.js";
 import { caseFingerprintFor } from "./state-migrations.js";

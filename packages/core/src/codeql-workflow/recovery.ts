@@ -1,4 +1,4 @@
-import { DomainError, parseSchema, RunIdSchema, type RunId } from "@pure-auto-codeql/contracts";
+import { DomainError, parseSchema, RunIdSchema, type RunId } from "@autovul/contracts";
 
 export const RECOVERY_SCHEMA_VERSION = "workflow.commit/v1" as const;
 export const RECOVERY_DIRECTORY = "workflow/internal/commits";

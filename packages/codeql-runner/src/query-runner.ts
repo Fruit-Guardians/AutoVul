@@ -14,7 +14,7 @@ import {
   type ProbeNodeEvidence,
   type ProbeLocation,
   type VulnerabilitySpec,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 import type {
   CodeqlOperationOptions,
   ProcessPort,
@@ -24,8 +24,8 @@ import type {
   QueryExecutionResult,
   QueryProbeExecutionPort,
   QueryProbeRequest,
-} from "@pure-auto-codeql/core";
-import { languagePackFor, qlpackForLanguage, renderTaintProbe, type ProbeRole } from "@pure-auto-codeql/core";
+} from "@autovul/core";
+import { languagePackFor, qlpackForLanguage, renderTaintProbe, type ProbeRole } from "@autovul/core";
 
 import { NodeFileSystemPort } from "./node-filesystem.js";
 import { NodeProcessPort } from "./node-process.js";
@@ -36,7 +36,7 @@ export interface QueryRunnerOptions {
   readonly executable?: string;
   readonly cwd?: string;
   readonly process?: ProcessPort;
-  readonly filesystem?: import("@pure-auto-codeql/core").FileSystemPort;
+  readonly filesystem?: import("@autovul/core").FileSystemPort;
   readonly maxOutputBytes?: number;
 }
 
@@ -44,7 +44,7 @@ export class CodeqlQueryRunner implements QueryExecutionPort, QueryProbeExecutio
   private readonly executable: string;
   private readonly cwd: string | undefined;
   private readonly process: ProcessPort;
-  private readonly filesystem: import("@pure-auto-codeql/core").FileSystemPort;
+  private readonly filesystem: import("@autovul/core").FileSystemPort;
   private readonly maxOutputBytes: number;
 
   constructor(options: QueryRunnerOptions = {}) {

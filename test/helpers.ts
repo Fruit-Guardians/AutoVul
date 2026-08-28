@@ -1,4 +1,4 @@
-import { DomainError, type CaseRunSummary, type CodeqlEnvironment, type DatabaseManifest, type RunId, type RunManifest } from "@pure-auto-codeql/contracts";
+import { DomainError, type CaseRunSummary, type CodeqlEnvironment, type DatabaseManifest, type RunId, type RunManifest } from "@autovul/contracts";
 import type {
   ArtifactBundleFile,
   ArtifactStorePort,
@@ -11,7 +11,7 @@ import type {
   ProcessPort,
   ProcessResult,
   StagedArtifactBundle,
-} from "@pure-auto-codeql/core";
+} from "@autovul/core";
 
 export class MemoryArtifactStore implements ArtifactStorePort {
   readonly manifests = new Map<RunId, RunManifest>();

@@ -11,7 +11,7 @@ import type {
 import { DoctorService } from "./doctor-service.js";
 import { RunStatusService } from "./status-service.js";
 import { WorkflowController } from "./workflow-controller.js";
-import { DomainError, type DatabaseResult, type DoctorResult, type ProbeEvidence, type QueryDraftReport, type QueryPackManifest, type QueryVerification, type QueryWorkflowStatus, type RunManifest } from "@pure-auto-codeql/contracts";
+import { DomainError, type DatabaseResult, type DoctorResult, type ProbeEvidence, type QueryDraftReport, type QueryPackManifest, type QueryVerification, type QueryWorkflowStatus, type RunManifest } from "@autovul/contracts";
 import { QueryWorkflowService } from "./query-workflow.js";
 
 export interface ApplicationApi {

@@ -7,7 +7,7 @@ import {
   type QueryCandidate,
   type QueryCandidateInput,
   type VulnerabilitySpec,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import { normalizePythonQueryCandidate } from "./python-query-renderer.js";
 import { languagePackFor, normalizeTaintIntent, renderTaintQuery } from "./language-packs.js";

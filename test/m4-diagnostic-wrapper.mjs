@@ -2,7 +2,7 @@
  * Diagnostic-only generator for the Python command-injection fixture.
  *
  * This intentionally is not a model and must never be used with
- * PURE_AUTO_CODEQL_M4_GENERATOR_MODE=counted. It exists to exercise the real
+ * AUTOVUL_M4_GENERATOR_MODE=counted. It exists to exercise the real
  * probe, LSP draft, CodeQL CLI, and relocated Query Pack path while a model
  * provider is unavailable.
  */

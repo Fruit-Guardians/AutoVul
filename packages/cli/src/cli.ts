@@ -13,9 +13,9 @@ import {
   type QueryVerification,
   type QueryWorkflowStatus,
   type RunManifest,
-} from "@pure-auto-codeql/contracts";
-import { createLocalApplication, type LocalApplicationOptions } from "@pure-auto-codeql/codeql-runner";
-import type { ApplicationApi } from "@pure-auto-codeql/core";
+} from "@autovul/contracts";
+import { createLocalApplication, readAutovulEnv, type LocalApplicationOptions } from "@autovul/codeql-runner";
+import type { ApplicationApi } from "@autovul/core";
 import { cp, readFile } from "node:fs/promises";
 import { realpath } from "node:fs/promises";
 import { dirname, isAbsolute, relative, resolve } from "node:path";
@@ -45,7 +45,7 @@ export async function runCli(argv: readonly string[], io: CliIo = defaultIo): Pr
   let application: ApplicationApi | undefined;
   try {
     const parsed = parseArguments(argv);
-    const runsDir = parsed.runsDir ?? process.env.PURE_AUTO_CODEQL_V2_RUNS_DIR;
+    const runsDir = parsed.runsDir ?? readAutovulEnv("RUNS_DIR");
     const inferredWorkspaceRoot = parsed.workspaceRoot === undefined
       ? await inferQueryPackWorkspaceRoot(parsed)
       : undefined;

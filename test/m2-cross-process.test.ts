@@ -4,9 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawn } from "node:child_process";
 
-import { Application } from "@pure-auto-codeql/core";
-import { LocalArtifactStore, NodeFileSystemPort } from "@pure-auto-codeql/codeql-runner";
-import { CONTRACTS_VERSION, type VulnerabilitySpec } from "@pure-auto-codeql/contracts";
+import { Application } from "@autovul/core";
+import { LocalArtifactStore, NodeFileSystemPort } from "@autovul/codeql-runner";
+import { CONTRACTS_VERSION, type VulnerabilitySpec } from "@autovul/contracts";
 
 const spec: VulnerabilitySpec = {
   schema_version: CONTRACTS_VERSION,
@@ -27,7 +27,7 @@ const spec: VulnerabilitySpec = {
 
 describe("M2 cross-process workflow lease", () => {
   it("serializes independent Node processes and preserves exactly the budgeted state", async () => {
-    const root = await mkdtemp(join(tmpdir(), "pure-auto-codeql-m2-process-"));
+    const root = await mkdtemp(join(tmpdir(), "autovul-m2-process-"));
     try {
       const store = new LocalArtifactStore(root, new NodeFileSystemPort());
       const database = {

@@ -36,9 +36,9 @@ describe("M4 Pi host wrapper output adapter", () => {
     const args = buildPiArgs(
       { candidateInput: { workflow_id: "wf-1" } },
       {
-        PURE_AUTO_CODEQL_M4_PI_PROVIDER: "commandcode",
-        PURE_AUTO_CODEQL_M4_PI_MODEL: "gpt-5.6-luna",
-        PURE_AUTO_CODEQL_M4_PI_THINKING: "low",
+        AUTOVUL_M4_PI_PROVIDER: "commandcode",
+        AUTOVUL_M4_PI_MODEL: "gpt-5.6-luna",
+        AUTOVUL_M4_PI_THINKING: "low",
       },
     );
 
@@ -54,7 +54,7 @@ describe("M4 Pi host wrapper output adapter", () => {
   it("can isolate a built-in provider from unrelated piagent extensions", () => {
     const args = buildPiArgs(
       { workflow_id: "wf-2" },
-      { PURE_AUTO_CODEQL_M4_PI_NO_EXTENSIONS: "true" },
+      { AUTOVUL_M4_PI_NO_EXTENSIONS: "true" },
     );
 
     expect(args).toContain("--no-extensions");

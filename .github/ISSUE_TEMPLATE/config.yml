@@ -2,4 +2,4 @@ blank_issues_enabled: false
 contact_links:
   - name: Private security report
     url: https://github.com/Fruit-Guardians/AutoVul/security/advisories/new
-    about: Report vulnerabilities in PureAutoCodeQL privately. Do not publish exploit details in an issue.
+  about: Report vulnerabilities in AutoVul privately. Do not publish exploit details in an issue.

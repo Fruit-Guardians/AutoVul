@@ -13,22 +13,25 @@ const ALLOWED_GENERATOR_ENVIRONMENT = [
   "OPENAI_BASE_URL",
   "OPENAI_ORG_ID",
   "OPENAI_PROJECT_ID",
-  "PURE_AUTO_CODEQL_M4_API_KEY",
-  "PURE_AUTO_CODEQL_M4_API_BASE",
-  "PURE_AUTO_CODEQL_M4_MODEL",
-  "PURE_AUTO_CODEQL_M4_PROVIDER",
-  "PURE_AUTO_CODEQL_M4_TEMPERATURE",
-  "PURE_AUTO_CODEQL_M4_MAX_TOKENS",
-  "PURE_AUTO_CODEQL_M4_PI_PROVIDER",
-  "PURE_AUTO_CODEQL_M4_PI_MODEL",
-  "PURE_AUTO_CODEQL_M4_PI_THINKING",
-  "PURE_AUTO_CODEQL_M4_PI_NO_EXTENSIONS",
+  "AUTOVUL_M4_API_KEY",
+  "AUTOVUL_M4_API_BASE",
+  "AUTOVUL_M4_MODEL",
+  "AUTOVUL_M4_PROVIDER",
+  "AUTOVUL_M4_TEMPERATURE",
+  "AUTOVUL_M4_MAX_TOKENS",
+  "AUTOVUL_M4_PI_PROVIDER",
+  "AUTOVUL_M4_PI_MODEL",
+  "AUTOVUL_M4_PI_THINKING",
+  "AUTOVUL_M4_PI_NO_EXTENSIONS",
 ];
 
 export function sanitizedGeneratorEnvironment(environment = process.env) {
   return Object.fromEntries(
-    ALLOWED_GENERATOR_ENVIRONMENT
-      .filter((key) => environment[key] !== undefined)
-      .map((key) => [key, environment[key]]),
+    ALLOWED_GENERATOR_ENVIRONMENT.flatMap((key) => {
+      if (!key.startsWith("AUTOVUL_")) return environment[key] === undefined ? [] : [[key, environment[key]]];
+      const value = readAutovulEnv(key.slice("AUTOVUL_".length), environment);
+      return value === undefined ? [] : [[key, value]];
+    }),
   );
 }
+import { readAutovulEnv } from "@autovul/codeql-runner";

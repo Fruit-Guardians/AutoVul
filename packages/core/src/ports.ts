@@ -14,7 +14,7 @@ import type {
   RunPhase,
   VulnerabilitySpec,
   VerificationLevel,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 export interface ProcessCommand {
   readonly executable: string;

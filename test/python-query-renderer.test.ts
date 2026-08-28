@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { CONTRACTS_VERSION, type VulnerabilitySpec } from "@pure-auto-codeql/contracts";
-import { normalizePythonQueryCandidate } from "@pure-auto-codeql/core";
+import { CONTRACTS_VERSION, type VulnerabilitySpec } from "@autovul/contracts";
+import { normalizePythonQueryCandidate } from "@autovul/core";
 
 const spec: VulnerabilitySpec = {
   schema_version: CONTRACTS_VERSION,

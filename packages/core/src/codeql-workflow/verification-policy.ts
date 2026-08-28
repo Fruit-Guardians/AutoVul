@@ -7,7 +7,7 @@ import {
   type QueryVerification,
   type RunId,
   type VulnerabilitySpec,
-} from "@pure-auto-codeql/contracts";
+} from "@autovul/contracts";
 
 import type { QueryExecutionResult as ExecutionResult } from "../ports.js";
 import { compileRepairHint } from "./candidate-policy.js";

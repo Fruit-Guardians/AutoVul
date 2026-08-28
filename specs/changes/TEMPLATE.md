@@ -12,7 +12,7 @@ Describe the vulnerability-research problem and the evidence that the current be
 
 ## Host boundary
 
-Explain why this belongs in PureAutoCodeQL instead of the host Agent/Harness. Identify which responsibilities remain with the host.
+Explain why this belongs in AutoVul instead of the host Agent/Harness. Identify which responsibilities remain with the host.
 
 ## Scope
 
