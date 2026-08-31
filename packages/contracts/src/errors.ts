@@ -33,6 +33,7 @@ export const DomainErrorCodeSchema = Type.Union([
   Type.Literal("PROCESS_OUTPUT_LIMIT"),
   Type.Literal("QUERY_BUDGET_EXCEEDED"),
   Type.Literal("QUERY_CASE_EXISTS"),
+  Type.Literal("IDEMPOTENCY_KEY_CONFLICT"),
   Type.Literal("QUERY_INVALID_CANDIDATE"),
   Type.Literal("QUERY_RESULT_MISMATCH"),
   Type.Literal("SPEC_SEMANTIC_LOCATION_REQUIRED"),

@@ -34,28 +34,36 @@ The accepted result levels are:
 
 Probe results, model reasoning, mocks and diagnostic wrappers are not vulnerability confirmation.
 
-## Flow-Based direction
+## Research capability direction
 
-AutoVul is evolving toward a Flow-Based vulnerability-research capability layer designed for Agent and LLM consumption:
+AutoVul is designed as a set of parallel vulnerability-research capabilities over one deterministic runtime. Flow is the first capability being completed; it is not a universal vulnerability IR.
 
 ```text
-Host Agent / LLM
-  -> FlowModel
-  -> ExecuteFlowRequest
-       -> AutoVul Flow Core
-       -> FlowExecutionPort
-            └─ CodeQL Adapter
-  -> FlowExecutionResult
+Host Agent / Harness
+  -> capability-specific hypothesis
+       Flow | MissingCheck | Typestate | ...
+  -> AutoVul
+       capability validation and decision policy
+       shared run / budget / evidence / replay runtime
+       analyzer adapters
 ```
 
-The planned Flow Model describes Source, Sink, explicit propagation steps and barriers. Target references, analyzer selection, budgets and verification policy belong to the execution request. CodeQL becomes an optional execution backend rather than part of the Flow Model.
+Each capability owns its hypothesis shape, observations and success predicate. Capabilities share operation state, budgets, cancellation, artifacts, evidence and replay. The shared layer does not force authorization, lifecycle or state-machine problems into Source/Sink semantics.
 
-This Flow API is a design direction and is not implemented or accepted product behavior yet. The existing CodeQL interfaces remain the supported compatibility surface.
+The planned Flow Model describes Source, Sink, explicit propagation steps and barriers. Target references, analyzer selection and budgets belong to the execution request. CodeQL becomes an optional execution backend rather than part of the Flow Model.
+
+The aggregate capability API (`autovul_research` and `autovul_run`) is implemented alongside the existing CodeQL compatibility surface. The narrowly frozen MissingCheck v1 is `Verified` for its declared JavaScript single-file CFG boundary; Flow remains `Implemented`, not `Verified`, and MUST NOT be claimed as supported.
 
 See:
 
-- [Flow-Based design direction](./docs/design/FLOW_BASED_DIRECTION.md)
-- [Flow-Based implementation plan](./docs/design/FLOW_BASED_PLAN.md)
+- [Research capability architecture](./docs/design/RESEARCH_CAPABILITY_ARCHITECTURE.md)
+- [Flow capability design](./docs/design/FLOW_BASED_DIRECTION.md)
+- [Flow capability implementation plan](./docs/design/FLOW_BASED_PLAN.md)
+- [Flow capability v1 change SPEC](./specs/changes/introduce-flow-capability-v1/SPEC.md)
+- [MissingCheck capability v1 SPEC](./specs/changes/admit-missing-check-capability-v1/SPEC.md)
+- [Typestate candidate capability SPEC](./specs/changes/admit-typestate-capability-v1/SPEC.md)
+- [Delta role-classification SPEC](./specs/changes/classify-delta-research-role/SPEC.md)
+- [Variant role-classification SPEC](./specs/changes/classify-variant-research-role/SPEC.md)
 - [Product specification](./SPEC.md)
 - [Project charter](./AGENTS.md)
 - [SPEC workflow](./specs/README.md)
@@ -129,6 +137,18 @@ npx --workspace @autovul/cli autovul query-pack verify ./query-pack \
   --json
 ```
 
+For the aggregate research interface, pass a structured request file; the CLI
+only validates, executes, inspects, cancels, or replays a bounded operation.
+It does not accept an open-ended research goal:
+
+```bash
+npx --workspace @autovul/cli autovul research validate --request ./flow-request.json --json
+npx --workspace @autovul/cli autovul research execute --request ./flow-request.json --json
+npx --workspace @autovul/cli autovul run status <run-id> --json
+npx --workspace @autovul/cli autovul run cancel <run-id> --json
+npx --workspace @autovul/cli autovul run replay <run-id> --json
+```
+
 The finalized pack contains the rendered query, candidate, vulnerability specification, qlpack metadata, verification result, evidence, reproduction instructions and a digest manifest.
 
 ## Pi integration
@@ -140,7 +160,12 @@ npm run build
 pi -e ./packages/pi-extension/dist/index.js
 ```
 
-The extension exposes the current aggregate tools:
+The extension exposes the target aggregate research interface:
+
+- `autovul_research` — validate or execute a structured Flow hypothesis;
+- `autovul_run` — inspect, cancel, or replay a bounded operation.
+
+The following remain compatibility tools for the existing CodeQL workflow:
 
 - `codeql_database`
 - `codeql_workflow`

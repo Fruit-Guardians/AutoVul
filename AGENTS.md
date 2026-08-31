@@ -2,7 +2,7 @@
 
 ## 项目定位
 
-AutoVul V2 是一个**面向漏洞研究的专业能力扩展与确定性分析引擎**。
+AutoVul V2 是一个**面向成熟 Agent/Harness 的漏洞研究能力层与确定性执行系统**。
 
 本项目不实现 Agent，也不实现通用 Agent Harness。它依附于 Pi Agent、DeepSeek Harness 等成熟宿主，以 Extension、Plugin、MCP 或稳定 API 的形式，为宿主提供可组合、可验证、可重放的漏洞研究能力。
 
@@ -47,17 +47,19 @@ AutoVul V2 是一个**面向漏洞研究的专业能力扩展与确定性分析�
 
 ## 产品方向
 
-当前 CodeQL 查询合成与验证链路是第一个核心能力，不是整个产品边界。长期方向是宿主无关的漏洞研究能力层，例如：
+当前 CodeQL 查询合成与验证链路是第一个已实现能力，不是整个产品边界。长期方向是宿主无关、研究语义可并列的漏洞研究能力层，例如：
 
 - CodeQL 查询合成、断流诊断与差分验证。
 - 漏洞描述、补丁与提交历史分析。
 - Source、Sink、Sanitizer、Barrier 和缺失流模型识别。
 - 依赖和供应链漏洞研究。
 - 静态分析器、模糊测试器和动态复现器的统一接入。
-- 漏洞假设、证据链、Finding、复现和报告产物。
+- 漏洞假设、证据链、复现结论和版本化、可验证的机器契约。
 - 跨项目变体发现与误报/漏报验证。
 
-新增能力应以领域能力、Analyzer 或 Integration 的形式进入，不应塞进一个不断扩张的 CodeQL 工作流。
+新增能力应以领域能力、Analyzer 或 Integration 的形式进入，不应塞进一个不断扩张的 CodeQL 工作流。Flow、MissingCheck、Typestate 等研究范式可以共享运行、预算、证据和 replay 底座，但必须分别定义假设结构、观察语义和成功谓词。不要建设把所有漏洞改写成 Source–Sink 的万能 IR，也不要在第二种真实范式出现前设计通用漏洞本体。
+
+Core 面向宿主返回结构化观察、裁决、修订提示和 artifact 引用，不撰写 WP、审计报告或面向人的 Finding 叙事。最终自然语言表达属于宿主。
 
 ## 架构边界
 
@@ -67,9 +69,11 @@ AutoVul V2 是一个**面向漏洞研究的专业能力扩展与确定性分析�
 Host Agent / Harness
   └─ Integration Adapter
        └─ Vulnerability Research Core
-            ├─ Domain Contracts
-            ├─ Workflow and Evidence
-            └─ Analyzer Ports
+            ├─ Research Capabilities
+            │    ├─ Flow（当前）
+            │    └─ Future Capability（case-gated）
+            ├─ Shared Runtime and Evidence
+            └─ Capability-specific Analyzer Ports
                  ├─ CodeQL
                  ├─ Patch / Git
                  ├─ Dependency Intelligence
@@ -92,6 +96,8 @@ contracts <- core <- codeql-runner <- pi-extension / cli
 5. 宿主专属类型、Prompt、UI 和生命周期逻辑不得泄漏进 Core。
 6. 不要因为某个宿主暂时缺少能力，就把一套通用 Agent 基础设施复制进项目。
 7. 新宿主应适配同一个 Application API 和版本化契约，而不是形成独立实现。
+8. 共享 Runtime 只管理运行、预算、取消、锁、恢复、证据和 replay，不解释 Capability 的领域字段。
+9. 每个 Capability 单独拥有 Hypothesis、Observation、Decision Policy、诊断码和真实验收门。
 
 ## 漏洞研究的事实标准
 
@@ -133,6 +139,9 @@ contracts <- core <- codeql-runner <- pi-extension / cli
 - 工具输入输出使用严格、版本化 Schema；自然语言说明不能替代结构化字段。
 - 返回紧凑的模型可消费摘要，同时把完整证据写入 artifact。
 - 诊断必须告诉宿主下一步可以修复什么，但不能伪造修复结论。
+- 模型可见结果中的每个业务字段必须支持路由、修订、执行、验证、replay 或停止；其余内容进入 artifact。
+- 校验错误优先返回稳定 `code`、字段 `path` 和必要的 `allowed_values`，不得用散文代替结构化约束。
+- Core 可以返回结构化 revision hint 和允许的后续动作，但不得生成下一份完整假设或自行循环。
 - 宿主中断、切换模型或压缩上下文后，能够通过 run id 和 artifact 恢复。
 - 宿主集成只负责注册、参数转换、UI 和生命周期装配。
 

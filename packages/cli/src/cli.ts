@@ -93,7 +93,7 @@ function parseArguments(argv: readonly string[]): ParsedCli {
       || argument === "--spec" || argument === "--candidate" || argument === "--query-file"
       || argument === "--candidate-id" || argument === "--query-id" || argument === "--spec-id"
       || argument === "--round" || argument === "--origin" || argument === "--output"
-      || argument === "--vulnerable-db" || argument === "--fixed-db" || argument === "--intent"
+      || argument === "--vulnerable-db" || argument === "--fixed-db" || argument === "--intent" || argument === "--request"
     ) {
       const value = argv[index + 1];
       if (value === undefined || value.startsWith("--")) {
@@ -160,6 +160,21 @@ async function execute(parsed: ParsedCli, application: ApplicationApi): Promise<
     const runId = parsed.positional[0];
     if (runId !== undefined) {
       return application.resume(runId);
+    }
+  }
+  if (parsed.command === "research" && (parsed.positional[0] === "validate" || parsed.positional[0] === "execute") && parsed.positional.length === 1) {
+    const requestPath = parsed.values.request;
+    if (requestPath === undefined) throw new DomainError("INVALID_INPUT", "input", "research requires --request <json-file>", false);
+    const request = await readJsonFile(requestPath, "autovul research request");
+    if (typeof request !== "object" || request === null || Array.isArray(request)) throw new DomainError("INVALID_INPUT", "input", "research request must be a JSON object", false);
+    const action = parsed.positional[0];
+    return application.research({ ...(request as Record<string, unknown>), action });
+  }
+  if (parsed.command === "run" && (parsed.positional[0] === "status" || parsed.positional[0] === "cancel" || parsed.positional[0] === "replay") && parsed.positional.length === 2) {
+    const runId = parsed.positional[1];
+    const action = parsed.positional[0];
+    if (runId !== undefined) {
+      return application.manageRun({ action, run_id: runId });
     }
   }
   if (parsed.command === "workflow" && parsed.positional[0] === "start" && parsed.positional.length === 1) {
@@ -244,7 +259,7 @@ async function execute(parsed: ParsedCli, application: ApplicationApi): Promise<
     }
     return verifyRelocatedPack(packPath, parsed, application);
   }
-  throw new DomainError("INVALID_INPUT", "input", "Usage: doctor | database inspect <path> | status <run-id> | workflow start --spec <file> | query probe <run-id> --intent <file> | query draft <run-id> --candidate <file> | query verify <run-id> --candidate <file> | query-pack verify <pack-dir> --vulnerable-db <path> [--fixed-db <path>] | workflow status <run-id> | workflow finalize <run-id> [--output <dir>]", false);
+  throw new DomainError("INVALID_INPUT", "input", "Usage: doctor | database inspect <path> | status <run-id> | research validate --request <file> | research execute --request <file> | run status <run-id> | run cancel <run-id> | run replay <run-id> | workflow start --spec <file> | query probe <run-id> --intent <file> | query draft <run-id> --candidate <file> | query verify <run-id> --candidate <file> | query-pack verify <pack-dir> --vulnerable-db <path> [--fixed-db <path>] | workflow status <run-id> | workflow finalize <run-id> [--output <dir>]", false);
 }
 
 async function verifyRelocatedPack(packPath: string, parsed: ParsedCli, application: ApplicationApi): Promise<unknown> {

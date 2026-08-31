@@ -74,6 +74,8 @@ describe("Pi Extension", () => {
       expect(pi.commands.has("codeql-status")).toBe(true);
       expect(pi.commands.has("codeql")).toBe(true);
       expect(pi.commands.has("codeql-generate")).toBe(true);
+      expect(pi.tools.has("autovul_research")).toBe(true);
+      expect(pi.tools.has("autovul_run")).toBe(true);
       expect(pi.tools.has("codeql_database")).toBe(true);
       expect(pi.tools.has("codeql_workflow")).toBe(true);
       expect(pi.tools.has("codeql_query")).toBe(true);
@@ -106,12 +108,11 @@ describe("Pi Extension", () => {
         systemPrompt: "BASE SYSTEM",
       }, context);
       expect(automaticGuidance).toMatchObject({ systemPrompt: expect.any(String) });
-      expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain(
+      expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain("autovul_research");
+      expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain("autovul_run");
+      expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain("not a third primary research interface");
+      expect((automaticGuidance as { systemPrompt: string }).systemPrompt).not.toContain(
         "Use AutoVul M4 inside the host Pi Agent Loop.",
-      );
-      expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain("codeql_workflow");
-      expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain(
-        "populate validation.source and validation.sink file/line before workflow start for every user-provided case",
       );
 
       const discoveryGuidance = await beforeAgentStart[0]?.({

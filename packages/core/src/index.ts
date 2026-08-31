@@ -16,6 +16,20 @@ export {
 } from "./language-packs.js";
 export type { ProbeRole, QueryLanguagePack } from "./language-packs.js";
 export { assertTransition, canTransition } from "./state.js";
+export { validateFlowModel, validateFlowExpectation } from "./flow/validate.js";
+export { decideFlow, type FlowDecisionProjection } from "./flow/decision.js";
+export { projectFlowToTaintIntent, projectTaintIntentToFlow, type LegacyFlowCompatibilityContext, type LegacyFlowProjection } from "./flow/compatibility.js";
+export { FlowResearchService, runIdForIdempotencyKey, type ResearchResult } from "./flow/service.js";
+export { FlowReplayService } from "./flow/replay.js";
+export { validateMissingCheckHypothesis } from "./missing-check/validate.js";
+export { decideMissingCheck, type MissingCheckDecisionProjection } from "./missing-check/decision.js";
+export { MissingCheckResearchService, missingCheckRunIdForIdempotencyKey, type MissingCheckResearchResult } from "./missing-check/service.js";
+export { MissingCheckReplayService } from "./missing-check/replay.js";
+export { projectLegacyVerificationToFlow } from "./flow/legacy-projection.js";
+export { ResearchRunService, type RunManagementResult } from "./research-run.js";
+export { RunCancellationService } from "./run-cancellation.js";
+export type { FlowExecutionPort, FlowExecutionRequest } from "./flow/port.js";
+export type { MissingCheckExecutionPort, MissingCheckExecutionRequest } from "./missing-check/port.js";
 export type {
   ArtifactBundleFile,
   ArtifactStorePort,

@@ -159,6 +159,13 @@ describe("M3 language-neutral workflow", () => {
       origin: "test",
     });
     expect(verification.passed).toBe(true);
+    expect(JSON.parse(await artifacts.readArtifact("run_m3jstest", "compatibility/flow/candidate-js-1/projection.json") ?? "null")).toMatchObject({
+      projection_version: "autovul.flow.compatibility/1",
+      capability: "flow",
+      source_run_id: "run_m3jstest",
+      source_candidate_id: "candidate-js-1",
+      decision: { capability: "flow", outcome: "connected" },
+    });
     const pack = await app.workflowFinalize("run_m3jstest");
     expect(pack.language).toBe("javascript");
     expect(await artifacts.readArtifact("run_m3jstest", "query-pack/qlpack.yml")).toContain("codeql/javascript-all");

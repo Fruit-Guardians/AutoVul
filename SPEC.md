@@ -1,8 +1,8 @@
 # AutoVul V2 Product Specification
 
 - Status: Accepted baseline
-- Version: 1.0
-- Last updated: 2026-08-27
+- Version: 1.1
+- Last updated: 2026-08-29
 
 ## 1. Purpose
 
@@ -41,6 +41,15 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-ARCH-005`: Host integrations MUST remain thin and MUST use the shared Application API rather than duplicate workflow logic.
 - `REQ-ARCH-006`: Host-specific prompts, UI types and lifecycle APIs MUST NOT leak into Core.
 
+### 3.1 Research Capability architecture
+
+- `REQ-ARCH-010`: A Research Capability MUST independently own its versioned Hypothesis Schema, Observation Schema, Decision Policy, diagnostic codes, Analyzer Port and success predicates. The shared runtime MUST NOT interpret Capability domain fields.
+- `REQ-ARCH-011`: Capabilities MUST share deterministic run identity, idempotency, budget, timeout, cancellation, locks, recovery, artifacts, evidence references and replay. They MUST NOT share a universal Hypothesis IR, a large optional-field bag, or domain success predicates.
+- `REQ-ARCH-012`: Before a second real Capability is accepted, composition MUST use explicit static Flow branches. The project MUST NOT introduce a Capability registry, dynamic loader, port factory, generic Capability base class or placeholder module.
+- `REQ-ARCH-013`: Model content MUST remain a Hypothesis until a Capability validator accepts it. Analyzer adapters MUST return observations and capability gaps only; Core is the sole writer of the model-visible `decision` and `verification_level`.
+- `REQ-ARCH-014`: Core MAY return structured, field-level revision hints. It MUST NOT generate a replacement Hypothesis, retain a host research plan, invoke a model or start an autonomous retry or revision loop.
+- `REQ-ARCH-015`: A later Capability MUST have a real case Flow cannot honestly express, independent contracts and predicates, actionable diagnostics, fake-adapter failure coverage, a real-tool gate, a counter-example strategy and independently replayable artifacts before it is added or claimed as supported.
+
 ## 4. Workflow and contract requirements
 
 - `REQ-WORKFLOW-001`: Model-provided data MUST be parsed through strict, versioned schemas before entering a deterministic workflow.
@@ -49,6 +58,9 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-WORKFLOW-004`: Long-running operations MUST support timeout and cancellation.
 - `REQ-WORKFLOW-005`: A cancelled, timed-out or failed operation MUST preserve an accurate terminal or recoverable state and MUST NOT be recorded as success.
 - `REQ-WORKFLOW-006`: A host session MUST NOT be the sole source of truth for workflow state.
+- `REQ-WORKFLOW-007`: The aggregate research protocol MUST keep routing and execution fields separate from the opaque Capability Hypothesis. Its v1 research actions are `validate` and `execute`; its v1 run actions are `status`, `cancel` and `replay`.
+- `REQ-WORKFLOW-008`: `validate` MUST be side-effect free. Invalid input MUST return bounded, structured issues with stable codes and JSON Pointer paths rather than prose-only constraints.
+- `REQ-WORKFLOW-009`: A compact capability result MUST separately report `operation_status`, a Capability-discriminated `decision`, `verification_level`, bounded observations, revision hints, allowed next actions and an artifact reference. These dimensions MUST NOT be collapsed into one status.
 
 ## 5. CodeQL verification requirements
 
@@ -78,6 +90,9 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-ARTIFACT-002`: Artifacts MUST record enough version, input, diagnostic and command information to reproduce the accepted deterministic steps.
 - `REQ-ARTIFACT-003`: Artifact paths intended for replay MUST be relocatable or explicitly declare non-relocatable dependencies.
 - `REQ-ARTIFACT-004`: Logs and artifacts MUST NOT persist recognized credentials or unrestricted sensitive environment data.
+- `REQ-ARTIFACT-005`: A committed capability artifact MUST record the Capability and contract version, normalized Hypothesis, targets, Analyzer provenance, budget/mode/idempotency identity, structured Observation, Decision Policy version, Decision, verification level and replay inputs or explicit external dependencies.
+- `REQ-ARTIFACT-006`: Critical evidence MUST be durably committed before authoritative state references it. Recovery MUST use validated artifacts and commit metadata; corrupt data MUST block or fail rather than being reconstructed as success.
+- `REQ-ARTIFACT-007`: Replay MUST not require a model, host session or mutable originating-run state, and MUST distinguish identical results, environment blocks, Analyzer-version differences and semantic mismatches.
 
 ## 8. Safety and reliability requirements
 
@@ -95,6 +110,8 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-INTEGRATION-003`: Integrations SHOULD return compact model-consumable feedback while preserving full evidence in artifacts.
 - `REQ-INTEGRATION-004`: Adding a host integration MUST NOT require changing Core domain behavior.
 - `REQ-INTEGRATION-005`: Pi is the currently implemented native host integration. DeepSeek Harness and MCP are product directions, not implemented support claims until their own accepted change SPEC and verification gates pass.
+- `REQ-INTEGRATION-006`: The target model-facing research interface MUST contain only `autovul_research` and `autovul_run`. Compatibility `codeql_*` tools MAY remain available but MUST NOT be presented as a third primary research interface.
+- `REQ-INTEGRATION-007`: Pi and CLI MUST route those aggregate entries through the same Application API and remain thin registration, conversion, cancellation and presentation layers.
 
 ## 10. Compatibility and current limitations
 
@@ -102,6 +119,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-COMPAT-002`: Current accepted platform behavior is the tested POSIX/macOS path. Windows support MUST NOT be claimed until process-tree cleanup, paths and CI gates are implemented and verified.
 - `REQ-COMPAT-003`: Current database operations are inspection and validation. Automatic database creation or execution of target build scripts MUST NOT be claimed as implemented.
 - `REQ-COMPAT-004`: The Python V1 runtime is outside this isolated TypeScript workspace and MUST NOT be silently imported as a V2 dependency.
+- `REQ-COMPAT-005`: Flow is the first architecture Capability, but it MUST NOT be documented as supported until its own accepted change SPEC is Verified by its real Analyzer, Golden, differential and replay gates.
 
 ## 11. Baseline acceptance gates
 

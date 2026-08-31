@@ -23,6 +23,8 @@
     "test:m2-golden-real": "npm run build && node test/m2-golden-real.mjs",
     "test:m3-compile": "npm run build && node test/m3-language-pack-compile.mjs",
     "test:m3-golden-real": "npm run build && node test/m3-golden-real.mjs",
+    "test:flow-golden-real": "npm run build && node test/flow-golden-real.mjs",
+    "test:missing-check-golden-real": "npm run build && node test/missing-check-golden-real.mjs",
     "test:m4-golden-real": "npm run build && node test/m4-golden-real.mjs",
     "test:m4-pi-e2e": "npm run build && node test/m4-pi-rpc-real.mjs",
     "test:l0-lsp:snapshot": "npm run build && node test/l0-lsp-snapshot.mjs",

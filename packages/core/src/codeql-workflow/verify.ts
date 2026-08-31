@@ -21,6 +21,7 @@ import { assertCandidateSemanticKinds, assertCandidateSemanticLocations } from "
 import type { CodeqlWorkflowContext } from "./context.js";
 import { boundedOperationOptions, isTerminalWorkflowStatus } from "./status.js";
 import { evaluateVerification } from "./verification-policy.js";
+import { projectLegacyVerificationToFlow } from "../flow/legacy-projection.js";
 
 export async function verifyQuery(
   context: CodeqlWorkflowContext,
@@ -121,6 +122,11 @@ export async function verifyQuery(
         verifications: nextState.verifications.map((item) => item.candidate_id === candidate.candidate_id ? verification : item),
       };
       await context.repository.writeArtifact(runId, `candidates/${candidate.candidate_id}/verification.json`, `${JSON.stringify(verification, null, 2)}\n`);
+      const flowProjection = projectLegacyVerificationToFlow(candidate, state.spec, verification);
+      const flowProjectionPath = `compatibility/flow/${candidate.candidate_id}/projection.json`;
+      if (flowProjection !== undefined) {
+        await context.repository.writeArtifact(runId, flowProjectionPath, `${JSON.stringify(flowProjection, null, 2)}\n`);
+      }
       await context.repository.commitState(runId, finalState, {
         operationId: `verify-${candidateDigest({ ...candidate, ql_text: `${runId}:${candidate.candidate_id}` })}`,
         idempotencyKey: `verify:${candidateDigest(candidate)}`,
@@ -132,6 +138,7 @@ export async function verifyQuery(
           `candidates/${candidate.candidate_id}/qlpack.yml`,
           `candidates/${candidate.candidate_id}/candidate.json`,
           `candidates/${candidate.candidate_id}/verification.json`,
+          ...(flowProjection === undefined ? [] : [flowProjectionPath]),
         ],
       }, options);
       return verification;

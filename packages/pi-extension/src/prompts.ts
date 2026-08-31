@@ -1,4 +1,4 @@
-export const CODEQL_DISCOVERY_HINT = `AutoVul native tools are available in this Pi session. When the user's request concerns CodeQL, vulnerability analysis, a CodeQL database, Source/Sink, taint flow, CWE, or a Query Pack, use codeql_database, codeql_workflow and codeql_query directly. Do not require the user to type /codeql-generate. Keep the workflow inside the host Pi Agent Loop; do not start another Agent.`;
+export const CODEQL_DISCOVERY_HINT = `AutoVul research tools are available in this Pi session. For structured vulnerability-research hypotheses, use autovul_research (validate or execute) and autovul_run (status, cancel, or replay). AutoVul returns observations, a decision, and revision hints; it does not generate the next hypothesis, start an Agent Loop, or write a Finding. codeql_database, codeql_workflow and codeql_query remain compatibility tools for existing CodeQL workflow and Query Pack work; they are not a third primary research interface. Do not require the user to type /codeql-generate. Keep work inside the host Pi Agent Loop.`;
 
 export const GENERATE_GUIDANCE = `Use AutoVul M4 inside the host Pi Agent Loop.
 

@@ -14,6 +14,9 @@ export const RunPhaseSchema = Type.Union([
   Type.Literal("query_draft"),
   Type.Literal("query_verify"),
   Type.Literal("workflow_finalize"),
+  /** A Flow capability operation projected onto the shared run lifecycle. */
+  Type.Literal("flow_execute"),
+  Type.Literal("missing_check_execute"),
 ]);
 export type RunPhase = Static<typeof RunPhaseSchema>;
 

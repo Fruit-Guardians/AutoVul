@@ -1,6 +1,8 @@
 import type { AgentToolResult, ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
   asDomainError,
+  AutovulResearchToolInputSchema,
+  AutovulRunToolInputSchema,
   CodeqlDatabaseToolInputSchema,
   CodeqlQueryToolInputSchema,
   CodeqlWorkflowToolInputSchema,
@@ -20,10 +22,42 @@ import type { ToolDetails } from "./types.js";
 
 export function registerTools(pi: ExtensionAPI, application: ApplicationApi): void {
   pi.registerTool({
+    name: "autovul_research",
+    label: "AutoVul research",
+    description: "Validate or execute a versioned Flow hypothesis through the shared deterministic runtime.",
+    promptSnippet: "Structured Flow hypothesis validation and bounded execution",
+    parameters: AutovulResearchToolInputSchema,
+    execute: async (_toolCallId: string, rawParams: unknown, signal: AbortSignal | undefined, _onUpdate: unknown, _ctx: ExtensionContext): Promise<AgentToolResult<ToolDetails>> => {
+      try {
+        const params = parseSchema(AutovulResearchToolInputSchema, rawParams, "autovul_research input");
+        return toolSuccess(await application.research(params, signal === undefined ? {} : { signal }));
+      } catch (error: unknown) {
+        throw asDomainError(error);
+      }
+    },
+  });
+
+  pi.registerTool({
+    name: "autovul_run",
+    label: "AutoVul run",
+    description: "Inspect, cancel, or replay a bounded AutoVul operation through the shared deterministic runtime.",
+    promptSnippet: "Persisted run status, cancellation, and model-free replay",
+    parameters: AutovulRunToolInputSchema,
+    execute: async (_toolCallId: string, rawParams: unknown, signal: AbortSignal | undefined, _onUpdate: unknown, _ctx: ExtensionContext): Promise<AgentToolResult<ToolDetails>> => {
+      try {
+        const params = parseSchema(AutovulRunToolInputSchema, rawParams, "autovul_run input");
+        return toolSuccess(await application.manageRun(params, signal === undefined ? {} : { signal }));
+      } catch (error: unknown) {
+        throw asDomainError(error);
+      }
+    },
+  });
+
+  pi.registerTool({
     name: "codeql_database",
     label: "CodeQL database",
-    description: "Read-only CodeQL doctor, database inspect, or database validate operation.",
-    promptSnippet: "Read-only CodeQL environment/database inspection",
+    description: "Compatibility tool: read-only CodeQL doctor, database inspect, or database validate. Prefer autovul_research for structured research hypotheses.",
+    promptSnippet: "Compatibility: CodeQL environment/database inspection",
     parameters: CodeqlDatabaseToolInputSchema,
     execute: async (_toolCallId: string, rawParams: unknown, signal: AbortSignal | undefined, _onUpdate: unknown, _ctx: ExtensionContext): Promise<AgentToolResult<ToolDetails>> => {
       try {
@@ -38,8 +72,8 @@ export function registerTools(pi: ExtensionAPI, application: ApplicationApi): vo
   pi.registerTool({
     name: "codeql_workflow",
     label: "CodeQL workflow",
-    description: "Start, inspect, or finalize the persisted multi-language CodeQL query workflow.",
-    promptSnippet: "Persisted multi-language CodeQL query workflow",
+    description: "Compatibility tool: start, inspect, or finalize the persisted CodeQL query workflow. Prefer autovul_research and autovul_run for new research.",
+    promptSnippet: "Compatibility: persisted CodeQL query workflow",
     parameters: CodeqlWorkflowToolInputSchema,
     execute: async (_toolCallId: string, rawParams: unknown, signal: AbortSignal | undefined, _onUpdate: unknown, _ctx: ExtensionContext): Promise<AgentToolResult<ToolDetails>> => {
       try {
@@ -61,8 +95,8 @@ export function registerTools(pi: ExtensionAPI, application: ApplicationApi): vo
   pi.registerTool({
     name: "codeql_query",
     label: "CodeQL query",
-    description: "Probe, LSP-draft, compile, execute, and differential-verify a structured multi-language CodeQL candidate.",
-    promptSnippet: "Probe or LSP-draft a candidate, then verify it with authoritative CodeQL CLI",
+    description: "Compatibility tool: probe, draft, or verify a CodeQL candidate. Prefer autovul_research for structured research hypotheses.",
+    promptSnippet: "Compatibility: CodeQL candidate probe/draft/verify",
     parameters: CodeqlQueryToolInputSchema,
     execute: async (_toolCallId: string, rawParams: unknown, signal: AbortSignal | undefined, _onUpdate: unknown, _ctx: ExtensionContext): Promise<AgentToolResult<ToolDetails>> => {
       try {

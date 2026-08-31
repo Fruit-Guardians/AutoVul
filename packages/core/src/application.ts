@@ -13,6 +13,14 @@ import { RunStatusService } from "./status-service.js";
 import { WorkflowController } from "./workflow-controller.js";
 import { DomainError, type DatabaseResult, type DoctorResult, type ProbeEvidence, type QueryDraftReport, type QueryPackManifest, type QueryVerification, type QueryWorkflowStatus, type RunManifest } from "@autovul/contracts";
 import { QueryWorkflowService } from "./query-workflow.js";
+import type { FlowExecutionPort } from "./flow/port.js";
+import { FlowReplayService } from "./flow/replay.js";
+import { FlowResearchService, type ResearchResult } from "./flow/service.js";
+import { MissingCheckResearchService, type MissingCheckResearchResult } from "./missing-check/service.js";
+import type { MissingCheckExecutionPort } from "./missing-check/port.js";
+import { MissingCheckReplayService } from "./missing-check/replay.js";
+import { ResearchRunService, type RunManagementResult } from "./research-run.js";
+import { RunCancellationService } from "./run-cancellation.js";
 
 export interface ApplicationApi {
   doctor(options?: Partial<CodeqlOperationOptions>): Promise<DoctorResult>;
@@ -26,6 +34,8 @@ export interface ApplicationApi {
   queryProbe(runId: unknown, intent: unknown, options?: Partial<CodeqlOperationOptions>): Promise<ProbeEvidence>;
   queryDraft(runId: unknown, candidate: unknown, options?: Partial<CodeqlOperationOptions>): Promise<QueryDraftReport>;
   workflowFinalize(runId: unknown, options?: Partial<CodeqlOperationOptions>): Promise<QueryPackManifest>;
+  research(input: unknown, options?: Partial<CodeqlOperationOptions>): Promise<ResearchResult | MissingCheckResearchResult>;
+  manageRun(input: unknown, options?: Partial<CodeqlOperationOptions>): Promise<RunManagementResult>;
   close(): Promise<void>;
 }
 
@@ -37,12 +47,17 @@ export interface ApplicationDependencies {
   readonly queries?: QueryExecutionPort;
   readonly probes?: QueryProbeExecutionPort;
   readonly drafts?: QueryDraftExecutionPort;
+  readonly flow?: FlowExecutionPort;
+  readonly missingCheck?: MissingCheckExecutionPort;
   readonly defaultTimeoutMs?: number;
 }
 
 export class Application implements ApplicationApi {
   private readonly controller: WorkflowController;
   private readonly queryWorkflow: QueryWorkflowService;
+  private readonly flowResearch: FlowResearchService;
+  private readonly missingCheckResearch: MissingCheckResearchService;
+  private readonly researchRuns: ResearchRunService;
   private readonly defaultTimeoutMs: number;
 
   constructor(dependencies: ApplicationDependencies) {
@@ -58,6 +73,12 @@ export class Application implements ApplicationApi {
       dependencies.artifacts,
       dependencies.clock,
     );
+    const flow = dependencies.flow ?? unavailableFlowExecutionPort();
+    const missingCheck = dependencies.missingCheck ?? unavailableMissingCheckExecutionPort();
+    const cancellations = new RunCancellationService();
+    this.flowResearch = new FlowResearchService(status, dependencies.codeql, flow, dependencies.artifacts, cancellations);
+    this.missingCheckResearch = new MissingCheckResearchService(status, dependencies.codeql, missingCheck, dependencies.artifacts, cancellations);
+    this.researchRuns = new ResearchRunService(status, dependencies.artifacts, new FlowReplayService(status, flow, dependencies.artifacts), new MissingCheckReplayService(status, dependencies.codeql, missingCheck, dependencies.artifacts), cancellations);
   }
 
   doctor(options: Partial<CodeqlOperationOptions> = {}): Promise<DoctorResult> {
@@ -104,6 +125,17 @@ export class Application implements ApplicationApi {
     return this.queryWorkflow.finalize(runId, this.options(options));
   }
 
+  research(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<ResearchResult | MissingCheckResearchResult> {
+    if (input !== null && typeof input === "object" && !Array.isArray(input) && (input as Record<string, unknown>).capability === "missing_check") {
+      return this.missingCheckResearch.research(input, this.options(options));
+    }
+    return this.flowResearch.research(input, this.options(options));
+  }
+
+  manageRun(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<RunManagementResult> {
+    return this.researchRuns.manage(input, this.options(options));
+  }
+
   async close(): Promise<void> {
     await this.queryWorkflow.close();
   }
@@ -117,6 +149,22 @@ export class Application implements ApplicationApi {
     }
     return result;
   }
+}
+
+function unavailableFlowExecutionPort(): FlowExecutionPort {
+  return {
+    async execute(): Promise<import("@autovul/contracts").FlowAnalyzerObservation> {
+      return { schema_version: "autovul.flow/1", compile_accepted: "not_run", source: { state: "not_run", locations: [] }, sink: { state: "not_run", locations: [] }, path: { state: "not_run", path_count: 0 }, capability_gaps: [{ code: "FLOW_CODEQL_ADAPTER_UNAVAILABLE", path: "/" }], evidence_refs: [], analyzer: { analyzer_id: "codeql", available: false } };
+    },
+  };
+}
+
+function unavailableMissingCheckExecutionPort(): MissingCheckExecutionPort {
+  return {
+    async execute(): Promise<import("@autovul/contracts").MissingCheckAnalyzerObservation> {
+      return { schema_version: "autovul.missing-check/1", compile_accepted: "not_run", operation: { state: "not_run", locations: [] }, required_check: { state: "not_run", locations: [] }, relation: { state: "not_run", unchecked_witnesses: [], checked_witnesses: [] }, capability_gaps: [{ code: "MCHECK_CODEQL_ADAPTER_UNAVAILABLE", path: "/" }], evidence_refs: [], analyzer: { analyzer_id: "codeql", available: false } };
+    },
+  };
 }
 
 function unavailableQueryExecutionPort(): QueryExecutionPort {

@@ -25,6 +25,62 @@ if (facade.includes("query-workflow-policy")) throw new Error("query-workflow.ts
 const runnerEntry = await readFile(join(root, "packages/codeql-runner/src/index.ts"), "utf8");
 if (runnerEntry.includes("CodeqlLspProtocolSpike") || runnerEntry.includes("protocol-spike")) throw new Error("protocol spike leaked into the production runner export surface");
 
+const contractsIndex = await readFile(join(root, "packages/contracts/src/index.ts"), "utf8");
+if (!contractsIndex.includes('from "./research.js"')) throw new Error("shared research envelopes must be exported from contracts/src/research.ts");
+const flowContracts = await readFile(join(root, "packages/contracts/src/flow.ts"), "utf8");
+if (flowContracts.includes("export const ResearchActionSchema")) throw new Error("shared research envelopes must not be defined inside the Flow-specific module");
+const researchRun = await readFile(join(root, "packages/core/src/research-run.ts"), "utf8");
+if (/decideFlow|readFlowRunArtifact|FLOW_RESULT_ARTIFACT/.test(researchRun)) {
+  throw new Error("the shared research run service must route capability replay without interpreting Flow artifacts or decisions");
+}
+const operationRoute = await readFile(join(root, "packages/core/src/research-operation.ts"), "utf8");
+if (!operationRoute.includes("ResearchOperationRouteSchema")) throw new Error("shared operation routing metadata must have a contracts schema");
+const flowService = await readFile(join(root, "packages/core/src/flow/service.ts"), "utf8");
+if (!flowService.includes("stageArtifactBundle") || !flowService.includes("promoteArtifactBundle") || flowService.includes("writeArtifact(runId, FLOW_RESULT_ARTIFACT")) {
+  throw new Error("Flow result and shared route must be committed as one staged artifact bundle");
+}
+const missingCheckService = await readFile(join(root, "packages/core/src/missing-check/service.ts"), "utf8");
+if (/FlowModel|FlowEndpoint|FlowDecision|decideFlow/.test(missingCheckService)) {
+  throw new Error("MissingCheck must not reuse Flow domain types or decision semantics");
+}
+const application = await readFile(join(root, "packages/core/src/application.ts"), "utf8");
+if (!application.includes("MissingCheckResearchService") || !application.includes('capability === "missing_check"')) {
+  throw new Error("Application must route the accepted MissingCheck branch explicitly");
+}
+const cli = await readFile(join(root, "packages/cli/src/cli.ts"), "utf8");
+if (!cli.includes("application.research") || !cli.includes("application.manageRun")) {
+  throw new Error("CLI must route aggregate research and run commands through the shared Application API");
+}
+const legacyProjection = await readFile(join(root, "packages/core/src/flow/legacy-projection.ts"), "utf8");
+if (!legacyProjection.includes("projectTaintIntentToFlow") || !legacyProjection.includes("decideFlow")) {
+  throw new Error("legacy CodeQL compatibility must project through the Flow normalizer and Core decision policy");
+}
+const coreFiles = await sourceFiles(join(root, "packages/core/src"));
+for (const file of coreFiles) {
+  const text = await readFile(file, "utf8");
+  if (/export class CapabilityRegistry|class CapabilityPluginLoader/.test(text)) {
+    throw new Error(`Capability registry or plugin loader is forbidden until a second real paradigm exists: ${relative(root, file)}`);
+  }
+}
+for (const relativeRoot of productionRoots) {
+  for (const file of await sourceFiles(join(root, relativeRoot))) {
+    const text = await readFile(file, "utf8");
+    if (/\b(?:Typestate|typestate|DeltaHypothesis|DeltaDecision|VariantHypothesis|VariantDecision)\b/.test(text)) {
+      throw new Error(`Draft Capability domain type or route leaked into production code: ${relative(root, file)}`);
+    }
+  }
+}
+for (const forbidden of ["typestate", "missingcheck", "delta", "variant"]) {
+  const path = join(root, "packages/core/src", forbidden);
+  try {
+    await readdir(path);
+    throw new Error(`placeholder Capability module exists at ${relative(root, path)}`);
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") continue;
+    throw error;
+  }
+}
+
 console.log("Architecture check passed: production and LSP lab size/boundary checks are clean; protocol lab is isolated under codeql-runner/lab.");
 
 async function assertAtMost(relativePath, maximum) {

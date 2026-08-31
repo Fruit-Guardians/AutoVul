@@ -2,6 +2,7 @@ node_modules/
 .vite/
 packages/*/dist/
 runs/
+docs/
 
 # Local configuration and secrets
 .env

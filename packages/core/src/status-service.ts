@@ -1,6 +1,7 @@
 import {
   CONTRACTS_VERSION,
   DomainError,
+  RunIdSchema,
   RunManifestSchema,
   type DomainErrorRecord,
   type RunId,
@@ -21,8 +22,8 @@ export class RunStatusService {
     private readonly ids: IdGeneratorPort,
   ) {}
 
-  async create(): Promise<RunManifest> {
-    const runId = this.ids.next();
+  async create(runId = this.ids.next()): Promise<RunManifest> {
+    parseSchema(RunIdSchema, runId, "run id");
     return this.artifacts.withRunLock(runId, async () => {
       const existing = await this.artifacts.findManifest(runId);
       if (existing) {

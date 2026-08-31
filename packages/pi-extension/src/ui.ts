@@ -126,6 +126,8 @@ export function readCandidate(value: unknown): { round?: number | undefined } | 
 }
 
 export function toolPhase(toolName: string, args: unknown): string {
+  if (toolName === "autovul_research") return "research";
+  if (toolName === "autovul_run") return "run";
   if (toolName === "codeql_database") return "database";
   const action = asRecord(args)?.action;
   if (toolName === "codeql_workflow" && typeof action === "string") return `workflow_${action}`;
@@ -133,12 +135,16 @@ export function toolPhase(toolName: string, args: unknown): string {
 }
 
 export function toolLabel(toolName: string): string {
+  if (toolName === "autovul_research") return "research";
+  if (toolName === "autovul_run") return "run";
   if (toolName === "codeql_database") return "database inspection";
   if (toolName === "codeql_workflow") return "workflow";
   return "query verification";
 }
 
 function runningDetail(state: PiUiState): string {
+  if (state.phase === "research") return "validating or executing a research hypothesis…";
+  if (state.phase === "run") return "inspecting, cancelling, or replaying a run…";
   if (state.phase === "query_verify") return `${state.compile === "passed" ? "compile ✓" : "checking compile"} · vulnerable/fixed analysis…`;
   if (state.phase === "database") return "checking CodeQL environment/database…";
   return "persisting workflow checkpoint…";
