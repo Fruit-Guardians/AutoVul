@@ -35,6 +35,7 @@ export function absorbDetails(state: PiUiState, value: unknown): void {
   const record = asRecord(value);
   if (record === undefined) return;
   absorbAggregateResult(state, record);
+  absorbValidationResult(state, record);
   const run = asRecord(record.run);
   if (run !== undefined) {
     setOptionalString(state, "runId", run.runId);
@@ -159,7 +160,7 @@ function resultSummary(state: PiUiState): string {
   if (state.capability !== undefined) {
     const outcome = state.decisionOutcome ?? state.operationStatus ?? phaseLabel(state.phase);
     const verification = state.verificationLevel === undefined ? "" : ` · ${state.verificationLevel}`;
-    return `AutoVul ✓ ${state.capability} · ${outcome}${verification}`;
+    return `AutoVul ${outcome === "invalid" ? "⚠" : "✓"} ${state.capability} · ${outcome}${verification}`;
   }
   if (state.passed === true || state.verificationLevel === "differential") return `CodeQL ✓ differential · vulnerable ${formatFlow(state.vulnerableFlows)} · fixed ${formatFlow(state.fixedFlows)}`;
   return `CodeQL ✓ ${phaseLabel(state.phase)}`;
@@ -192,6 +193,14 @@ function absorbAggregateResult(state: PiUiState, record: Record<string, unknown>
   state.diagnostics = Array.isArray(record.observations)
     ? record.observations.map((item) => asRecord(item)?.code).filter((item): item is string => typeof item === "string")
     : [];
+}
+
+function absorbValidationResult(state: PiUiState, record: Record<string, unknown>): void {
+  if (state.phase !== "research" || state.capability === undefined || typeof record.valid !== "boolean" || !Array.isArray(record.issues)) return;
+  state.status = "completed";
+  state.operationStatus = "completed";
+  state.decisionOutcome = record.valid ? "valid" : "invalid";
+  state.diagnostics = record.issues.map((item) => asRecord(item)?.code).filter((item): item is string => typeof item === "string");
 }
 
 function setAggregateStatus(state: PiUiState, value: string): void {

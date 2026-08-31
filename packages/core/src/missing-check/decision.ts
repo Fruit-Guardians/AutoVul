@@ -67,8 +67,9 @@ export function decideMissingCheck(observation: MissingCheckAnalyzerObservation,
     if (verificationLevel === "reproduced" && fixedPolicySatisfied) verificationLevel = "differential";
   }
   if (observation.analyzer.evidence_kind === "test_double") verificationLevel = "generated";
-  const actions = outcome === "check_missing" ? ["replay", "stop"] as const : ["revise", "execute", "stop"] as const;
-  return result(decision, verificationLevel, observations, hints, actions);
+  const canRevise = outcome !== "check_missing";
+  const actions = canRevise ? ["revise", "execute", "stop"] as const : ["replay", "stop"] as const;
+  return result(decision, verificationLevel, observations, canRevise ? hints : [], actions);
 }
 
 function outcomeFor(relation: MissingCheckAnalyzerObservation["relation"], evidenceRefs: readonly string[]): MissingCheckDecision["outcome"] {

@@ -378,6 +378,12 @@ This section records the completed re-verification.
   `REQ-MCHECK-059` is individually mapped in `VERIFICATION.md`; no row remains
   pending. Stable behavior is merged into root `SPEC.md` as
   `REQ-MCHECK-ROOT-001` through `REQ-MCHECK-ROOT-012`.
+- 2026-08-31 archived boundary re-verification: unreadable SARIF now fails with
+  a distinct parse diagnostic, versionless real-Analyzer observations are
+  blocked, successful decisions carry no incompatible revision hints, Pi
+  validation reaches a terminal UI state, and composed cancellation listeners
+  are released after settlement. Full gates passed with 28 files / 160 tests,
+  and the real CodeQL differential plus fresh-process replay passed again.
 
 - Commands and results: `npm run lint`, `npm test`, and
   `npm run test:missing-check-golden-real` passed. The real Golden used

@@ -136,6 +136,16 @@ describe("Pi Extension", () => {
       );
 
       for (const handler of pi.eventHandlers.get("tool_execution_start") ?? []) {
+        await handler({ type: "tool_execution_start", toolName: "autovul_research", toolCallId: "tool-validate", args: { action: "validate", capability: "missing_check" } }, context);
+      }
+      for (const handler of pi.eventHandlers.get("tool_result") ?? []) {
+        await handler({ type: "tool_result", toolName: "autovul_research", toolCallId: "tool-validate", input: {}, content: [], isError: false, details: { valid: true, hypothesis: {}, issues: [], allowed_next_actions: ["execute", "stop"] } }, context);
+      }
+      expect(pi.statuses.get("autovul")).toContain("AutoVul ✓ missing_check · valid");
+      expect(pi.statuses.get("autovul")).not.toContain("◐");
+      expect(pi.widgets.get("autovul")?.join("\n")).toContain("missing_check · valid");
+
+      for (const handler of pi.eventHandlers.get("tool_execution_start") ?? []) {
         await handler({
           type: "tool_execution_start",
           toolName: "autovul_research",

@@ -87,8 +87,13 @@ async function stageFile(commit, localSource, sourceRoot) {
 async function fetchSource(commit) {
   const url = `https://raw.githubusercontent.com/openclaw/openclaw/${commit}/${sourceFile}`;
   const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-  if (!response.ok) throw new Error(`source fetch failed (${response.status}) for ${commit}`);
-  return response.text();
+  if (response.ok) return response.text();
+  const apiUrl = `https://api.github.com/repos/openclaw/openclaw/contents/${sourceFile}?ref=${commit}`;
+  const apiResponse = await fetch(apiUrl, { headers: { Accept: "application/vnd.github+json", "User-Agent": "AutoVul-MissingCheck-Golden" }, signal: AbortSignal.timeout(30_000) });
+  if (!apiResponse.ok) throw new Error(`source fetch failed (raw=${response.status}, api=${apiResponse.status}) for ${commit}`);
+  const payload = await apiResponse.json();
+  if (typeof payload?.content !== "string" || payload.encoding !== "base64") throw new Error(`source fetch returned unsupported content for ${commit}`);
+  return Buffer.from(payload.content.replace(/\s/g, ""), "base64").toString("utf8");
 }
 
 async function createDatabase(database, sourceRoot) {

@@ -39,6 +39,8 @@ describe("MissingCheck v1 contracts and policy", () => {
     const result = decideMissingCheck(observation({ relation: { state: "unchecked_witness", unchecked_witnesses: [{ operation: { file: "handler.ts", start_line: 10 }, evidence_ref: "witness.sarif" }], checked_witnesses: [] } }), "reproduce", hypothesis.scope);
     expect(result.decision).toEqual({ capability: "missing_check", outcome: "check_missing" });
     expect(result.verificationLevel).toBe("reproduced");
+    expect(result.revisionHints).toEqual([]);
+    expect(result.allowedNextActions).toEqual(["replay", "stop"]);
   });
 
   it("does not turn a missing check selector into absence proof", () => {
@@ -117,6 +119,26 @@ describe("MissingCheck v1 contracts and policy", () => {
     const app = new Application({ codeql: new FakeCodeqlPort(), artifacts, clock: new FixedClock(), ids: new FixedIdGenerator("run_mcheck_timeout"), missingCheck: port });
     const result = await app.research({ action: "execute", capability: "missing_check", hypothesis_version: "autovul.missing-check/1", hypothesis, analyzer_id: "codeql", mode: "reproduce", target: { vulnerable: { kind: "codeql_database", path: "/isolated/v" } }, budget: { timeout_ms: 5_000 }, idempotency_key: "mcheck-timeout" });
     expect(result).toMatchObject({ operation_status: "failed", decision: { outcome: "unknown" }, observations: [{ code: "MCHECK_ANALYZER_TIMEOUT" }] });
+    await app.close();
+  });
+
+  it("blocks real Analyzer observations without exact version provenance", async () => {
+    const port: MissingCheckExecutionPort = { async execute(): Promise<MissingCheckAnalyzerObservation> {
+      return observation({ analyzer: { analyzer_id: "codeql", available: true, evidence_kind: "real_analyzer", adapter_version: "autovul.codeql-missing-check/1" } });
+    } };
+    const app = new Application({ codeql: new FakeCodeqlPort(), artifacts: new MemoryArtifactStore(), clock: new FixedClock(), ids: new FixedIdGenerator("run_mcheck_version"), missingCheck: port });
+    const result = await app.research({ action: "execute", capability: "missing_check", hypothesis_version: "autovul.missing-check/1", hypothesis, analyzer_id: "codeql", mode: "reproduce", target: { vulnerable: { kind: "codeql_database", path: "/isolated/v" } }, budget: { timeout_ms: 5_000 }, idempotency_key: "mcheck-version-gate" });
+    expect(result).toMatchObject({ operation_status: "blocked", verification_level: "generated", decision: { outcome: "unknown" }, observations: [{ code: "MCHECK_ANALYZER_VERSION_UNAVAILABLE" }] });
+    await app.close();
+  });
+
+  it("keeps Analyzer output parse failure distinct from completed unknown", async () => {
+    const port: MissingCheckExecutionPort = { async execute(): Promise<MissingCheckAnalyzerObservation> {
+      throw new DomainError("ARTIFACT_CORRUPT", "artifact", "invalid SARIF", false);
+    } };
+    const app = new Application({ codeql: new FakeCodeqlPort(), artifacts: new MemoryArtifactStore(), clock: new FixedClock(), ids: new FixedIdGenerator("run_mcheck_parse"), missingCheck: port });
+    const result = await app.research({ action: "execute", capability: "missing_check", hypothesis_version: "autovul.missing-check/1", hypothesis, analyzer_id: "codeql", mode: "reproduce", target: { vulnerable: { kind: "codeql_database", path: "/isolated/v" } }, budget: { timeout_ms: 5_000 }, idempotency_key: "mcheck-parse-failure" });
+    expect(result).toMatchObject({ operation_status: "failed", verification_level: "generated", decision: { outcome: "unknown" }, observations: [{ code: "MCHECK_ANALYZER_OUTPUT_PARSE_FAILED" }] });
     await app.close();
   });
 });

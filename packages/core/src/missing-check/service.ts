@@ -122,6 +122,9 @@ export class MissingCheckResearchService {
       const observation = await this.execution.execute({ hypothesis, target, analyzer_id: "codeql", mode: request.mode!, runId, artifactRoot }, { ...options, timeoutMs: Math.min(options.timeoutMs, request.budget!.timeout_ms) });
       if (options.signal?.aborted) throw new DomainError("PROCESS_CANCELLED", "process", `MissingCheck execution for ${runId} was cancelled`, false, { runId });
       if (!observation.analyzer.available) return this.commitFailure(runId, hypothesis, request, "MCHECK_ANALYZER_UNAVAILABLE", "blocked", observation, targetFingerprints);
+      if (observation.analyzer.evidence_kind === "real_analyzer" && (observation.analyzer.version === undefined || observation.analyzer.adapter_version === undefined)) {
+        return this.commitFailure(runId, hypothesis, request, "MCHECK_ANALYZER_VERSION_UNAVAILABLE", "blocked", observation, targetFingerprints);
+      }
       const projection = decideMissingCheck(observation, request.mode!, hypothesis.scope);
       const result = compactMissingCheckResult({ runId, operationStatus: "completed", decision: projection.decision, verificationLevel: projection.verificationLevel, observations: projection.observations, revisionHints: projection.revisionHints, allowedNextActions: projection.allowedNextActions, artifactRef: MISSING_CHECK_RESULT_ARTIFACT });
       await this.writeCommitted(runId, result, hypothesis, request, observation, targetFingerprints);
@@ -132,6 +135,8 @@ export class MissingCheckResearchService {
       const code = domain.code === "PROCESS_CANCELLED" || options.signal?.aborted ? "MCHECK_EXECUTION_CANCELLED"
         : domain.code === "PROCESS_TIMEOUT" ? "MCHECK_ANALYZER_TIMEOUT"
           : domain.code === "CODEQL_CLI_NOT_FOUND" ? "MCHECK_ANALYZER_UNAVAILABLE"
+            : domain.code === "CODEQL_RESOLVE_FAILED" ? "MCHECK_ANALYZER_VERSION_UNAVAILABLE"
+              : domain.code === "ARTIFACT_CORRUPT" ? "MCHECK_ANALYZER_OUTPUT_PARSE_FAILED"
             : domain.code === "DATABASE_FINGERPRINT_MISMATCH" ? "MCHECK_TARGET_FINGERPRINT_MISMATCH"
               : domain.code === "DATABASE_FINGERPRINT_UNAVAILABLE" ? "MCHECK_TARGET_FINGERPRINT_UNAVAILABLE"
             : "MCHECK_EXECUTION_FAILED";

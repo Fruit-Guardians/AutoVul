@@ -3,12 +3,50 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { CodeqlRunner, NodeFileSystemPort } from "@autovul/codeql-runner";
+import { CodeqlMissingCheckAdapter, CodeqlRunner, NodeFileSystemPort } from "@autovul/codeql-runner";
 import { DomainError } from "@autovul/contracts";
 
 import { processResult, ScriptedProcessPort } from "./helpers.js";
 
 describe("CodeQL runner error mapping", () => {
+  it("rejects MissingCheck version gaps and unreadable SARIF instead of returning complete not_run", async () => {
+    const root = await mkdtemp(join(tmpdir(), "autovul-mcheck-adapter-"));
+    try {
+      const versionFailure = new ScriptedProcessPort(() => processResult({ exitCode: 2, stderr: "version unavailable" }));
+      const request = {
+        hypothesis: {
+          schema_version: "autovul.missing-check/1" as const,
+          hypothesis_id: "mcheck-adapter-test",
+          language: "javascript" as const,
+          operation: { kind: "direct_call" as const, name: "dangerousOperation" },
+          required_check: { kind: "direct_call" as const, name: "requiredCheck" },
+          required_relation: "same_callback_cfg_dominates_operation" as const,
+          scope: { kind: "single_file_named_entry_cfg" as const, file: "handler.ts", entry: { kind: "named_function" as const, name: "handler" } },
+        },
+        target: { vulnerable: { kind: "codeql_database" as const, path: "/db/vulnerable" } },
+        analyzer_id: "codeql" as const,
+        mode: "reproduce" as const,
+        runId: "run_mcheck_adapter",
+        artifactRoot: root,
+      };
+      await expect(new CodeqlMissingCheckAdapter({ process: versionFailure, filesystem: new NodeFileSystemPort() }).execute(request, { timeoutMs: 1_000 })).rejects.toMatchObject({ code: "CODEQL_RESOLVE_FAILED" });
+      expect(versionFailure.calls).toHaveLength(1);
+
+      const invalidSarif = new ScriptedProcessPort(async (command) => {
+        if (command.args[0] === "version") return processResult({ stdout: "CodeQL CLI version 2.26.1\n" });
+        const output = command.args.find((argument) => argument.startsWith("--output="))?.slice("--output=".length);
+        if (output !== undefined) {
+          await mkdir(join(output, ".."), { recursive: true });
+          await writeFile(output, "not valid SARIF", "utf8");
+        }
+        return processResult();
+      });
+      await expect(new CodeqlMissingCheckAdapter({ process: invalidSarif, filesystem: new NodeFileSystemPort() }).execute(request, { timeoutMs: 1_000 })).rejects.toMatchObject({ code: "ARTIFACT_CORRUPT", details: { side: "vulnerable", kind: "operations" } });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("discovers the CLI and extractor list with argument arrays and shell false", async () => {
     const process = new ScriptedProcessPort((command) => {
       expect(command.shell).toBe(false);

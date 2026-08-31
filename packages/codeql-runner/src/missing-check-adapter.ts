@@ -45,7 +45,13 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
     await this.filesystem.writeTextAtomic(join(root, "checks.ql"), query.checks);
     await this.filesystem.writeTextAtomic(join(root, "qlpack.yml"), "name: autovul/missing-check\nversion: 0.0.0\ndependencies:\n  codeql/javascript-all: \"*\"\n");
     const version = await this.run(["version"], root, options);
-    const cliVersion = successful(version) ? firstLine(version.stdout || version.stderr) : undefined;
+    if (!successful(version)) {
+      const failure = processFailure(version, "version");
+      if (failure.code === "PROCESS_CANCELLED" || failure.code === "PROCESS_TIMEOUT" || failure.code === "CODEQL_CLI_NOT_FOUND") throw failure;
+      throw new DomainError("CODEQL_RESOLVE_FAILED", "environment", "MissingCheck could not resolve the CodeQL CLI version", false);
+    }
+    const cliVersion = firstLine(version.stdout || version.stderr);
+    if (cliVersion === undefined) throw new DomainError("CODEQL_RESOLVE_FAILED", "environment", "MissingCheck CodeQL CLI returned no version", false);
     const compile = await this.run(["query", "compile", "--check-only", "--format=json", join(root, "unchecked.ql"), "--threads=1"], root, options);
     if (!successful(compile)) throw processFailure(compile, "compile");
     const vulnerable = await this.observeSide(root, request.hypothesis.hypothesis_id, request.target.vulnerable.path, "vulnerable", options);
@@ -61,7 +67,7 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
         ...(fixed === undefined ? {} : { fixed: { status: "complete", scope: request.hypothesis.scope, limitations: [...COMPLETENESS_LIMITATIONS] } }),
       },
       evidence_refs: [...vulnerable.evidenceRefs, ...(fixed?.evidenceRefs ?? [])],
-      analyzer: { analyzer_id: "codeql", available: true, evidence_kind: "real_analyzer", adapter_version: ADAPTER_VERSION, ...(cliVersion === undefined ? {} : { version: cliVersion }) },
+      analyzer: { analyzer_id: "codeql", available: true, evidence_kind: "real_analyzer", adapter_version: ADAPTER_VERSION, version: cliVersion },
     };
   }
 
@@ -92,7 +98,9 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
     const result = await this.run(["database", "analyze", database, join(root, `${kind}.ql`), "--rerun", "--format=sarif-latest", `--output=${output}`, "--threads=1"], root, options);
     if (!successful(result)) throw processFailure(result, `${side}:${kind}`);
     try { return { ok: true, locations: summarizeSarif(JSON.parse(await this.filesystem.readText(output)) as unknown).locations.map((location) => ({ file: location.file, start_line: location.start_line, ...(location.end_line === undefined ? {} : { end_line: location.end_line }) })) }; }
-    catch { return { ok: false, locations: [] }; }
+    catch (error: unknown) {
+      throw new DomainError("ARTIFACT_CORRUPT", "artifact", `MissingCheck CodeQL ${side}:${kind} produced unreadable SARIF`, false, { side, kind, output, reason: error instanceof Error ? error.message : "invalid SARIF" });
+    }
   }
 
   private async run(args: readonly string[], cwd: string, options: CodeqlOperationOptions): Promise<ProcessResult> {
