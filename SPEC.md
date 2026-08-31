@@ -1,7 +1,7 @@
 # AutoVul V2 Product Specification
 
 - Status: Accepted baseline
-- Version: 1.2
+- Version: 1.3
 - Last updated: 2026-08-31
 
 ## 1. Purpose
@@ -62,6 +62,8 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-WORKFLOW-007`: The aggregate research protocol MUST keep routing and execution fields separate from the opaque Capability Hypothesis. Its v1 research actions are `validate` and `execute`; its v1 run actions are `status`, `cancel` and `replay`.
 - `REQ-WORKFLOW-008`: `validate` MUST be side-effect free. Invalid input MUST return bounded, structured issues with stable codes and JSON Pointer paths rather than prose-only constraints.
 - `REQ-WORKFLOW-009`: A compact capability result MUST separately report `operation_status`, a Capability-discriminated `decision`, `verification_level`, bounded observations, revision hints, allowed next actions and an artifact reference. These dimensions MUST NOT be collapsed into one status.
+- `REQ-WORKFLOW-010`: `Application.close()` MUST atomically stop admission, compose application shutdown with caller cancellation, cancel all live in-process operations, and wait for admitted work and owned resources to settle.
+- `REQ-WORKFLOW-011`: Application shutdown MUST be idempotent. Calls admitted after shutdown begins MUST fail with a structured state error and MUST NOT invoke an Analyzer or mutate persisted evidence.
 
 ## 5. CodeQL verification requirements
 
@@ -128,6 +130,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-INTEGRATION-005`: Pi is the currently implemented native host integration. DeepSeek Harness and MCP are product directions, not implemented support claims until their own accepted change SPEC and verification gates pass.
 - `REQ-INTEGRATION-006`: The target model-facing research interface MUST contain only `autovul_research` and `autovul_run`. Compatibility `codeql_*` tools MAY remain available but MUST NOT be presented as a third primary research interface.
 - `REQ-INTEGRATION-007`: Pi and CLI MUST route those aggregate entries through the same Application API and remain thin registration, conversion, cancellation and presentation layers.
+- `REQ-INTEGRATION-008`: Pi MUST tell the host to select Flow for source-to-sink value propagation and MissingCheck for a protected operation reachable without its required check. Its aggregate result UI MUST preserve the selected Capability, operation status, decision, verification level, observations, revision hints and artifact reference without recasting MissingCheck as Flow.
 
 ## 10. Compatibility and current limitations
 

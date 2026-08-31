@@ -58,7 +58,12 @@ export class Application implements ApplicationApi {
   private readonly flowResearch: FlowResearchService;
   private readonly missingCheckResearch: MissingCheckResearchService;
   private readonly researchRuns: ResearchRunService;
+  private readonly cancellations: RunCancellationService;
   private readonly defaultTimeoutMs: number;
+  private readonly shutdown = new AbortController();
+  private readonly activeOperations = new Set<Promise<unknown>>();
+  private lifecycleState: "open" | "closing" | "closed" = "open";
+  private closePromise: Promise<void> | undefined;
 
   constructor(dependencies: ApplicationDependencies) {
     this.defaultTimeoutMs = dependencies.defaultTimeoutMs ?? 30_000;
@@ -75,80 +80,139 @@ export class Application implements ApplicationApi {
     );
     const flow = dependencies.flow ?? unavailableFlowExecutionPort();
     const missingCheck = dependencies.missingCheck ?? unavailableMissingCheckExecutionPort();
-    const cancellations = new RunCancellationService();
-    this.flowResearch = new FlowResearchService(status, dependencies.codeql, flow, dependencies.artifacts, cancellations);
-    this.missingCheckResearch = new MissingCheckResearchService(status, dependencies.codeql, missingCheck, dependencies.artifacts, cancellations);
-    this.researchRuns = new ResearchRunService(status, dependencies.artifacts, new FlowReplayService(status, flow, dependencies.artifacts), new MissingCheckReplayService(status, dependencies.codeql, missingCheck, dependencies.artifacts), cancellations);
+    this.cancellations = new RunCancellationService();
+    this.flowResearch = new FlowResearchService(status, dependencies.codeql, flow, dependencies.artifacts, this.cancellations);
+    this.missingCheckResearch = new MissingCheckResearchService(status, dependencies.codeql, missingCheck, dependencies.artifacts, this.cancellations);
+    this.researchRuns = new ResearchRunService(status, dependencies.artifacts, new FlowReplayService(status, flow, dependencies.artifacts), new MissingCheckReplayService(status, dependencies.codeql, missingCheck, dependencies.artifacts), this.cancellations);
   }
 
   doctor(options: Partial<CodeqlOperationOptions> = {}): Promise<DoctorResult> {
-    return this.controller.doctor(this.options(options));
+    return this.admit(() => this.controller.doctor(this.options(options)));
   }
 
   databaseInspect(path: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<DatabaseResult> {
-    return this.controller.inspectDatabase(path, this.options(options));
+    return this.admit(() => this.controller.inspectDatabase(path, this.options(options)));
   }
 
   databaseValidate(path: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<DatabaseResult> {
-    return this.controller.validateDatabase(path, this.options(options));
+    return this.admit(() => this.controller.validateDatabase(path, this.options(options)));
   }
 
   status(runId: unknown): Promise<RunManifest> {
-    return this.controller.status(runId);
+    return this.admit(() => this.controller.status(runId));
   }
 
   resume(runId: unknown): Promise<RunManifest> {
-    return this.controller.resumeRun(runId);
+    return this.admit(() => this.controller.resumeRun(runId));
   }
 
   workflowStart(spec: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<QueryWorkflowStatus> {
-    return this.queryWorkflow.start(spec, this.options(options));
+    return this.admit(() => this.queryWorkflow.start(spec, this.options(options)));
   }
 
   workflowStatus(runId: unknown): Promise<QueryWorkflowStatus> {
-    return this.queryWorkflow.status(runId);
+    return this.admit(() => this.queryWorkflow.status(runId));
   }
 
   queryVerify(runId: unknown, candidate: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<QueryVerification> {
-    return this.queryWorkflow.verify(runId, candidate, this.options(options));
+    return this.admit(() => this.queryWorkflow.verify(runId, candidate, this.options(options)));
   }
 
   queryProbe(runId: unknown, intent: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<ProbeEvidence> {
-    return this.queryWorkflow.probe(runId, intent, this.options(options));
+    return this.admit(() => this.queryWorkflow.probe(runId, intent, this.options(options)));
   }
 
   queryDraft(runId: unknown, candidate: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<QueryDraftReport> {
-    return this.queryWorkflow.draft(runId, candidate, this.options(options));
+    return this.admit(() => this.queryWorkflow.draft(runId, candidate, this.options(options)));
   }
 
   workflowFinalize(runId: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<QueryPackManifest> {
-    return this.queryWorkflow.finalize(runId, this.options(options));
+    return this.admit(() => this.queryWorkflow.finalize(runId, this.options(options)));
   }
 
   research(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<ResearchResult | MissingCheckResearchResult> {
-    if (input !== null && typeof input === "object" && !Array.isArray(input) && (input as Record<string, unknown>).capability === "missing_check") {
-      return this.missingCheckResearch.research(input, this.options(options));
-    }
-    return this.flowResearch.research(input, this.options(options));
+    return this.admit<ResearchResult | MissingCheckResearchResult>(() => {
+      if (input !== null && typeof input === "object" && !Array.isArray(input) && (input as Record<string, unknown>).capability === "missing_check") {
+        return this.missingCheckResearch.research(input, this.options(options));
+      }
+      return this.flowResearch.research(input, this.options(options));
+    });
   }
 
   manageRun(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<RunManagementResult> {
-    return this.researchRuns.manage(input, this.options(options));
+    return this.admit(() => this.researchRuns.manage(input, this.options(options)));
   }
 
-  async close(): Promise<void> {
-    await this.queryWorkflow.close();
+  close(): Promise<void> {
+    if (this.closePromise !== undefined) return this.closePromise;
+    this.lifecycleState = "closing";
+    const reason = new Error("AutoVul Application is closing");
+    this.shutdown.abort(reason);
+    this.cancellations.cancelAll(reason);
+    const admitted = [...this.activeOperations];
+    const resourceClose = this.queryWorkflow.close();
+    this.closePromise = (async (): Promise<void> => {
+      try {
+        const outcomes = await Promise.allSettled([...admitted, resourceClose]);
+        const resourceOutcome = outcomes[outcomes.length - 1];
+        if (resourceOutcome?.status === "rejected") throw resourceOutcome.reason;
+      } finally {
+        this.lifecycleState = "closed";
+      }
+    })();
+    return this.closePromise;
   }
 
   private options(options: Partial<CodeqlOperationOptions>): CodeqlOperationOptions {
-    const result: CodeqlOperationOptions = {
+    return {
       timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs,
+      signal: composeSignals(options.signal, this.shutdown.signal),
     };
-    if (options.signal !== undefined) {
-      return { ...result, signal: options.signal };
-    }
-    return result;
   }
+
+  private admit<T>(operation: () => Promise<T>): Promise<T> {
+    if (this.lifecycleState !== "open") {
+      return Promise.reject(new DomainError(
+        "INVALID_STATE_TRANSITION",
+        "state",
+        `AutoVul Application is ${this.lifecycleState}`,
+        false,
+        { applicationState: this.lifecycleState },
+      ));
+    }
+    let admitted: Promise<T>;
+    try {
+      admitted = operation();
+    } catch (error: unknown) {
+      return Promise.reject(error);
+    }
+    this.activeOperations.add(admitted);
+    const release = (): void => { this.activeOperations.delete(admitted); };
+    void admitted.then(release, release);
+    return admitted;
+  }
+}
+
+function composeSignals(caller: AbortSignal | undefined, shutdown: AbortSignal): AbortSignal {
+  if (caller === undefined) return shutdown;
+  const controller = new AbortController();
+  const cleanup = (): void => {
+    caller.removeEventListener("abort", abortFromCaller);
+    shutdown.removeEventListener("abort", abortFromShutdown);
+  };
+  const abort = (reason: unknown): void => {
+    cleanup();
+    if (!controller.signal.aborted) controller.abort(reason);
+  };
+  const abortFromCaller = (): void => abort(caller.reason);
+  const abortFromShutdown = (): void => abort(shutdown.reason);
+  if (caller.aborted) abortFromCaller();
+  else if (shutdown.aborted) abortFromShutdown();
+  else {
+    caller.addEventListener("abort", abortFromCaller, { once: true });
+    shutdown.addEventListener("abort", abortFromShutdown, { once: true });
+  }
+  return controller.signal;
 }
 
 function unavailableFlowExecutionPort(): FlowExecutionPort {

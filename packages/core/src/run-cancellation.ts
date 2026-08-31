@@ -28,4 +28,14 @@ export class RunCancellationService {
     controller.abort(new Error(`Run ${runId} was cancelled`));
     return true;
   }
+
+  cancelAll(reason: unknown = new Error("Application is closing")): number {
+    let cancelled = 0;
+    for (const controller of this.active.values()) {
+      if (controller.signal.aborted) continue;
+      controller.abort(reason);
+      cancelled += 1;
+    }
+    return cancelled;
+  }
 }
