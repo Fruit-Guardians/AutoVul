@@ -1,10 +1,10 @@
 # Change: Admit MissingCheck Capability v1
 
 - Change ID: `admit-missing-check-capability-v1`
-- Status: Verified
+- Status: Archived
 - Owner: AutoVul maintainers
 - Created: 2026-08-29
-- Updated: 2026-08-30
+- Updated: 2026-08-31
 - Admission gate: Satisfied
 - Depends on: `establish-research-capability-architecture` and the implemented shared runtime
 
@@ -351,11 +351,12 @@ admission.
 | 2026-08-29 | Reject Arcane CVE-2026-47125 as the initial v1 Analyzer case | CodeQL Go requires a build mode, which conflicts with the Draft's no-unapproved-target-build boundary. |
 | 2026-08-30 | Accept the frozen OpenClaw direct-call/dominance boundary | The user approved implementation of MissingCheck v1 with exactly one protected operation, one required check, and one local CFG relation. |
 | 2026-08-30 | Do not make Flow verification a blocking dependency | The user explicitly deferred Flow closure. MissingCheck reuses the implemented shared runtime but MUST independently satisfy all of its own real Analyzer, differential, and replay gates before it is supported. |
+| 2026-08-31 | Archive the verified admission change after root-SPEC merge | All 59 requirements have portable evidence, stable behavior is in root SPEC v1.3, and the implementation/evidence commit is independently reviewable. |
 
 ## Delivery gate
 
-Verified status authorizes the frozen MissingCheck v1 boundary as a supported
-research capability. Re-verification repaired the previously unenforced named-entry
+Archived status preserves the admission and verification history; root `SPEC.md`
+v1.3 now owns the supported MissingCheck v1 behavior. Re-verification repaired the previously unenforced named-entry
 scope, added per-side completeness, portable database fingerprints, exact Analyzer
 and adapter version comparison, resolvable evidence refs, and explicit real/test
 provenance.
