@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { Application, type FlowExecutionPort, type FlowExecutionRequest, type QueryDraftExecutionPort } from "@autovul/core";
 import type { FlowAnalyzerObservation, QueryDraftReport } from "@autovul/contracts";
@@ -105,5 +105,14 @@ describe("Application shutdown", () => {
     const closing = shutdownApp.close();
     await expect(shutdownOperation).rejects.toMatchObject({ code: "PROCESS_CANCELLED" });
     await closing;
+  });
+
+  it("removes composed caller listeners after a normally completed operation", async () => {
+    const app = new Application({ codeql: new FakeCodeqlPort(), artifacts: new MemoryArtifactStore(), clock: new FixedClock(), ids: new FixedIdGenerator("run_listener01") });
+    const caller = new AbortController();
+    const removeListener = vi.spyOn(caller.signal, "removeEventListener");
+    await app.doctor({ signal: caller.signal });
+    expect(removeListener).toHaveBeenCalledWith("abort", expect.any(Function));
+    await app.close();
   });
 });

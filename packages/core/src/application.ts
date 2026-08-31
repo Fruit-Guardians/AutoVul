@@ -87,15 +87,15 @@ export class Application implements ApplicationApi {
   }
 
   doctor(options: Partial<CodeqlOperationOptions> = {}): Promise<DoctorResult> {
-    return this.admit(() => this.controller.doctor(this.options(options)));
+    return this.admitWithOptions(options, (resolved) => this.controller.doctor(resolved));
   }
 
   databaseInspect(path: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<DatabaseResult> {
-    return this.admit(() => this.controller.inspectDatabase(path, this.options(options)));
+    return this.admitWithOptions(options, (resolved) => this.controller.inspectDatabase(path, resolved));
   }
 
   databaseValidate(path: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<DatabaseResult> {
-    return this.admit(() => this.controller.validateDatabase(path, this.options(options)));
+    return this.admitWithOptions(options, (resolved) => this.controller.validateDatabase(path, resolved));
   }
 
   status(runId: unknown): Promise<RunManifest> {
@@ -107,7 +107,7 @@ export class Application implements ApplicationApi {
   }
 
   workflowStart(spec: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<QueryWorkflowStatus> {
-    return this.admit(() => this.queryWorkflow.start(spec, this.options(options)));
+    return this.admitWithOptions(options, (resolved) => this.queryWorkflow.start(spec, resolved));
   }
 
   workflowStatus(runId: unknown): Promise<QueryWorkflowStatus> {
@@ -115,32 +115,32 @@ export class Application implements ApplicationApi {
   }
 
   queryVerify(runId: unknown, candidate: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<QueryVerification> {
-    return this.admit(() => this.queryWorkflow.verify(runId, candidate, this.options(options)));
+    return this.admitWithOptions(options, (resolved) => this.queryWorkflow.verify(runId, candidate, resolved));
   }
 
   queryProbe(runId: unknown, intent: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<ProbeEvidence> {
-    return this.admit(() => this.queryWorkflow.probe(runId, intent, this.options(options)));
+    return this.admitWithOptions(options, (resolved) => this.queryWorkflow.probe(runId, intent, resolved));
   }
 
   queryDraft(runId: unknown, candidate: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<QueryDraftReport> {
-    return this.admit(() => this.queryWorkflow.draft(runId, candidate, this.options(options)));
+    return this.admitWithOptions(options, (resolved) => this.queryWorkflow.draft(runId, candidate, resolved));
   }
 
   workflowFinalize(runId: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<QueryPackManifest> {
-    return this.admit(() => this.queryWorkflow.finalize(runId, this.options(options)));
+    return this.admitWithOptions(options, (resolved) => this.queryWorkflow.finalize(runId, resolved));
   }
 
   research(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<ResearchResult | MissingCheckResearchResult> {
-    return this.admit<ResearchResult | MissingCheckResearchResult>(() => {
+    return this.admitWithOptions<ResearchResult | MissingCheckResearchResult>(options, (resolved) => {
       if (input !== null && typeof input === "object" && !Array.isArray(input) && (input as Record<string, unknown>).capability === "missing_check") {
-        return this.missingCheckResearch.research(input, this.options(options));
+        return this.missingCheckResearch.research(input, resolved);
       }
-      return this.flowResearch.research(input, this.options(options));
+      return this.flowResearch.research(input, resolved);
     });
   }
 
   manageRun(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<RunManagementResult> {
-    return this.admit(() => this.researchRuns.manage(input, this.options(options)));
+    return this.admitWithOptions(options, (resolved) => this.researchRuns.manage(input, resolved));
   }
 
   close(): Promise<void> {
@@ -163,11 +163,21 @@ export class Application implements ApplicationApi {
     return this.closePromise;
   }
 
-  private options(options: Partial<CodeqlOperationOptions>): CodeqlOperationOptions {
-    return {
-      timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs,
-      signal: composeSignals(options.signal, this.shutdown.signal),
-    };
+  private admitWithOptions<T>(options: Partial<CodeqlOperationOptions>, operation: (resolved: CodeqlOperationOptions) => Promise<T>): Promise<T> {
+    return this.admit(() => {
+      const composed = composeSignals(options.signal, this.shutdown.signal);
+      let running: Promise<T>;
+      try {
+        running = operation({ timeoutMs: options.timeoutMs ?? this.defaultTimeoutMs, signal: composed.signal });
+      } catch (error: unknown) {
+        composed.release();
+        throw error;
+      }
+      return running.then(
+        (value) => { composed.release(); return value; },
+        (error: unknown) => { composed.release(); throw error; },
+      );
+    });
   }
 
   private admit<T>(operation: () => Promise<T>): Promise<T> {
@@ -193,15 +203,18 @@ export class Application implements ApplicationApi {
   }
 }
 
-function composeSignals(caller: AbortSignal | undefined, shutdown: AbortSignal): AbortSignal {
-  if (caller === undefined) return shutdown;
+function composeSignals(caller: AbortSignal | undefined, shutdown: AbortSignal): { readonly signal: AbortSignal; release(): void } {
+  if (caller === undefined) return { signal: shutdown, release: () => undefined };
   const controller = new AbortController();
-  const cleanup = (): void => {
+  let released = false;
+  const release = (): void => {
+    if (released) return;
+    released = true;
     caller.removeEventListener("abort", abortFromCaller);
     shutdown.removeEventListener("abort", abortFromShutdown);
   };
   const abort = (reason: unknown): void => {
-    cleanup();
+    release();
     if (!controller.signal.aborted) controller.abort(reason);
   };
   const abortFromCaller = (): void => abort(caller.reason);
@@ -212,7 +225,7 @@ function composeSignals(caller: AbortSignal | undefined, shutdown: AbortSignal):
     caller.addEventListener("abort", abortFromCaller, { once: true });
     shutdown.addEventListener("abort", abortFromShutdown, { once: true });
   }
-  return controller.signal;
+  return { signal: controller.signal, release };
 }
 
 function unavailableFlowExecutionPort(): FlowExecutionPort {

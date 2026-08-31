@@ -1,7 +1,7 @@
 # Change: Add Application Shutdown Semantics
 
 - Change ID: `add-application-shutdown-semantics`
-- Status: Verified
+- Status: Archived
 - Owner: AutoVul maintainers
 - Created: 2026-08-31
 - Updated: 2026-08-31
@@ -55,6 +55,7 @@ The shared runtime supports per-run cancellation, but `Application.close()` only
 ## Delivery record
 
 - Implementation: `packages/core/src/application.ts` owns lifecycle admission, shutdown-signal composition, active-operation settlement and idempotent resource close; `packages/core/src/run-cancellation.ts` cancels all live Capability runs.
-- Verification: `test/application-shutdown.test.ts` covers active Flow cancellation, caller and shutdown cancellation of database operations, close settlement, resource-close idempotency and structured rejection after close.
-- Full gates: `npm run lint && npm test && npm run pack:check` passed on 2026-08-31; 28 test files and 156 tests passed, and pack output was clean for all 5 packages.
+- Verification: `test/application-shutdown.test.ts` covers active Flow cancellation, caller and shutdown cancellation of database operations, close settlement, resource-close idempotency, structured rejection after close, and listener removal after normal operation settlement.
+- Full gates: `npm run lint && npm test && npm run pack:check` passed on 2026-08-31; 28 test files and 160 tests passed, and pack output was clean for all 5 packages. MissingCheck's real CodeQL differential and fresh-process replay also passed after the listener repair.
 - Root merge: stable behavior is recorded in `REQ-WORKFLOW-010`, `REQ-WORKFLOW-011`, and `REQ-INTEGRATION-008` of root `SPEC.md` v1.3.
+- Archive decision: the change is archived because its stable lifecycle behavior is in root SPEC v1.3, the listener lifecycle gap is covered, and no acceptance item remains pending.
