@@ -1,11 +1,11 @@
 # Change: Classify Delta Research Role
 
 - Change ID: `classify-delta-research-role`
-- Status: Draft
+- Status: Accepted
 - Owner: AutoVul maintainers
 - Created: 2026-08-29
-- Updated: 2026-08-30
-- Classification gate: Evidence complete; awaiting explicit acceptance
+- Updated: 2026-08-31
+- Classification gate: `analyzer_service` explicitly accepted; production implementation remains unauthorized
 - Depends on: `establish-research-capability-architecture`
 
 ## Problem
@@ -170,7 +170,7 @@ existing_mode | analyzer_service | research_capability | host_strategy | reject
 
 ## Contracts and artifacts
 
-This Draft defines no public product Schema. Classification evidence SHOULD record:
+This classification defines no public product Schema. Classification evidence SHOULD record:
 
 - case id and provenance;
 - repository identity and immutable base/head revisions;
@@ -241,10 +241,11 @@ This classification change has no public compatibility impact. Any selected impl
 | 2026-08-30 | Reject Arcane D-003 as current classification evidence | Its public commit view did not reproduce the recorded path or middleware fact; it remains an unverified candidate rather than a deterministic observation. |
 | 2026-08-30 | Use kohya_ss D-003 as the second verified patch-observation case | Its immutable raw patch records a bounded `shell=True` argument removal while leaving Flow’s security predicate with Flow. |
 | 2026-08-30 | Recommend `analyzer_service` as Delta’s primary role | D-002/D-003 provide bounded reusable change facts, while D-001 remains owning-Capability `differential`; no independent Delta predicate exists. |
+| 2026-08-31 | Accept `analyzer_service` as Delta’s primary role without authorizing implementation | The user explicitly accepted the evidence-backed classification and retained the requirement for a separate implementation SPEC. |
 
 ## Delivery gate
 
-Draft status authorizes case collection and read-only evidence spikes only. It does not authorize public Schemas, production modules, capability literals, tools, or support claims.
+Accepted status records the classification decision only. It does not authorize public Schemas, production modules, capability literals, tools, or support claims.
 
 After the case corpus and classification evidence are complete, this SPEC may be Accepted and Verified as a classification decision. Production work still requires the follow-up change SPEC named by the selected role.
 
@@ -255,4 +256,4 @@ Complete this section before changing the status to Verified.
 - Commands and results: `evidence/CASE-CORPUS.md` records three discriminating research operations over immutable public revisions: a completed MissingCheck differential, an OpenClaw authorization-patch observation, and a kohya_ss shell-argument patch observation. It contains no Delta product implementation.
 - Requirement-to-evidence mapping: D-001 satisfies `REQ-DELTA-001` and `REQ-DELTA-002` as an existing Capability differential; D-002 and D-003 satisfy the patch-observation and claimed-security-change portions of the corpus. The conclusion maps D-001 to `existing_mode` and selects `analyzer_service` as the sole primary Delta role, rejecting the other closed alternatives.
 - Skipped or blocked checks: Production implementation checks are intentionally out of scope.
-- Remaining limitations: Delta is classified only as a proposed `analyzer_service` role; it has no accepted implementation SPEC, public contract, module, or support claim.
+- Remaining limitations: Delta is accepted only as an `analyzer_service` role; it has no accepted implementation SPEC, public contract, module, or support claim.

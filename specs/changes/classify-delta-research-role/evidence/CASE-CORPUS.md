@@ -1,7 +1,7 @@
 # Delta Classification Case Corpus
 
-Status: classification evidence complete; the primary-role recommendation is
-`analyzer_service`, pending explicit acceptance of the parent SPEC.
+Status: classification evidence complete; the primary role `analyzer_service`
+was explicitly accepted with no production implementation authorized.
 
 This corpus records only immutable revision facts and bounded scopes. It does
 not introduce a Delta contract, decision, result, or product support claim.
@@ -101,5 +101,5 @@ and security interpretation remain host work. `reject` is rejected because the
 bounded patch observations do change the next Capability action.
 
 This conclusion does not declare that a public change-observation service is worth
-implementing. Per the parent SPEC, acceptance requires a separate follow-up SPEC
-before any production contract or module is introduced.
+implementing. Per the parent SPEC, implementation requires a separate accepted
+follow-up SPEC before any production contract or module is introduced.
