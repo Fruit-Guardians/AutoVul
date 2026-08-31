@@ -11,6 +11,8 @@ interface RegisteredCommand {
 }
 
 interface RegisteredTool {
+  readonly description: string;
+  readonly promptSnippet: string;
   readonly execute: (...args: unknown[]) => Promise<unknown>;
 }
 
@@ -79,6 +81,8 @@ describe("Pi Extension", () => {
       expect(pi.tools.has("codeql_database")).toBe(true);
       expect(pi.tools.has("codeql_workflow")).toBe(true);
       expect(pi.tools.has("codeql_query")).toBe(true);
+      expect(pi.tools.get("autovul_research")?.description).toContain("Flow or MissingCheck");
+      expect(pi.tools.get("autovul_research")?.promptSnippet).toContain("protected operation");
       expect(pi.shutdownHandlers).toHaveLength(1);
 
       const notifications: string[] = [];
@@ -111,6 +115,9 @@ describe("Pi Extension", () => {
       expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain("autovul_research");
       expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain("autovul_run");
       expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain("not a third primary research interface");
+      expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain("source-to-sink value propagation");
+      expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain("protected operation is reachable");
+      expect((automaticGuidance as { systemPrompt: string }).systemPrompt).toContain("do not encode a missing check as fake taint flow");
       expect((automaticGuidance as { systemPrompt: string }).systemPrompt).not.toContain(
         "Use AutoVul M4 inside the host Pi Agent Loop.",
       );
@@ -127,6 +134,39 @@ describe("Pi Extension", () => {
       expect((discoveryGuidance as { systemPrompt: string }).systemPrompt).not.toContain(
         "Use AutoVul M4 inside the host Pi Agent Loop.",
       );
+
+      for (const handler of pi.eventHandlers.get("tool_execution_start") ?? []) {
+        await handler({
+          type: "tool_execution_start",
+          toolName: "autovul_research",
+          toolCallId: "tool-missing-check",
+          args: { action: "execute", hypothesis: { capability: "missing_check" } },
+        }, context);
+      }
+      for (const handler of pi.eventHandlers.get("tool_result") ?? []) {
+        await handler({
+          type: "tool_result",
+          toolName: "autovul_research",
+          toolCallId: "tool-missing-check",
+          input: {},
+          content: [],
+          isError: false,
+          details: {
+            schema_version: "v2.contracts/1",
+            run_id: "run_mcheck",
+            operation_status: "completed",
+            capability: "missing_check",
+            decision: { capability: "missing_check", outcome: "check_missing" },
+            verification_level: "reproduced",
+            observations: [{ code: "MCHECK_RELATION_UNCHECKED_WITNESS" }],
+            revision_hints: [],
+            allowed_next_actions: ["replay", "stop"],
+            artifact_ref: "research/missing-check/result.json",
+          },
+        }, context);
+      }
+      expect(pi.statuses.get("autovul")).toContain("AutoVul ✓ missing_check · check_missing · reproduced");
+      expect(pi.widgets.get("autovul")?.join("\n")).toContain("research/missing-check/result.json");
 
       for (const handler of pi.eventHandlers.get("tool_execution_start") ?? []) {
         await handler({

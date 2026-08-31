@@ -17,9 +17,12 @@ import type {
 export type ToolDetails = DoctorResult | DatabaseResult | ProbeEvidence | QueryDraftReport | QueryWorkflowStatus | QueryVerification | QueryPackManifest | FlowValidationResult | MissingCheckValidationResult | ResearchExecutionResult | MissingCheckExecutionResult | RunManifest | DomainErrorRecord;
 
 export interface PiUiState {
-  status: "ready" | "running" | "completed" | "failed" | "cancelled" | "budget_exhausted";
+  status: "ready" | "running" | "completed" | "blocked" | "failed" | "cancelled" | "budget_exhausted";
   phase: string;
   runId?: string;
+  capability?: "flow" | "missing_check";
+  decisionOutcome?: string;
+  operationStatus?: string;
   verificationLevel?: string;
   round?: number;
   compile?: string;
@@ -29,6 +32,8 @@ export interface PiUiState {
   fixedFlows?: number;
   passed?: boolean;
   diagnostics: string[];
+  artifactRef?: string;
+  revisionHintCount?: number;
   artifactRoot?: string;
   packId?: string;
 }

@@ -31,6 +31,12 @@ export function registerLifecycle(
   });
   pi.on("tool_execution_start", async (event, ctx) => {
     if (!isAutovulTool(event.toolName)) return;
+    delete state.capability;
+    delete state.decisionOutcome;
+    delete state.operationStatus;
+    delete state.artifactRef;
+    delete state.revisionHintCount;
+    state.diagnostics = [];
     state.status = "running";
     state.phase = toolPhase(event.toolName, event.args);
     const candidate = readCandidate(event.args);

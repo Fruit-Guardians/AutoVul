@@ -12,6 +12,10 @@ export function renderUi(ctx: ExtensionContext, state: PiUiState): void {
     ctx.ui.setWidget(UI_KEY, detail.length === 0 ? undefined : [detail]);
     return;
   }
+  if (state.status === "completed" && state.capability !== undefined) {
+    ctx.ui.setWidget(UI_KEY, [aggregateDetail(state)]);
+    return;
+  }
   if (state.status === "completed" && state.packId !== undefined) {
     ctx.ui.setWidget(UI_KEY, ["pack ready · /codeql status"]);
     return;
@@ -30,6 +34,7 @@ export function hideWidget(ctx: ExtensionContext): void {
 export function absorbDetails(state: PiUiState, value: unknown): void {
   const record = asRecord(value);
   if (record === undefined) return;
+  absorbAggregateResult(state, record);
   const run = asRecord(record.run);
   if (run !== undefined) {
     setOptionalString(state, "runId", run.runId);
@@ -151,15 +156,57 @@ function runningDetail(state: PiUiState): string {
 }
 
 function resultSummary(state: PiUiState): string {
+  if (state.capability !== undefined) {
+    const outcome = state.decisionOutcome ?? state.operationStatus ?? phaseLabel(state.phase);
+    const verification = state.verificationLevel === undefined ? "" : ` · ${state.verificationLevel}`;
+    return `AutoVul ✓ ${state.capability} · ${outcome}${verification}`;
+  }
   if (state.passed === true || state.verificationLevel === "differential") return `CodeQL ✓ differential · vulnerable ${formatFlow(state.vulnerableFlows)} · fixed ${formatFlow(state.fixedFlows)}`;
   return `CodeQL ✓ ${phaseLabel(state.phase)}`;
 }
 
 function terminalStatusText(state: PiUiState): string | undefined {
-  if (state.status === "failed") return `CodeQL ✗ ${state.diagnostics[0] ?? "failed"}`;
-  if (state.status === "cancelled") return "CodeQL ⏹ cancelled";
+  const prefix = state.capability === undefined ? "CodeQL" : `AutoVul ${state.capability}`;
+  if (state.status === "blocked") return `${prefix} ⚠ blocked · ${state.diagnostics[0] ?? "environment unavailable"}`;
+  if (state.status === "failed") return `${prefix} ✗ ${state.diagnostics[0] ?? "failed"}`;
+  if (state.status === "cancelled") return `${prefix} ⏹ cancelled`;
   if (state.status === "budget_exhausted") return "CodeQL ⚠ budget exhausted · /codeql status";
   return undefined;
+}
+
+function absorbAggregateResult(state: PiUiState, record: Record<string, unknown>): void {
+  if (record.capability !== "flow" && record.capability !== "missing_check") return;
+  state.capability = record.capability;
+  state.phase = "research";
+  setOptionalString(state, "runId", record.run_id);
+  setOptionalString(state, "verificationLevel", record.verification_level);
+  if (typeof record.operation_status === "string") {
+    state.operationStatus = record.operation_status;
+    setAggregateStatus(state, record.operation_status);
+  }
+  const decision = asRecord(record.decision);
+  if (typeof decision?.outcome === "string") state.decisionOutcome = decision.outcome;
+  if (typeof record.artifact_ref === "string") state.artifactRef = record.artifact_ref;
+  if (Array.isArray(record.revision_hints)) state.revisionHintCount = record.revision_hints.length;
+  else delete state.revisionHintCount;
+  state.diagnostics = Array.isArray(record.observations)
+    ? record.observations.map((item) => asRecord(item)?.code).filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function setAggregateStatus(state: PiUiState, value: string): void {
+  if (value === "completed") state.status = "completed";
+  else if (value === "blocked") state.status = "blocked";
+  else if (value === "failed") state.status = "failed";
+  else if (value === "cancelled") state.status = "cancelled";
+  else state.status = "running";
+}
+
+function aggregateDetail(state: PiUiState): string {
+  const result = [state.capability, state.decisionOutcome, state.verificationLevel].filter((item): item is string => item !== undefined).join(" · ");
+  const revision = state.revisionHintCount === undefined || state.revisionHintCount === 0 ? "" : ` · ${state.revisionHintCount} revision hint${state.revisionHintCount === 1 ? "" : "s"}`;
+  const artifact = state.artifactRef === undefined ? "" : `\nartifact: ${state.artifactRef}`;
+  return `${result}${revision}${artifact}`;
 }
 
 function formatFlow(value: number | undefined): string {

@@ -24,8 +24,8 @@ export function registerTools(pi: ExtensionAPI, application: ApplicationApi): vo
   pi.registerTool({
     name: "autovul_research",
     label: "AutoVul research",
-    description: "Validate or execute a versioned Flow hypothesis through the shared deterministic runtime.",
-    promptSnippet: "Structured Flow hypothesis validation and bounded execution",
+    description: "Validate or execute a versioned Flow or MissingCheck hypothesis through the shared deterministic runtime.",
+    promptSnippet: "Choose Flow for source-to-sink value propagation; choose MissingCheck for a protected operation reachable without its required check.",
     parameters: AutovulResearchToolInputSchema,
     execute: async (_toolCallId: string, rawParams: unknown, signal: AbortSignal | undefined, _onUpdate: unknown, _ctx: ExtensionContext): Promise<AgentToolResult<ToolDetails>> => {
       try {
