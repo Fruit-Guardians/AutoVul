@@ -25,6 +25,8 @@ export const DomainErrorCodeSchema = Type.Union([
   Type.Literal("CODEQL_EXTRACTOR_MISSING"),
   Type.Literal("DATABASE_NOT_FOUND"),
   Type.Literal("DATABASE_INVALID"),
+  Type.Literal("DATABASE_FINGERPRINT_MISMATCH"),
+  Type.Literal("DATABASE_FINGERPRINT_UNAVAILABLE"),
   Type.Literal("DATABASE_PATH_OUTSIDE_WORKSPACE"),
   Type.Literal("PROCESS_EXITED"),
   Type.Literal("PROCESS_TIMEOUT"),

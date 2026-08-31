@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { mkdtemp, mkdir, rm } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -129,6 +129,29 @@ describe("CodeQL runner error mapping", () => {
         timeoutMs: 1000,
       });
       expect(manifest.language).toBe("javascript");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps finalized database fingerprints stable across relocation and query-side directory changes", async () => {
+    const root = await mkdtemp(join(tmpdir(), "autovul-runner-fingerprint-"));
+    const first = join(root, "first");
+    const relocated = join(root, "relocated");
+    await mkdir(first);
+    await mkdir(relocated);
+    const identity = "primaryLanguage: javascript\nbaselineLinesOfCode: 42\ncreationMetadata:\n  cliVersion: 2.26.1\n  creationTime: 2026-08-31T00:00:00Z\nbuildMode: none\n";
+    await writeFile(join(first, "codeql-database.yml"), identity, "utf8");
+    await writeFile(join(relocated, "codeql-database.yml"), identity, "utf8");
+    try {
+      const process = new ScriptedProcessPort(() => processResult({ stdout: JSON.stringify({ languages: ["javascript"] }) }));
+      const runner = new CodeqlRunner({ process, filesystem: new NodeFileSystemPort() });
+      const firstFingerprint = (await runner.inspectDatabase(first, { timeoutMs: 1_000 })).portableFingerprint;
+      await writeFile(join(first, "query-cache-marker"), "changed after analysis", "utf8");
+      expect((await runner.inspectDatabase(first, { timeoutMs: 1_000 })).portableFingerprint).toBe(firstFingerprint);
+      expect((await runner.inspectDatabase(relocated, { timeoutMs: 1_000 })).portableFingerprint).toBe(firstFingerprint);
+      await writeFile(join(relocated, "codeql-database.yml"), identity.replace("2026-08-31T00:00:00Z", "2026-08-31T00:00:01Z"), "utf8");
+      expect((await runner.inspectDatabase(relocated, { timeoutMs: 1_000 })).portableFingerprint).not.toBe(firstFingerprint);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

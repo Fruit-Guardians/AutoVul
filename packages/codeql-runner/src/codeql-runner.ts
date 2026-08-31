@@ -1,6 +1,6 @@
 import { DomainError, stableDigest, type CodeqlEnvironment, type CodeqlDiagnostic, type DatabaseManifest } from "@autovul/contracts";
 import type { FileSystemPort, ProcessPort, ProcessResult, CodeqlOperationOptions, CodeqlPort } from "@autovul/core";
-import { isAbsolute, relative } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
 
 import { NodeFileSystemPort } from "./node-filesystem.js";
 import { NodeProcessPort } from "./node-process.js";
@@ -118,6 +118,8 @@ export class CodeqlRunner implements CodeqlPort {
       });
     }
     const diagnostics = diagnosticsFor(result);
+    const databaseIdentity = await readDatabaseIdentity(this.filesystem, canonicalPath);
+    const codeqlVersion = metadata.codeqlVersion ?? databaseIdentity?.cliVersion;
     return {
       schemaVersion: "v2.contracts/1",
       path,
@@ -126,14 +128,21 @@ export class CodeqlRunner implements CodeqlPort {
       isDirectory: true,
       valid: true,
       ...(metadata.language === undefined ? {} : { language: metadata.language }),
-      ...(metadata.codeqlVersion === undefined ? {} : { codeqlVersion: metadata.codeqlVersion }),
+      ...(codeqlVersion === undefined ? {} : { codeqlVersion }),
       fingerprint: stableDigest(JSON.stringify({
         canonicalPath,
         language: metadata.language,
-        codeqlVersion: metadata.codeqlVersion,
+        codeqlVersion,
         sourceLocationPrefix: metadata.sourceLocationPrefix,
         modifiedAtMs: stat.modifiedAtMs,
       })),
+      ...(databaseIdentity === undefined ? {} : { portableFingerprint: stableDigest(JSON.stringify({
+        language: metadata.language,
+        codeqlVersion,
+        creationTime: databaseIdentity.creationTime,
+        buildMode: databaseIdentity.buildMode,
+        baselineLinesOfCode: databaseIdentity.baselineLinesOfCode,
+      })) }),
       checkedAt: new Date().toISOString(),
       diagnostics,
     };
@@ -163,6 +172,28 @@ export class CodeqlRunner implements CodeqlPort {
       }
       throw new DomainError("PROCESS_CRASHED", "process", details, true, { executable: this.executable });
     }
+  }
+}
+
+async function readDatabaseIdentity(filesystem: FileSystemPort, databasePath: string): Promise<{ readonly cliVersion?: string; readonly creationTime?: string; readonly buildMode?: string; readonly baselineLinesOfCode?: string } | undefined> {
+  const metadataPath = join(databasePath, "codeql-database.yml");
+  if (!(await filesystem.exists(metadataPath))) return undefined;
+  try {
+    const text = await filesystem.readText(metadataPath);
+    const value = (key: string): string | undefined => new RegExp(`^\\s*${key}:\\s*(.+?)\\s*$`, "m").exec(text)?.[1];
+    const cliVersion = value("cliVersion");
+    const creationTime = value("creationTime");
+    const buildMode = value("buildMode");
+    const baselineLinesOfCode = value("baselineLinesOfCode");
+    const identity = {
+      ...(cliVersion === undefined ? {} : { cliVersion }),
+      ...(creationTime === undefined ? {} : { creationTime }),
+      ...(buildMode === undefined ? {} : { buildMode }),
+      ...(baselineLinesOfCode === undefined ? {} : { baselineLinesOfCode }),
+    };
+    return Object.values(identity).some((item) => item !== undefined) ? identity : undefined;
+  } catch {
+    return undefined;
   }
 }
 

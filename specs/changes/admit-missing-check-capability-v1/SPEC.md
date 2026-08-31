@@ -108,7 +108,7 @@ Until all nine items are recorded, production implementation MUST NOT begin.
 - `REQ-MCHECK-012`: The protected operation and required check MUST use MissingCheck-owned selectors. They MUST NOT reuse or alias FlowEndpoint.
 - `REQ-MCHECK-013`: Check kinds MUST be a case-justified closed set. The admission case MUST prove every accepted v1 kind can be explained without framework-specific prose.
 - `REQ-MCHECK-014`: Relation kinds MUST be a case-justified closed set describing what the Analyzer can observe, such as an all-path precondition, dominance-equivalent relation, or guarded branch relation.
-- `REQ-MCHECK-015`: The hypothesis MUST declare its completeness boundary. A repository-wide or all-path claim MUST NOT be inferred from a local observation.
+- `REQ-MCHECK-015`: The hypothesis MUST declare a `single_file_named_entry_cfg` completeness boundary with a relative file and `named_function` entry selector. The Analyzer MUST enforce both fields; a repository-wide or all-path claim MUST NOT be inferred from this local observation.
 - `REQ-MCHECK-016`: Target paths, Analyzer identity, mode, budget, idempotency key, evidence refs, CWE, message, rationale, and presentation fields MUST remain outside the MissingCheck hypothesis.
 - `REQ-MCHECK-017`: The hypothesis MUST NOT contain `guard_absent`, `vulnerable`, `confirmed`, or any other field that pre-decides the Analyzer observation or Core decision.
 - `REQ-MCHECK-018`: v1 MUST NOT support multiple operations, multiple required checks, arbitrary boolean policy expressions, role hierarchies, or extensible property bags.
@@ -147,7 +147,7 @@ Until all nine items are recorded, production implementation MUST NOT begin.
 - `REQ-MCHECK-042`: `differential` MUST require a reproduced vulnerable-side unchecked witness and a successfully analyzed fixed side that satisfies the declared fixed policy.
 - `REQ-MCHECK-043`: A fixed-side `not_run`, timeout, failure, or capability gap MUST NOT satisfy the differential policy even when a count defaults to zero.
 - `REQ-MCHECK-044`: `variant_validated` MUST NOT be emitted by MissingCheck v1 unless a later accepted change defines additional positive/negative or cross-project validation semantics.
-- `REQ-MCHECK-045`: Fake adapters, mocks, AST text search, model inference, and diagnostic wrappers MUST NOT raise a real verification level.
+- `REQ-MCHECK-045`: Analyzer provenance MUST distinguish `real_analyzer` from `test_double`. Fake adapters, mocks, AST text search, model inference, diagnostic wrappers, and `test_double` observations MUST NOT raise a real verification level.
 - `REQ-MCHECK-046`: The compact result MUST keep `operation_status`, MissingCheck `decision`, and `verification_level` as independent dimensions.
 - `REQ-MCHECK-047`: Claims MUST be limited to the declared completeness boundary and recorded Analyzer version.
 - `REQ-MCHECK-048`: A negative or unknown result MUST preserve the attempted scope, observations, failure category, and replay inputs.
@@ -157,9 +157,9 @@ Until all nine items are recorded, production implementation MUST NOT begin.
 
 - `REQ-MCHECK-050`: Execute MUST create or idempotently resume one bounded shared-runtime operation and MUST bind the idempotency key to a normalized request digest.
 - `REQ-MCHECK-051`: MissingCheck MUST use the existing trusted-root, timeout, live cancellation, lock, recovery, and process-tree cleanup behavior.
-- `REQ-MCHECK-052`: A committed artifact MUST record contract version, normalized hypothesis, target refs and fingerprints, Analyzer provenance, scope, observations, Decision Policy version, decision, verification level, budget identity, and replay inputs.
+- `REQ-MCHECK-052`: A committed artifact MUST record contract version, normalized hypothesis, target refs and portable fingerprints, Analyzer and adapter provenance, scope, observations, Decision Policy version, decision, verification level, budget identity, and replay inputs.
 - `REQ-MCHECK-053`: Critical MissingCheck evidence and route metadata MUST be committed atomically before authoritative state references the result.
-- `REQ-MCHECK-054`: Replay MUST revalidate targets and fingerprints, compare Analyzer provenance, and distinguish identical result, environment block, version difference, and semantic mismatch.
+- `REQ-MCHECK-054`: Replay MUST revalidate targets and portable fingerprints, compare exact Analyzer and adapter versions, and distinguish identical result, fingerprint absence/difference, environment block, version absence/difference, cancellation, and semantic mismatch.
 - `REQ-MCHECK-055`: Logs and artifacts MUST sanitize recognized credentials, tokens, private policy values, and unrestricted environment data.
 - `REQ-MCHECK-056`: The Analyzer adapter MUST NOT execute target build, install, migration, or test scripts without a separate accepted approval policy.
 - `REQ-MCHECK-057`: Existing Flow and `codeql_*` contracts and artifacts MUST remain readable and behaviorally unchanged.
@@ -355,11 +355,28 @@ admission.
 ## Delivery gate
 
 Verified status authorizes the frozen MissingCheck v1 boundary as a supported
-research capability within its declared single-file CFG completeness boundary.
+research capability. Re-verification repaired the previously unenforced named-entry
+scope, added per-side completeness, portable database fingerprints, exact Analyzer
+and adapter version comparison, resolvable evidence refs, and explicit real/test
+provenance.
 
 ## Verification record
 
-Complete this section before changing the status to Verified.
+This section records the completed re-verification.
+
+- 2026-08-31 re-verification note: the prior `Verified` claim is withdrawn. The
+  implementation and portable evidence are being repaired and `REQ-MCHECK-001`
+  through `REQ-MCHECK-059` will be remapped individually before verification.
+- 2026-08-31 re-verification result: `npm run lint`, `npm test`, and
+  `npm run pack:check` passed; the suite contained 27 files and 154 tests. A fresh
+  CodeQL 2.26.1 real Golden then passed vulnerable/fixed differential analysis,
+  checked-safe and wrong-operation negatives, and fresh-process model-free replay.
+  The portable record is
+  `evidence/openclaw-cve-2026-43572/PORTABLE-GOLDEN.json`.
+- 2026-08-31 requirement mapping: every `REQ-MCHECK-001` through
+  `REQ-MCHECK-059` is individually mapped in `VERIFICATION.md`; no row remains
+  pending. Stable behavior is merged into root `SPEC.md` as
+  `REQ-MCHECK-ROOT-001` through `REQ-MCHECK-ROOT-012`.
 
 - Commands and results: `npm run lint`, `npm test`, and
   `npm run test:missing-check-golden-real` passed. The real Golden used

@@ -1,8 +1,8 @@
 # AutoVul V2 Product Specification
 
 - Status: Accepted baseline
-- Version: 1.1
-- Last updated: 2026-08-29
+- Version: 1.2
+- Last updated: 2026-08-31
 
 ## 1. Purpose
 
@@ -12,12 +12,13 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 
 ## 2. Scope
 
-### 2.1 Current supported capability
+### 2.1 Current supported capabilities
 
 - `REQ-SCOPE-001`: The system MUST accept a vulnerability description or patch description and a compatible CodeQL database.
 - `REQ-SCOPE-002`: The system MUST support structured Source/Sink-oriented CodeQL query synthesis and verification for the language families represented by verified Language Packs.
 - `REQ-SCOPE-003`: The system MUST expose the same deterministic Application behavior through Pi Extension and CLI adapters.
 - `REQ-SCOPE-004`: The system MUST produce persisted run state and replayable Query Pack artifacts.
+- `REQ-SCOPE-005`: The system MUST support verified MissingCheck v1 research for the frozen JavaScript direct-call/dominance case family through the aggregate research/run APIs, subject to its declared single-file named-entry completeness boundary and recorded limitations.
 
 ### 2.2 Extensible product direction
 
@@ -70,6 +71,21 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-CODEQL-004`: Strict verification MUST preserve the expected Source and Sink semantics and locations.
 - `REQ-CODEQL-005`: When a fixed database is supplied for differential verification, the fixed-side result MUST satisfy the declared validation policy.
 - `REQ-CODEQL-006`: A finalized Query Pack MUST be independently replayable without a model and without reading mutable state from the originating run.
+
+### 5.1 MissingCheck v1
+
+- `REQ-MCHECK-ROOT-001`: MissingCheck v1 MUST remain an independent Research Capability for one protected direct call, one required direct check, and the closed `same_callback_cfg_dominates_operation` relation. It MUST NOT reuse Flow domain types or taint semantics.
+- `REQ-MCHECK-ROOT-002`: Its hypothesis contract MUST be `autovul.missing-check/1` and MUST declare one `single_file_named_entry_cfg` scope containing a relative file and a `named_function` entry selector.
+- `REQ-MCHECK-ROOT-003`: The CodeQL adapter MUST enforce both the declared file and named entry. An observation from only the same file, or from a different enclosing entry, MUST NOT satisfy the scope.
+- `REQ-MCHECK-ROOT-004`: Analyzer observations MUST separately record operation/check states, relation witnesses, per-side completeness, known limitations, Analyzer/adapter provenance, evidence references, and capability gaps. The shared runtime MUST NOT interpret these fields.
+- `REQ-MCHECK-ROOT-005`: Core MUST emit `check_missing` only from a persisted unchecked witness whose evidence reference resolves in the observation and whose vulnerable completeness boundary exactly equals the declared scope.
+- `REQ-MCHECK-ROOT-006`: Core MUST emit `check_present` only from a persisted checked witness under the same exact completed boundary. A missing check match, empty result, incomplete analysis, or unresolved evidence reference MUST remain `unknown`.
+- `REQ-MCHECK-ROOT-007`: Differential verification MUST require a reproduced vulnerable unchecked witness and a completed fixed-side checked witness under the same scope. Fixed-side `not_run`, failure, incomplete scope, capability gap, or missing evidence MUST NOT satisfy fixed policy.
+- `REQ-MCHECK-ROOT-008`: Real verification levels MUST require `real_analyzer` provenance. A fake adapter, mock, diagnostic wrapper, or `test_double` observation MUST be capped at `generated` even when its synthetic decision fixture matches a higher-level policy.
+- `REQ-MCHECK-ROOT-009`: A successful artifact MUST bind target references to observed portable database fingerprints, exact Analyzer and adapter versions, the Decision Policy version, and run-relative evidence references before the run becomes authoritative.
+- `REQ-MCHECK-ROOT-010`: MissingCheck replay MUST revalidate portable target fingerprints and exact Analyzer/adapter versions before preserving a verification level. It MUST distinguish fingerprint absence/difference, Analyzer version absence/difference, environment block, cancellation, and semantic mismatch.
+- `REQ-MCHECK-ROOT-011`: The verified Golden MUST retain immutable target revisions and source hashes, query and evidence hashes, compact ordered results, completeness boundaries, provenance, and a fresh-process model-free replay result. External dependencies MUST be explicit.
+- `REQ-MCHECK-ROOT-012`: MissingCheck MUST remain reachable only through aggregate `autovul_research` and `autovul_run` APIs. The host retains capability selection, hypothesis creation/revision, and stopping authority.
 
 ## 6. Evidence and result levels
 

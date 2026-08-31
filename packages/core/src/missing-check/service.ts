@@ -116,14 +116,15 @@ export class MissingCheckResearchService {
   private async runAnalyzer(runId: RunId, hypothesis: MissingCheckHypothesis, request: MissingCheckResearchToolInput, options: CodeqlOperationOptions, artifactRoot: string): Promise<MissingCheckExecutionResult> {
     const target = request.target!;
     try {
-      await this.codeql.validateDatabase(target.vulnerable.path, options);
-      if (target.fixed !== undefined) await this.codeql.validateDatabase(target.fixed.path, options);
+      const vulnerableFingerprint = await validateAndFingerprint(this.codeql, target.vulnerable, options);
+      const fixedFingerprint = target.fixed === undefined ? undefined : await validateAndFingerprint(this.codeql, target.fixed, options);
+      const targetFingerprints = { vulnerable: vulnerableFingerprint, ...(fixedFingerprint === undefined ? {} : { fixed: fixedFingerprint }) };
       const observation = await this.execution.execute({ hypothesis, target, analyzer_id: "codeql", mode: request.mode!, runId, artifactRoot }, { ...options, timeoutMs: Math.min(options.timeoutMs, request.budget!.timeout_ms) });
       if (options.signal?.aborted) throw new DomainError("PROCESS_CANCELLED", "process", `MissingCheck execution for ${runId} was cancelled`, false, { runId });
-      if (!observation.analyzer.available) return this.commitFailure(runId, hypothesis, request, "MCHECK_ANALYZER_UNAVAILABLE", "blocked", observation);
-      const projection = decideMissingCheck(observation, request.mode!);
+      if (!observation.analyzer.available) return this.commitFailure(runId, hypothesis, request, "MCHECK_ANALYZER_UNAVAILABLE", "blocked", observation, targetFingerprints);
+      const projection = decideMissingCheck(observation, request.mode!, hypothesis.scope);
       const result = compactMissingCheckResult({ runId, operationStatus: "completed", decision: projection.decision, verificationLevel: projection.verificationLevel, observations: projection.observations, revisionHints: projection.revisionHints, allowedNextActions: projection.allowedNextActions, artifactRef: MISSING_CHECK_RESULT_ARTIFACT });
-      await this.writeCommitted(runId, result, hypothesis, request, observation);
+      await this.writeCommitted(runId, result, hypothesis, request, observation, targetFingerprints);
       await this.status.complete(runId, projection.verificationLevel, "missing_check_execute");
       return result;
     } catch (error: unknown) {
@@ -131,15 +132,17 @@ export class MissingCheckResearchService {
       const code = domain.code === "PROCESS_CANCELLED" || options.signal?.aborted ? "MCHECK_EXECUTION_CANCELLED"
         : domain.code === "PROCESS_TIMEOUT" ? "MCHECK_ANALYZER_TIMEOUT"
           : domain.code === "CODEQL_CLI_NOT_FOUND" ? "MCHECK_ANALYZER_UNAVAILABLE"
+            : domain.code === "DATABASE_FINGERPRINT_MISMATCH" ? "MCHECK_TARGET_FINGERPRINT_MISMATCH"
+              : domain.code === "DATABASE_FINGERPRINT_UNAVAILABLE" ? "MCHECK_TARGET_FINGERPRINT_UNAVAILABLE"
             : "MCHECK_EXECUTION_FAILED";
-      const status: OperationStatus = code === "MCHECK_EXECUTION_CANCELLED" ? "cancelled" : code === "MCHECK_ANALYZER_UNAVAILABLE" ? "blocked" : "failed";
+      const status: OperationStatus = code === "MCHECK_EXECUTION_CANCELLED" ? "cancelled" : code === "MCHECK_ANALYZER_UNAVAILABLE" || code.startsWith("MCHECK_TARGET_FINGERPRINT_") ? "blocked" : "failed";
       return this.failed(runId, code, status, hypothesis, request, error);
     }
   }
 
-  private async commitFailure(runId: RunId, hypothesis: MissingCheckHypothesis, request: MissingCheckResearchToolInput, code: string, operationStatus: "blocked" | "failed", observation?: MissingCheckAnalyzerObservation): Promise<MissingCheckExecutionResult> {
+  private async commitFailure(runId: RunId, hypothesis: MissingCheckHypothesis, request: MissingCheckResearchToolInput, code: string, operationStatus: "blocked" | "failed", observation?: MissingCheckAnalyzerObservation, targetFingerprints?: { readonly vulnerable: string; readonly fixed?: string }): Promise<MissingCheckExecutionResult> {
     const result = compactMissingCheckResult({ runId, operationStatus, decision: { capability: "missing_check", outcome: "unknown" }, verificationLevel: "generated", observations: [{ code, evidence_ref: MISSING_CHECK_RESULT_ARTIFACT }], revisionHints: [], allowedNextActions: ["revise", "stop"], artifactRef: MISSING_CHECK_RESULT_ARTIFACT });
-    await this.writeCommitted(runId, result, hypothesis, request, observation);
+    await this.writeCommitted(runId, result, hypothesis, request, observation, targetFingerprints);
     await this.status.fail(runId, new DomainError("INVALID_STATE_TRANSITION", "state", code, false).toRecord());
     return result;
   }
@@ -152,10 +155,12 @@ export class MissingCheckResearchService {
     return result;
   }
 
-  private async writeCommitted(runId: RunId, result: MissingCheckExecutionResult, hypothesis: MissingCheckHypothesis, request: MissingCheckResearchToolInput, observation?: MissingCheckAnalyzerObservation): Promise<void> {
+  private async writeCommitted(runId: RunId, result: MissingCheckExecutionResult, hypothesis: MissingCheckHypothesis, request: MissingCheckResearchToolInput, observation?: MissingCheckAnalyzerObservation, targetFingerprints?: { readonly vulnerable: string; readonly fixed?: string }): Promise<void> {
     const artifact = JSON.stringify(parseSchema(MissingCheckRunArtifactSchema, {
       schema_version: CONTRACTS_VERSION, capability: "missing_check", hypothesis_version: MISSING_CHECK_HYPOTHESIS_VERSION, hypothesis,
-      target: request.target, mode: request.mode, ...(request.budget === undefined ? {} : { budget: request.budget }), ...(request.idempotency_key === undefined ? {} : { idempotency_key: request.idempotency_key }), analyzer: { analyzer_id: "codeql" },
+      target: request.target, mode: request.mode, ...(request.budget === undefined ? {} : { budget: request.budget }), ...(request.idempotency_key === undefined ? {} : { idempotency_key: request.idempotency_key }),
+      analyzer: observation?.analyzer ?? { analyzer_id: "codeql", available: false, evidence_kind: "real_analyzer" },
+      ...(targetFingerprints === undefined ? {} : { target_fingerprints: targetFingerprints }),
       ...(observation === undefined ? {} : { observation }), ...(observation === undefined ? {} : { decision_policy_version: MISSING_CHECK_DECISION_POLICY_VERSION }),
       operation_status: result.operation_status, decision: result.decision, verification_level: result.verification_level, observations: result.observations, revision_hints: result.revision_hints, allowed_next_actions: result.allowed_next_actions,
     }, "MissingCheck run artifact"));
@@ -202,3 +207,14 @@ function executionIssues(request: MissingCheckResearchToolInput): MissingCheckVa
 }
 function terminal(status: string): boolean { return status === "completed" || status === "failed" || status === "cancelled" || status === "budget_exhausted"; }
 function canonical(value: unknown): string { if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`; if (value !== null && typeof value === "object") { const record = value as Record<string, unknown>; return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonical(record[key])}`).join(",")}}`; } return JSON.stringify(value); }
+
+async function validateAndFingerprint(codeql: CodeqlPort, target: TargetRef, options: CodeqlOperationOptions): Promise<string> {
+  const manifest = await codeql.validateDatabase(target.path, options);
+  if (manifest.portableFingerprint === undefined) {
+    throw new DomainError("DATABASE_FINGERPRINT_UNAVAILABLE", "database", `Database fingerprint is unavailable for ${target.path}`, false, { path: target.path });
+  }
+  if (target.expected_fingerprint !== undefined && target.expected_fingerprint !== manifest.portableFingerprint) {
+    throw new DomainError("DATABASE_FINGERPRINT_MISMATCH", "database", `Database fingerprint differs for ${target.path}`, false, { path: target.path, expected: target.expected_fingerprint, observed: manifest.portableFingerprint });
+  }
+  return manifest.portableFingerprint;
+}

@@ -161,8 +161,8 @@ function unavailableFlowExecutionPort(): FlowExecutionPort {
 
 function unavailableMissingCheckExecutionPort(): MissingCheckExecutionPort {
   return {
-    async execute(): Promise<import("@autovul/contracts").MissingCheckAnalyzerObservation> {
-      return { schema_version: "autovul.missing-check/1", compile_accepted: "not_run", operation: { state: "not_run", locations: [] }, required_check: { state: "not_run", locations: [] }, relation: { state: "not_run", unchecked_witnesses: [], checked_witnesses: [] }, capability_gaps: [{ code: "MCHECK_CODEQL_ADAPTER_UNAVAILABLE", path: "/" }], evidence_refs: [], analyzer: { analyzer_id: "codeql", available: false } };
+    async execute(request): Promise<import("@autovul/contracts").MissingCheckAnalyzerObservation> {
+      return { schema_version: "autovul.missing-check/1", compile_accepted: "not_run", operation: { state: "not_run", locations: [] }, required_check: { state: "not_run", locations: [] }, relation: { state: "not_run", unchecked_witnesses: [], checked_witnesses: [] }, completeness: { vulnerable: { status: "not_run", scope: request.hypothesis.scope, limitations: [] } }, capability_gaps: [{ code: "MCHECK_CODEQL_ADAPTER_UNAVAILABLE", path: "/" }], evidence_refs: [], analyzer: { analyzer_id: "codeql", available: false, evidence_kind: "real_analyzer" } };
     },
   };
 }

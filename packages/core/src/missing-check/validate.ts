@@ -10,7 +10,8 @@ import {
 
 const SELECTOR_KINDS = ["direct_call"] as const;
 const RELATIONS = ["same_callback_cfg_dominates_operation"] as const;
-const SCOPE_KINDS = ["single_file_cfg"] as const;
+const SCOPE_KINDS = ["single_file_named_entry_cfg"] as const;
+const ENTRY_KINDS = ["named_function"] as const;
 
 /** Pure validation; it never creates a run or reads a target. */
 export function validateMissingCheckHypothesis(input: unknown): MissingCheckValidationResult {
@@ -50,8 +51,15 @@ function semanticIssues(input: unknown): MissingCheckValidationIssue[] {
     issues.push({ code: "MCHECK_RELATION_INVALID", path: "/required_relation", allowed_values: [...RELATIONS] });
   }
   const scope = record.scope;
-  if (scope !== null && typeof scope === "object" && !Array.isArray(scope) && (scope as Record<string, unknown>).kind !== "single_file_cfg") {
-    issues.push({ code: "MCHECK_SCOPE_KIND_INVALID", path: "/scope/kind", allowed_values: [...SCOPE_KINDS] });
+  if (scope !== null && typeof scope === "object" && !Array.isArray(scope)) {
+    const scopeRecord = scope as Record<string, unknown>;
+    if (scopeRecord.kind !== "single_file_named_entry_cfg") {
+      issues.push({ code: "MCHECK_SCOPE_KIND_INVALID", path: "/scope/kind", allowed_values: [...SCOPE_KINDS] });
+    }
+    const entry = scopeRecord.entry;
+    if (entry !== null && typeof entry === "object" && !Array.isArray(entry) && (entry as Record<string, unknown>).kind !== "named_function") {
+      issues.push({ code: "MCHECK_SCOPE_ENTRY_KIND_INVALID", path: "/scope/entry/kind", allowed_values: [...ENTRY_KINDS] });
+    }
   }
   return issues;
 }
@@ -62,6 +70,7 @@ function schemaIssue(path: string, message: string): MissingCheckValidationIssue
   if (path.endsWith("/kind")) return { code: "MCHECK_SELECTOR_KIND_INVALID", path, allowed_values: [...SELECTOR_KINDS] };
   if (path === "/required_relation") return { code: "MCHECK_RELATION_INVALID", path, allowed_values: [...RELATIONS] };
   if (path === "/scope/kind") return { code: "MCHECK_SCOPE_KIND_INVALID", path, allowed_values: [...SCOPE_KINDS] };
+  if (path === "/scope/entry/kind") return { code: "MCHECK_SCOPE_ENTRY_KIND_INVALID", path, allowed_values: [...ENTRY_KINDS] };
   if (lower.includes("required")) return { code: "MCHECK_FIELD_REQUIRED", path };
   return { code: "MCHECK_INVALID_INPUT", path };
 }

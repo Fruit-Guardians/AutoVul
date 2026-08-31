@@ -25,9 +25,15 @@ export type MissingCheckRelation = Static<typeof MissingCheckRelationSchema>;
 
 export const MissingCheckScopeSchema = Type.Object(
   {
-    kind: Type.Literal("single_file_cfg"),
+    kind: Type.Literal("single_file_named_entry_cfg"),
     file: Type.String({ minLength: 1, maxLength: 1_024 }),
-    entry: Type.String({ minLength: 1, maxLength: 512 }),
+    entry: Type.Object(
+      {
+        kind: Type.Literal("named_function"),
+        name: Type.String({ minLength: 1, maxLength: 160 }),
+      },
+      { additionalProperties: false },
+    ),
   },
   { additionalProperties: false },
 );
@@ -128,10 +134,36 @@ export const MissingCheckCapabilityGapSchema = Type.Object(
 export type MissingCheckCapabilityGap = Static<typeof MissingCheckCapabilityGapSchema>;
 
 export const MissingCheckAnalyzerProvenanceSchema = Type.Object(
-  { analyzer_id: Type.Literal("codeql"), available: Type.Boolean(), version: Type.Optional(Type.String({ minLength: 1 })) },
+  {
+    analyzer_id: Type.Literal("codeql"),
+    available: Type.Boolean(),
+    evidence_kind: Type.Union([Type.Literal("real_analyzer"), Type.Literal("test_double")]),
+    version: Type.Optional(Type.String({ minLength: 1 })),
+    adapter_version: Type.Optional(Type.String({ minLength: 1 })),
+  },
   { additionalProperties: false },
 );
 export type MissingCheckAnalyzerProvenance = Static<typeof MissingCheckAnalyzerProvenanceSchema>;
+
+export const MissingCheckCompletenessStatusSchema = Type.Union([
+  Type.Literal("complete"), Type.Literal("incomplete"), Type.Literal("not_run"),
+]);
+export type MissingCheckCompletenessStatus = Static<typeof MissingCheckCompletenessStatusSchema>;
+
+export const MissingCheckCompletenessBoundarySchema = Type.Object(
+  {
+    status: MissingCheckCompletenessStatusSchema,
+    scope: MissingCheckScopeSchema,
+    limitations: Type.Array(Type.Union([
+      Type.Literal("cross_file_aliases_excluded"),
+      Type.Literal("indirect_calls_excluded"),
+      Type.Literal("dynamic_dispatch_excluded"),
+      Type.Literal("helper_semantics_excluded"),
+    ]), { maxItems: 8, uniqueItems: true }),
+  },
+  { additionalProperties: false },
+);
+export type MissingCheckCompletenessBoundary = Static<typeof MissingCheckCompletenessBoundarySchema>;
 
 export const MissingCheckAnalyzerObservationSchema = Type.Object(
   {
@@ -141,6 +173,13 @@ export const MissingCheckAnalyzerObservationSchema = Type.Object(
     required_check: MissingCheckSubjectObservationSchema,
     relation: MissingCheckRelationObservationSchema,
     fixed_relation: Type.Optional(MissingCheckRelationObservationSchema),
+    completeness: Type.Object(
+      {
+        vulnerable: MissingCheckCompletenessBoundarySchema,
+        fixed: Type.Optional(MissingCheckCompletenessBoundarySchema),
+      },
+      { additionalProperties: false },
+    ),
     capability_gaps: Type.Array(MissingCheckCapabilityGapSchema, { maxItems: 16 }),
     evidence_refs: Type.Array(Type.String({ minLength: 1 }), { maxItems: 32 }),
     analyzer: MissingCheckAnalyzerProvenanceSchema,
@@ -213,7 +252,14 @@ export const MissingCheckRunArtifactSchema = Type.Object(
     hypothesis_version: Type.Literal(MISSING_CHECK_HYPOTHESIS_VERSION), hypothesis: MissingCheckHypothesisSchema,
     target: Type.Object({ vulnerable: TargetRefSchema, fixed: Type.Optional(TargetRefSchema) }, { additionalProperties: false }),
     mode: EvidenceOperationModeSchema, budget: Type.Optional(OperationBudgetSchema),
-    idempotency_key: Type.Optional(Type.String({ minLength: 1 })), analyzer: Type.Object({ analyzer_id: Type.Literal("codeql") }, { additionalProperties: false }),
+    idempotency_key: Type.Optional(Type.String({ minLength: 1 })), analyzer: MissingCheckAnalyzerProvenanceSchema,
+    target_fingerprints: Type.Optional(Type.Object(
+      {
+        vulnerable: Type.String({ pattern: "^[a-f0-9]{16}$" }),
+        fixed: Type.Optional(Type.String({ pattern: "^[a-f0-9]{16}$" })),
+      },
+      { additionalProperties: false },
+    )),
     observation: Type.Optional(MissingCheckAnalyzerObservationSchema), decision_policy_version: Type.Optional(Type.String({ minLength: 1 })),
     operation_status: OperationStatusSchema, decision: MissingCheckDecisionSchema, verification_level: VerificationLevelSchema,
     observations: Type.Array(MissingCheckCompactObservationSchema, { maxItems: 16 }), revision_hints: Type.Array(MissingCheckRevisionHintSchema, { maxItems: 8 }),

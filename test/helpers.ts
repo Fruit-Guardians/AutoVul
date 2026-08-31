@@ -181,6 +181,8 @@ export class FakeCodeqlPort implements CodeqlPort {
     isDirectory: true,
     valid: true,
     language: "python",
+    fingerprint: "0123456789abcdef",
+    portableFingerprint: "0123456789abcdef",
     checkedAt: "2026-08-23T00:00:00.000Z",
     diagnostics: [],
   };

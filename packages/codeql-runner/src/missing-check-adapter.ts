@@ -8,6 +8,13 @@ import { sanitizeOutput } from "./output.js";
 import { summarizeSarif } from "./query-runner.js";
 
 const MAX_OUTPUT = 256 * 1024;
+const ADAPTER_VERSION = "autovul.codeql-missing-check/1";
+const COMPLETENESS_LIMITATIONS = [
+  "cross_file_aliases_excluded",
+  "indirect_calls_excluded",
+  "dynamic_dispatch_excluded",
+  "helper_semantics_excluded",
+] as const;
 
 /** The one frozen CodeQL JavaScript adapter for MissingCheck v1. */
 export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
@@ -26,7 +33,12 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
   async execute(request: MissingCheckExecutionRequest, options: CodeqlOperationOptions): Promise<MissingCheckAnalyzerObservation> {
     const root = join(request.artifactRoot, "missing-check", request.hypothesis.hypothesis_id);
     await this.filesystem.ensureDirectory(root);
-    const query = renderQuery(request.hypothesis.operation.name, request.hypothesis.required_check.name, request.hypothesis.scope.file);
+    const query = renderQuery(
+      request.hypothesis.operation.name,
+      request.hypothesis.required_check.name,
+      request.hypothesis.scope.file,
+      request.hypothesis.scope.entry.name,
+    );
     await this.filesystem.writeTextAtomic(join(root, "unchecked.ql"), query.unchecked);
     await this.filesystem.writeTextAtomic(join(root, "checked.ql"), query.checked);
     await this.filesystem.writeTextAtomic(join(root, "operations.ql"), query.operations);
@@ -36,19 +48,24 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
     const cliVersion = successful(version) ? firstLine(version.stdout || version.stderr) : undefined;
     const compile = await this.run(["query", "compile", "--check-only", "--format=json", join(root, "unchecked.ql"), "--threads=1"], root, options);
     if (!successful(compile)) throw processFailure(compile, "compile");
-    const vulnerable = await this.observeSide(root, request.target.vulnerable.path, "vulnerable", options);
+    const vulnerable = await this.observeSide(root, request.hypothesis.hypothesis_id, request.target.vulnerable.path, "vulnerable", options);
     const fixed = request.mode === "differential" && request.target.fixed !== undefined
-      ? await this.observeSide(root, request.target.fixed.path, "fixed", options)
+      ? await this.observeSide(root, request.hypothesis.hypothesis_id, request.target.fixed.path, "fixed", options)
       : undefined;
     return {
       schema_version: "autovul.missing-check/1", compile_accepted: true,
       operation: vulnerable.operations, required_check: vulnerable.checks, relation: vulnerable.relation,
       ...(fixed === undefined ? {} : { fixed_relation: fixed.relation }), capability_gaps: [],
-      evidence_refs: [...vulnerable.evidenceRefs], analyzer: { analyzer_id: "codeql", available: true, ...(cliVersion === undefined ? {} : { version: cliVersion }) },
+      completeness: {
+        vulnerable: { status: "complete", scope: request.hypothesis.scope, limitations: [...COMPLETENESS_LIMITATIONS] },
+        ...(fixed === undefined ? {} : { fixed: { status: "complete", scope: request.hypothesis.scope, limitations: [...COMPLETENESS_LIMITATIONS] } }),
+      },
+      evidence_refs: [...vulnerable.evidenceRefs, ...(fixed?.evidenceRefs ?? [])],
+      analyzer: { analyzer_id: "codeql", available: true, evidence_kind: "real_analyzer", adapter_version: ADAPTER_VERSION, ...(cliVersion === undefined ? {} : { version: cliVersion }) },
     };
   }
 
-  private async observeSide(root: string, database: string, side: "vulnerable" | "fixed", options: CodeqlOperationOptions): Promise<Side> {
+  private async observeSide(root: string, hypothesisId: string, database: string, side: "vulnerable" | "fixed", options: CodeqlOperationOptions): Promise<Side> {
     // CodeQL writes query-result state beneath the database. Keep these
     // observations serial so independent selectors cannot race that state.
     const operations = await this.analyze(root, database, side, "operations", options);
@@ -56,8 +73,9 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
     const unchecked = await this.analyze(root, database, side, "unchecked", options);
     const checked = await this.analyze(root, database, side, "checked", options);
     const operation = subject(operations); const check = subject(checks);
-    const uncheckedWitnesses = witnesses(unchecked, `${side}/unchecked.sarif`);
-    const checkedWitnesses = witnesses(checked, `${side}/checked.sarif`);
+    const evidencePrefix = `missing-check/${hypothesisId}/${side}`;
+    const uncheckedWitnesses = witnesses(unchecked, `${evidencePrefix}/unchecked.sarif`);
+    const checkedWitnesses = witnesses(checked, `${evidencePrefix}/checked.sarif`);
     const relation = unchecked.ok && uncheckedWitnesses.length > 0
       ? { state: "unchecked_witness" as const, unchecked_witnesses: uncheckedWitnesses, checked_witnesses: [] }
       : checked.ok && checkedWitnesses.length > 0 && operations.ok
@@ -65,7 +83,7 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
         : unchecked.ok && checked.ok && operations.ok
           ? { state: "inconclusive" as const, unchecked_witnesses: [], checked_witnesses: [] }
           : { state: "not_run" as const, unchecked_witnesses: [], checked_witnesses: [] };
-    return { operations: operation, checks: check, relation, evidenceRefs: [`missing-check/${side}/operations.sarif`, `missing-check/${side}/checks.sarif`, `missing-check/${side}/unchecked.sarif`, `missing-check/${side}/checked.sarif`] };
+    return { operations: operation, checks: check, relation, evidenceRefs: [`${evidencePrefix}/operations.sarif`, `${evidencePrefix}/checks.sarif`, `${evidencePrefix}/unchecked.sarif`, `${evidencePrefix}/checked.sarif`] };
   }
 
   private async analyze(root: string, database: string, side: "vulnerable" | "fixed", kind: "operations" | "checks" | "unchecked" | "checked", options: CodeqlOperationOptions): Promise<Analysis> {
@@ -99,9 +117,9 @@ function processFailure(result: ProcessResult, stage: string): DomainError {
   return new DomainError("PROCESS_CRASHED", "process", `MissingCheck CodeQL ${stage} failed`, true);
 }
 
-function renderQuery(operation: string, check: string, file: string): Record<"unchecked" | "checked" | "operations" | "checks", string> {
-  const op = JSON.stringify(operation); const guard = JSON.stringify(check); const sourceFile = JSON.stringify(file);
-  const header = "/**\n * @name AutoVul MissingCheck v1 observation\n * @id autovul/missing-check/observation\n * @kind problem\n * @problem.severity warning\n */\nimport javascript\n\npredicate inScope(CallExpr call) { call.getLocation().getFile().getRelativePath() = " + sourceFile + " }\npredicate isOperation(CallExpr call) { inScope(call) and call.getCallee().(VarAccess).getName() = " + op + " }\npredicate isCheck(CallExpr call) { inScope(call) and call.getCallee().(VarAccess).getName() = " + guard + " }\npredicate dominates(CallExpr check, CallExpr operation) { check.getEnclosingFunction() = operation.getEnclosingFunction() and check.getBasicBlock().(ReachableBasicBlock).dominates(operation.getBasicBlock()) }\n";
+function renderQuery(operation: string, check: string, file: string, entry: string): Record<"unchecked" | "checked" | "operations" | "checks", string> {
+  const op = JSON.stringify(operation); const guard = JSON.stringify(check); const sourceFile = JSON.stringify(file); const entryName = JSON.stringify(entry);
+  const header = "/**\n * @name AutoVul MissingCheck v1 observation\n * @id autovul/missing-check/observation\n * @kind problem\n * @problem.severity warning\n */\nimport javascript\n\npredicate inScope(CallExpr call) {\n  call.getLocation().getFile().getRelativePath() = " + sourceFile + " and\n  exists(Function entry |\n    entry.getName() = " + entryName + " and\n    entry.getLocation().getFile() = call.getLocation().getFile() and\n    entry.getLocation().getStartLine() <= call.getLocation().getStartLine() and\n    call.getLocation().getEndLine() <= entry.getLocation().getEndLine()\n  )\n}\npredicate isOperation(CallExpr call) { inScope(call) and call.getCallee().(VarAccess).getName() = " + op + " }\npredicate isCheck(CallExpr call) { inScope(call) and call.getCallee().(VarAccess).getName() = " + guard + " }\npredicate dominates(CallExpr check, CallExpr operation) { check.getEnclosingFunction() = operation.getEnclosingFunction() and check.getBasicBlock().(ReachableBasicBlock).dominates(operation.getBasicBlock()) }\n";
   return {
     operations: `${header}\nfrom CallExpr operation where isOperation(operation) select operation, "protected operation"\n`,
     checks: `${header}\nfrom CallExpr check where isCheck(check) select check, "required check"\n`,

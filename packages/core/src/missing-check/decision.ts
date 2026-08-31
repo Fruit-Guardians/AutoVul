@@ -4,6 +4,7 @@ import type {
   MissingCheckCompactObservation,
   MissingCheckDecision,
   MissingCheckRevisionHint,
+  MissingCheckScope,
   VerificationLevel,
 } from "@autovul/contracts";
 
@@ -16,12 +17,13 @@ export interface MissingCheckDecisionProjection {
 }
 
 /** Core is the sole interpreter of check/operation observations. */
-export function decideMissingCheck(observation: MissingCheckAnalyzerObservation, mode: EvidenceOperationMode): MissingCheckDecisionProjection {
+export function decideMissingCheck(observation: MissingCheckAnalyzerObservation, mode: EvidenceOperationMode, declaredScope: MissingCheckScope): MissingCheckDecisionProjection {
   const observations: MissingCheckCompactObservation[] = [];
   const hints: MissingCheckRevisionHint[] = [];
   subject(observations, hints, "OPERATION", "/operation", observation.operation, "revise_operation");
   subject(observations, hints, "CHECK", "/required_check", observation.required_check, "revise_check");
-  observations.push({ code: relationCode(observation.relation.state), path: "/required_relation", ...(observation.evidence_refs[0] === undefined ? {} : { evidence_ref: observation.evidence_refs[0] }) });
+  const vulnerableEvidenceRef = relationEvidence(observation.relation, observation.evidence_refs);
+  observations.push({ code: relationCode(observation.relation.state), path: "/required_relation", ...(vulnerableEvidenceRef === undefined ? {} : { evidence_ref: vulnerableEvidenceRef }) });
   if (observation.capability_gaps.length > 0) {
     for (const gap of observation.capability_gaps) {
       observations.push({ code: "MCHECK_CAPABILITY_MISMATCH", path: gap.path });
@@ -34,24 +36,61 @@ export function decideMissingCheck(observation: MissingCheckAnalyzerObservation,
     observations.push({ code: observation.compile_accepted === false ? "MCHECK_COMPILE_REJECTED" : "MCHECK_COMPILE_NOT_RUN" });
     return result({ capability: "missing_check", outcome: "unknown" }, "generated", observations, hints, ["revise", "stop"]);
   }
-  const outcome = outcomeFor(observation.relation);
+  const vulnerableCompleteness = completenessIssue(observation.completeness.vulnerable, declaredScope, "/scope");
+  if (vulnerableCompleteness !== undefined) {
+    observations.push({ code: vulnerableCompleteness.code, path: "/scope" });
+    hints.push({ action: "revise_scope", path: "/scope", reason_code: vulnerableCompleteness.code });
+    return result({ capability: "missing_check", outcome: "unknown" }, observation.analyzer.evidence_kind === "test_double" ? "generated" : "compiled", observations, hints, ["revise", "stop"]);
+  }
+  const outcome = outcomeFor(observation.relation, observation.evidence_refs);
+  if (observation.relation.state !== "inconclusive" && observation.relation.state !== "not_run" && outcome === "unknown") {
+    observations.push({ code: "MCHECK_EVIDENCE_REF_INVALID", path: "/required_relation" });
+    hints.push({ action: "revise_relation", path: "/required_relation", reason_code: "MCHECK_EVIDENCE_REF_INVALID" });
+  }
   let decision: MissingCheckDecision = { capability: "missing_check", outcome };
   let verificationLevel: VerificationLevel = "compiled";
   if (outcome === "check_missing") verificationLevel = "reproduced";
   if (mode === "differential") {
-    const fixedOutcome = observation.fixed_relation === undefined ? "unknown" : outcomeFor(observation.fixed_relation);
-    const fixedPolicySatisfied = fixedOutcome === "check_present";
+    const fixedCompleteness = observation.completeness.fixed === undefined
+      ? { code: "MCHECK_FIXED_COMPLETENESS_NOT_RUN" }
+      : completenessIssue(observation.completeness.fixed, declaredScope, "/scope");
+    const fixedOutcome = fixedCompleteness !== undefined || observation.fixed_relation === undefined
+      ? "unknown"
+      : outcomeFor(observation.fixed_relation, observation.evidence_refs);
+    const fixedPolicySatisfied = fixedCompleteness === undefined && fixedOutcome === "check_present";
+    if (fixedCompleteness !== undefined) observations.push({ code: fixedCompleteness.code, path: "/scope" });
+    if (observation.fixed_relation !== undefined) {
+      const fixedEvidenceRef = relationEvidence(observation.fixed_relation, observation.evidence_refs);
+      observations.push({ code: `MCHECK_FIXED_${relationCode(observation.fixed_relation.state).slice("MCHECK_".length)}`, path: "/required_relation", ...(fixedEvidenceRef === undefined ? {} : { evidence_ref: fixedEvidenceRef }) });
+    }
     decision = { ...decision, fixed_outcome: fixedOutcome, fixed_policy_satisfied: fixedPolicySatisfied };
     if (verificationLevel === "reproduced" && fixedPolicySatisfied) verificationLevel = "differential";
   }
+  if (observation.analyzer.evidence_kind === "test_double") verificationLevel = "generated";
   const actions = outcome === "check_missing" ? ["replay", "stop"] as const : ["revise", "execute", "stop"] as const;
   return result(decision, verificationLevel, observations, hints, actions);
 }
 
-function outcomeFor(relation: MissingCheckAnalyzerObservation["relation"]): MissingCheckDecision["outcome"] {
-  if (relation.state === "unchecked_witness" && relation.unchecked_witnesses.length > 0) return "check_missing";
-  if (relation.state === "checked_witness" && relation.checked_witnesses.length > 0) return "check_present";
+function outcomeFor(relation: MissingCheckAnalyzerObservation["relation"], evidenceRefs: readonly string[]): MissingCheckDecision["outcome"] {
+  if (relation.state === "unchecked_witness" && relation.unchecked_witnesses.some((witness) => evidenceRefs.includes(witness.evidence_ref))) return "check_missing";
+  if (relation.state === "checked_witness" && relation.checked_witnesses.some((witness) => evidenceRefs.includes(witness.evidence_ref))) return "check_present";
   return "unknown";
+}
+
+function relationEvidence(relation: MissingCheckAnalyzerObservation["relation"], evidenceRefs: readonly string[]): string | undefined {
+  const witnesses = relation.state === "unchecked_witness" ? relation.unchecked_witnesses : relation.state === "checked_witness" ? relation.checked_witnesses : [];
+  return witnesses.find((witness) => evidenceRefs.includes(witness.evidence_ref))?.evidence_ref;
+}
+
+function completenessIssue(
+  completeness: MissingCheckAnalyzerObservation["completeness"]["vulnerable"],
+  declaredScope: MissingCheckScope,
+  _path: "/scope",
+): { readonly code: string } | undefined {
+  if (completeness.status === "not_run") return { code: "MCHECK_COMPLETENESS_NOT_RUN" };
+  if (completeness.status === "incomplete") return { code: "MCHECK_COMPLETENESS_INCOMPLETE" };
+  if (JSON.stringify(completeness.scope) !== JSON.stringify(declaredScope)) return { code: "MCHECK_COMPLETENESS_SCOPE_MISMATCH" };
+  return undefined;
 }
 
 function subject(

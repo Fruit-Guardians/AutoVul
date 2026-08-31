@@ -71,6 +71,7 @@ export const DatabaseManifestSchema = Type.Object({
   language: Type.Optional(Type.String({ minLength: 1 })),
   codeqlVersion: Type.Optional(Type.String({ minLength: 1 })),
   fingerprint: Type.Optional(Type.String({ pattern: "^[a-f0-9]{16}$" })),
+  portableFingerprint: Type.Optional(Type.String({ pattern: "^[a-f0-9]{16}$" })),
   checkedAt: Type.String({ minLength: 1 }),
   diagnostics: Type.Array(CodeqlDiagnosticSchema),
 });

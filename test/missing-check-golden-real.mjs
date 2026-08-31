@@ -1,12 +1,12 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createLocalApplication } from "@autovul/codeql-runner";
 
-const repository = process.env.MCHECK_OPENCLAW_REPOSITORY ?? "https://github.com/openclaw/openclaw.git";
 const codeql = process.env.CODEQL_PATH ?? "codeql";
 const vulnerableCommit = "75b4c059b8405dfbd50884b773346a9946fabd20";
 const fixedCommit = "80b1fa17bfc3f6a668492f0326ea52f48bb89776";
@@ -28,10 +28,8 @@ if (replayRoot !== undefined) {
   let failed = false;
   let report = {};
   try {
-    const checkout = join(root, "openclaw.git");
-    await command("git", ["clone", "--filter=blob:none", "--no-checkout", repository, checkout], root);
-    await stageFile(checkout, vulnerableCommit, join(root, "vulnerable-source"));
-    await stageFile(checkout, fixedCommit, join(root, "fixed-source"));
+    await stageFile(vulnerableCommit, process.env.MCHECK_VULNERABLE_SOURCE, join(root, "vulnerable-source"));
+    await stageFile(fixedCommit, process.env.MCHECK_FIXED_SOURCE, join(root, "fixed-source"));
     const vulnerableDb = join(root, "vulnerable-db");
     const fixedDb = join(root, "fixed-db");
     await createDatabase(vulnerableDb, join(root, "vulnerable-source"));
@@ -43,7 +41,8 @@ if (replayRoot !== undefined) {
       const wrongOperation = await app.research(request({ vulnerableDb, mode: "reproduce", key: "openclaw-wrong-operation", operation: "doesNotExist" }), { timeoutMs: 300_000 });
       const replay = "run_id" in execute ? await replayInFreshProcess(root, execute.run_id) : { failed: true };
       const passed = isDifferential(execute) && isCheckedSafe(checkedSafe) && isWrongOperation(wrongOperation) && replay.operation_status === "completed" && replay.verification_level === "differential";
-      report = { schema_version: "autovul.missing-check.golden.real/1", case_id: "openclaw-cve-2026-43572", passed, execute: compact(execute), checked_safe: compact(checkedSafe), wrong_operation: compact(wrongOperation), replay };
+      const portableEvidence = "run_id" in execute ? await buildPortableEvidence(root, execute.run_id, replay) : undefined;
+      report = { schema_version: "autovul.missing-check.golden.real/1", case_id: "openclaw-cve-2026-43572", passed, execute: compact(execute), checked_safe: compact(checkedSafe), wrong_operation: compact(wrongOperation), replay, ...(portableEvidence === undefined ? {} : { portable_evidence: portableEvidence }) };
       failed = !passed;
     } finally {
       await app.close();
@@ -52,14 +51,19 @@ if (replayRoot !== undefined) {
     failed = true;
     report = { schema_version: "autovul.missing-check.golden.real/1", passed: false, error: error instanceof Error ? error.message : String(error) };
   } finally {
-    process.stdout.write(`${JSON.stringify(report)}\n`);
+    const serialized = `${JSON.stringify(report, null, process.env.MCHECK_REPORT_PATH === undefined ? 0 : 2)}\n`;
+    process.stdout.write(serialized);
+    if (process.env.MCHECK_REPORT_PATH !== undefined) {
+      await mkdir(dirname(resolve(process.env.MCHECK_REPORT_PATH)), { recursive: true });
+      await writeFile(resolve(process.env.MCHECK_REPORT_PATH), serialized, "utf8");
+    }
     if (process.env.MCHECK_KEEP_ARTIFACTS !== "true") await rm(root, { recursive: true, force: true });
   }
   if (failed) process.exitCode = 1;
 }
 
 function hypothesis(operation = "handleSigninTokenExchangeInvoke") {
-  return { schema_version: "autovul.missing-check/1", hypothesis_id: "mcheck-openclaw", language: "javascript", operation: { kind: "direct_call", name: operation }, required_check: { kind: "direct_call", name: "isSigninInvokeAuthorized" }, required_relation: "same_callback_cfg_dominates_operation", scope: { kind: "single_file_cfg", file: sourceFile, entry: "registerMSTeamsHandlers callback" } };
+  return { schema_version: "autovul.missing-check/1", hypothesis_id: "mcheck-openclaw", language: "javascript", operation: { kind: "direct_call", name: operation }, required_check: { kind: "direct_call", name: "isSigninInvokeAuthorized" }, required_relation: "same_callback_cfg_dominates_operation", scope: { kind: "single_file_named_entry_cfg", file: sourceFile, entry: { kind: "named_function", name: "registerMSTeamsHandlers" } } };
 }
 
 function request({ vulnerableDb, fixedDb, mode = "differential", key = "openclaw-cve-2026-43572", operation }) {
@@ -71,11 +75,20 @@ function isCheckedSafe(result) { return result.valid === undefined && result.ope
 function isWrongOperation(result) { return result.valid === undefined && result.decision?.outcome === "unknown" && result.observations?.some((item) => item.code === "MCHECK_OPERATION_NOT_FOUND") && result.revision_hints?.some((item) => item.action === "revise_operation"); }
 function compact(result) { return result.valid === false ? { valid: false, issues: result.issues } : { operation_status: result.operation_status, capability: result.capability, decision: result.decision, verification_level: result.verification_level, observations: result.observations?.map((item) => item.code), revision_hints: result.revision_hints }; }
 
-async function stageFile(repositoryPath, commit, sourceRoot) {
-  const source = await command("git", ["show", `${commit}:${sourceFile}`], repositoryPath, true);
+async function stageFile(commit, localSource, sourceRoot) {
+  const source = localSource === undefined
+    ? await fetchSource(commit)
+    : await readFile(resolve(localSource), "utf8");
   const destination = join(sourceRoot, sourceFile);
   await mkdir(dirname(destination), { recursive: true });
   await writeFile(destination, source, "utf8");
+}
+
+async function fetchSource(commit) {
+  const url = `https://raw.githubusercontent.com/openclaw/openclaw/${commit}/${sourceFile}`;
+  const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+  if (!response.ok) throw new Error(`source fetch failed (${response.status}) for ${commit}`);
+  return response.text();
 }
 
 async function createDatabase(database, sourceRoot) {
@@ -86,6 +99,47 @@ async function createDatabase(database, sourceRoot) {
 async function replayInFreshProcess(root, runId) {
   const output = await command(process.execPath, [scriptPath, "--replay", root, runId], root, true);
   return JSON.parse(output.trim());
+}
+
+async function buildPortableEvidence(root, runId, replay) {
+  const runRoot = join(root, "runs", runId);
+  const artifact = JSON.parse(await readFile(join(runRoot, "research/missing-check/result.json"), "utf8"));
+  const evidence = [];
+  for (const ref of artifact.observation?.evidence_refs ?? []) {
+    evidence.push({ ref, sha256: await sha256File(join(runRoot, ref)) });
+  }
+  const queries = [];
+  for (const name of ["operations.ql", "checks.ql", "unchecked.ql", "checked.ql"]) {
+    const ref = `missing-check/${artifact.hypothesis.hypothesis_id}/${name}`;
+    queries.push({ ref, sha256: await sha256File(join(runRoot, ref)) });
+  }
+  return {
+    schema_version: "autovul.missing-check.portable-evidence/1",
+    inputs: {
+      vulnerable: { commit: vulnerableCommit, source_file: sourceFile, source_sha256: await sha256File(join(root, "vulnerable-source", sourceFile)) },
+      fixed: { commit: fixedCommit, source_file: sourceFile, source_sha256: await sha256File(join(root, "fixed-source", sourceFile)) },
+    },
+    hypothesis: artifact.hypothesis,
+    target_fingerprints: artifact.target_fingerprints,
+    analyzer: artifact.analyzer,
+    decision_policy_version: artifact.decision_policy_version,
+    observation: {
+      compile_accepted: artifact.observation?.compile_accepted,
+      relation: artifact.observation?.relation,
+      fixed_relation: artifact.observation?.fixed_relation,
+      completeness: artifact.observation?.completeness,
+    },
+    decision: artifact.decision,
+    verification_level: artifact.verification_level,
+    queries,
+    evidence,
+    replay,
+    external_dependencies: ["CodeQL CLI and JavaScript packs matching analyzer provenance", "the two immutable source snapshots identified by commit and SHA-256"],
+  };
+}
+
+async function sha256File(path) {
+  return createHash("sha256").update(await readFile(path)).digest("hex");
 }
 
 function command(executable, args, cwd, capture = false) {
