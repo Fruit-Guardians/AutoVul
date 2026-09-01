@@ -32,6 +32,7 @@ export { ResearchRunService, type RunManagementResult } from "./research-run.js"
 export { RunCancellationService } from "./run-cancellation.js";
 export type { FlowExecutionPort, FlowExecutionRequest } from "./flow/port.js";
 export type { MissingCheckExecutionPort, MissingCheckExecutionRequest } from "./missing-check/port.js";
+export type { TypestateExecutionPort, TypestateExecutionRequest } from "./typestate/port.js";
 export type {
   ArtifactBundleFile,
   ArtifactStorePort,

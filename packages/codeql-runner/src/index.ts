@@ -4,6 +4,7 @@ export { CodeqlRunner, type CodeqlRunnerOptions } from "./codeql-runner.js";
 export { CodeqlQueryRunner, type QueryRunnerOptions, summarizeSarif } from "./query-runner.js";
 export { CodeqlFlowAdapter } from "./flow-adapter.js";
 export { CodeqlMissingCheckAdapter } from "./missing-check-adapter.js";
+export { CodeqlTypestateAdapter, CODEQL_TYPESTATE_ADAPTER_VERSION } from "./typestate-adapter.js";
 export { NodeFileSystemPort, makeTemporaryRoot } from "./node-filesystem.js";
 export { NodeProcessPort } from "./node-process.js";
 export { limitOutput, sanitizeOutput } from "./output.js";
