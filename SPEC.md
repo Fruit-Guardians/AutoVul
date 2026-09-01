@@ -1,8 +1,8 @@
 # AutoVul V2 Product Specification
 
 - Status: Accepted baseline
-- Version: 1.5
-- Last updated: 2026-09-01
+- Version: 1.6
+- Last updated: 2026-09-02
 
 ## 1. Purpose
 
@@ -48,10 +48,17 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 
 - `REQ-ARCH-010`: A Research Capability MUST independently own its versioned Hypothesis Schema, Observation Schema, Decision Policy, diagnostic codes, Analyzer Port and success predicates. The shared runtime MUST NOT interpret Capability domain fields.
 - `REQ-ARCH-011`: Capabilities MUST share deterministic run identity, idempotency, budget, timeout, cancellation, locks, recovery, artifacts, evidence references and replay. They MUST NOT share a universal Hypothesis IR, a large optional-field bag, or domain success predicates.
-- `REQ-ARCH-012`: Before a second real Capability is accepted, composition MUST use explicit static Flow branches. The project MUST NOT introduce a Capability registry, dynamic loader, port factory, generic Capability base class or placeholder module.
+- `REQ-ARCH-012`: Capability composition MUST use explicit static Flow, MissingCheck and Typestate branches. The project MUST NOT introduce a Capability registry, dynamic loader, port factory, generic Capability base class or placeholder module.
 - `REQ-ARCH-013`: Model content MUST remain a Hypothesis until a Capability validator accepts it. Analyzer adapters MUST return observations and capability gaps only; Core is the sole writer of the model-visible `decision` and `verification_level`.
 - `REQ-ARCH-014`: Core MAY return structured, field-level revision hints. It MUST NOT generate a replacement Hypothesis, retain a host research plan, invoke a model or start an autonomous retry or revision loop.
 - `REQ-ARCH-015`: A later Capability MUST have a real case Flow cannot honestly express, independent contracts and predicates, actionable diagnostics, fake-adapter failure coverage, a real-tool gate, a counter-example strategy and independently replayable artifacts before it is added or claimed as supported.
+
+### 3.2 Analyzer service boundary
+
+- `REQ-ARCH-020`: A deterministic Analyzer Service MUST be distinct from a Research Capability. It MAY return versioned, replayable tool observations, but MUST NOT define a Hypothesis, Decision Policy, capability decision, revision policy, or verification level.
+- `REQ-ARCH-021`: Delta is classified as an `analyzer_service`, not a fourth Research Capability. Its bounded code-change observations MUST NOT interpret vulnerability meaning, select a Capability, or decide whether a target pair is differential.
+- `REQ-ARCH-022`: Vulnerable/fixed comparison remains the owning Capability's shared `differential` evidence mode and Capability-specific fixed-side policy. An Analyzer Service MUST NOT emit `vulnerable`, `fixed`, `reproduced`, or `differential` conclusions.
+- `REQ-ARCH-023`: A later Analyzer Service MUST use an explicitly specified static Application and replay route under the existing two aggregate host entries. It MUST NOT add a third model-facing tool, a `capability: delta` literal, an Analyzer registry, or a universal observation/comparison framework.
 
 ## 4. Workflow and contract requirements
 
@@ -66,6 +73,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-WORKFLOW-009`: A compact capability result MUST separately report `operation_status`, a Capability-discriminated `decision`, `verification_level`, bounded observations, revision hints, allowed next actions and an artifact reference. These dimensions MUST NOT be collapsed into one status.
 - `REQ-WORKFLOW-010`: `Application.close()` MUST atomically stop admission, compose application shutdown with caller cancellation, cancel all live in-process operations, and wait for admitted work and owned resources to settle.
 - `REQ-WORKFLOW-011`: Application shutdown MUST be idempotent. Calls admitted after shutdown begins MUST fail with a structured state error and MUST NOT invoke an Analyzer or mutate persisted evidence.
+- `REQ-WORKFLOW-012`: An Analyzer Service request MUST remain a service-discriminated request, separate from the Capability request's `capability`, `hypothesis_version`, `hypothesis`, `decision`, and `verification_level` fields. Its execution, cancellation, status and replay MAY reuse the shared runtime only for lifecycle and artifact mechanics.
 
 ## 5. CodeQL verification requirements
 
@@ -130,6 +138,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-EVIDENCE-003`: Mocks, fake runners, diagnostic wrappers and copied reference queries MUST NOT be presented as real vulnerability evidence.
 - `REQ-EVIDENCE-004`: Negative results and failures MUST retain their stage, structured diagnostic, retryability and relevant reproducible inputs.
 - `REQ-EVIDENCE-005`: Claims in UI, reports and documentation MUST NOT exceed the recorded verification level.
+- `REQ-EVIDENCE-006`: Analyzer Service observations are deterministic tool facts, not vulnerability evidence levels. They MAY support a host or owning Capability's later action, but MUST NOT independently raise `generated`, `compiled`, `reproduced`, `differential`, or `variant_validated`.
 
 ## 7. Artifact and replay requirements
 
@@ -168,7 +177,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-COMPAT-002`: Current accepted platform behavior is the tested POSIX/macOS path. Windows support MUST NOT be claimed until process-tree cleanup, paths and CI gates are implemented and verified.
 - `REQ-COMPAT-003`: Current database operations are inspection and validation. Automatic database creation or execution of target build scripts MUST NOT be claimed as implemented.
 - `REQ-COMPAT-004`: The Python V1 runtime is outside this isolated TypeScript workspace and MUST NOT be silently imported as a V2 dependency.
-- `REQ-COMPAT-005`: Flow v1, MissingCheck v1, and Typestate v1 are the currently verified Research Capabilities. Delta and Variant remain unsupported until their own accepted implementation and real-evidence gates pass.
+- `REQ-COMPAT-005`: Flow v1, MissingCheck v1, and Typestate v1 are the currently verified Research Capabilities. Delta is archived as the `analyzer_service` classification and has no implemented or supported public service until its own accepted implementation and real-evidence gates pass; it is not a Capability. Variant remains Draft and unsupported pending its independent classification evidence.
 
 ## 11. Baseline acceptance gates
 

@@ -1,11 +1,11 @@
 # Change: Classify Delta Research Role
 
 - Change ID: `classify-delta-research-role`
-- Status: Accepted
+- Status: Archived
 - Owner: AutoVul maintainers
 - Created: 2026-08-29
-- Updated: 2026-08-31
-- Classification gate: `analyzer_service` explicitly accepted; production implementation remains unauthorized
+- Updated: 2026-09-02
+- Classification gate: `analyzer_service` verified and archived; production implementation is governed only by `add-change-observation-analyzer-v1`
 - Depends on: `establish-research-capability-architecture`
 
 ## Problem
@@ -242,18 +242,22 @@ This classification change has no public compatibility impact. Any selected impl
 | 2026-08-30 | Use kohya_ss D-003 as the second verified patch-observation case | Its immutable raw patch records a bounded `shell=True` argument removal while leaving Flow’s security predicate with Flow. |
 | 2026-08-30 | Recommend `analyzer_service` as Delta’s primary role | D-002/D-003 provide bounded reusable change facts, while D-001 remains owning-Capability `differential`; no independent Delta predicate exists. |
 | 2026-08-31 | Accept `analyzer_service` as Delta’s primary role without authorizing implementation | The user explicitly accepted the evidence-backed classification and retained the requirement for a separate implementation SPEC. |
+| 2026-09-02 | Verify and archive the Delta classification | The completed immutable case corpus satisfies the classification requirements; root `SPEC.md` v1.6 records Delta as an Analyzer Service boundary, not a Capability support claim. |
 
 ## Delivery gate
 
-Accepted status records the classification decision only. It does not authorize public Schemas, production modules, capability literals, tools, or support claims.
-
-After the case corpus and classification evidence are complete, this SPEC may be Accepted and Verified as a classification decision. Production work still requires the follow-up change SPEC named by the selected role.
+The lifecycle advanced from `Accepted` to `Verified` after the case-corpus review,
+then to `Archived` when root `SPEC.md` v1.6 recorded the stable classification.
+This historical decision does not authorize public Schemas, production modules,
+capability literals, tools, or support claims. Production work is governed only
+by the separately accepted `add-change-observation-analyzer-v1` implementation
+SPEC.
 
 ## Verification record
 
 Complete this section before changing the status to Verified.
 
-- Commands and results: `evidence/CASE-CORPUS.md` records three discriminating research operations over immutable public revisions: a completed MissingCheck differential, an OpenClaw authorization-patch observation, and a kohya_ss shell-argument patch observation. It contains no Delta product implementation.
-- Requirement-to-evidence mapping: D-001 satisfies `REQ-DELTA-001` and `REQ-DELTA-002` as an existing Capability differential; D-002 and D-003 satisfy the patch-observation and claimed-security-change portions of the corpus. The conclusion maps D-001 to `existing_mode` and selects `analyzer_service` as the sole primary Delta role, rejecting the other closed alternatives.
-- Skipped or blocked checks: Production implementation checks are intentionally out of scope.
-- Remaining limitations: Delta is accepted only as an `analyzer_service` role; it has no accepted implementation SPEC, public contract, module, or support claim.
+- Commands and results: [`evidence/CASE-CORPUS.md`](./evidence/CASE-CORPUS.md) records three discriminating research operations over immutable public revisions: a completed MissingCheck differential, an OpenClaw authorization-patch observation, and a kohya_ss shell-argument patch observation. It contains no Delta product implementation or claim.
+- Requirement-to-evidence mapping: D-001 satisfies `REQ-DELTA-001` and `REQ-DELTA-002` as an existing Capability differential; D-002 and D-003 satisfy `REQ-DELTA-003` through `REQ-DELTA-008` and the bounded-observation boundary in `REQ-DELTA-020` through `REQ-DELTA-026`. The architecture and safety review in this SPEC satisfies `REQ-DELTA-010` through `REQ-DELTA-017` and `REQ-DELTA-030` through `REQ-DELTA-037`: `analyzer_service` is the sole primary role; `existing_mode`, `research_capability`, `host_strategy`, and `reject` are explicitly resolved as described in the corpus.
+- Skipped or blocked checks: Production implementation checks are intentionally out of scope for this historical classification. Per user direction, no full package test run was required for this documentation-only archival.
+- Remaining limitations: Delta is archived only as an `analyzer_service` role. It has no public contract, module, host branch, or support claim under this classification record. Those material changes require the separately accepted implementation SPEC.
