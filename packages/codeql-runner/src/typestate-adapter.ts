@@ -289,12 +289,13 @@ function renderTracePredicates(plan: readonly PlannedEvent[], hypothesis: Typest
   const auth = safe
     ? `property = event${finalIndex}.getArgument(0).(ObjectExpr).getPropertyByName(${qlString(argumentProperty(hypothesis))})`
     : `property = event${finalIndex}.getArgument(0).(ObjectExpr).getPropertyByName(${qlString(argumentProperty(hypothesis))}) and\n  property.getInit().(VarAccess).getVariable() = resource`;
-  const authProperty = safe ? `isCurrentBindingForProperty(event${finalIndex}, property)` : "";
+  const identityIndex = plan.findIndex((event) => event.eventId === identityChangeEvents(hypothesis)[0]);
+  const authProperty = safe ? `isCurrentBindingForProperty(event${identityIndex}, event${finalIndex}, property)` : "";
   const noIdentity = safe ? "" : `not exists(CallExpr identity | matchesEvent${hypothesis.events.findIndex((event) => event.id === identityChangeEvents(hypothesis)[0])}(identity) and event${acquireIndex}.getLocation().getStartLine() < identity.getLocation().getStartLine() and identity.getLocation().getStartLine() < event${finalIndex}.getLocation().getStartLine())`;
   const related = plan.slice(0, -1).map((event, index) => `event${index}, ${qlString(`event=${event.eventId}`)}`).join(",\n  ");
   const metadata = `TSTATE|kind=trace|state=${safe ? "safe_trace" : "violating_witness"}|resource=${hypothesis.resource.id}|events=${plan.map((event) => event.eventId).join(",")}|states=${plan.map((event) => `${event.fromState},${event.toState}`).join(";")}|`;
   const tracePredicates = safe
-    ? `\npredicate isCurrentBindingForProperty(CallExpr authenticate, Property property) {\n  exists(VariableDeclarator declaration, PropAccess current |\n    property.getInit().(VarAccess).getVariable() = declaration.getBindingPattern().(VarDecl).getVariable() and\n    declaration.getBindingPattern().(VarDecl).getName() = ${qlString(hypothesis.resource.binding_name)} and\n    declaration.getInit() = current and\n    matchesCurrentReceiver(current)\n  )\n}\n`
+    ? `\npredicate isCurrentBindingForProperty(CallExpr identity, CallExpr authenticate, Property property) {\n  exists(VariableDeclarator declaration, PropAccess current |\n    property.getInit().(VarAccess).getVariable() = declaration.getBindingPattern().(VarDecl).getVariable() and\n    declaration.getBindingPattern().(VarDecl).getName() = ${qlString(hypothesis.resource.binding_name)} and\n    declaration.getInit() = current and\n    matchesCurrentReceiver(current) and\n    identity.getLocation().getEndLine() < declaration.getLocation().getStartLine() and\n    declaration.getLocation().getEndLine() < authenticate.getLocation().getStartLine()\n  )\n}\n`
     : "\n";
   return `${tracePredicates}\nfrom ${calls}, Property property${safe ? "" : ", Variable resource"}\nwhere\n  ${where} and\n  ${order}${acquire === "" ? "" : ` and\n  ${acquire}`} and\n  ${auth}${authProperty === "" ? "" : ` and\n  ${authProperty}`}\n  ${noIdentity === "" ? "" : ` and\n  ${noIdentity}`}\nselect event${finalIndex}, ${qlString(metadata + plan.slice(0, -1).map(() => " $@").join(""))},\n  ${related}`;
 }
@@ -361,7 +362,7 @@ function qlString(value: string): string { return JSON.stringify(value); }
 
 function traceFromResult(result: SarifResult, state: "violating_witness" | "safe_trace", plan: readonly PlannedEvent[], resourceId: string, evidenceRef: string): TypestateTrace[] {
   const metadata = parseMetadata(result.message);
-  if (metadata === undefined || metadata.state !== state || metadata.resource !== resourceId) return [];
+  if (metadata === undefined || !traceMetadataMatchesPlan(metadata, state, resourceId, plan)) return [inconclusiveTrace(resourceId, evidenceRef)];
   const locations = new Map<string, TypestateLocationRef>();
   for (const related of result.related) {
     const eventId = /^event=(.+)$/.exec(related.message.trim())?.[1];
@@ -390,11 +391,40 @@ function traceFromResult(result: SarifResult, state: "violating_witness" | "safe
   }];
 }
 
-function parseMetadata(message: string): { readonly state: string; readonly resource: string } | undefined {
+function inconclusiveTrace(resourceId: string, evidenceRef: string): TypestateTrace {
+  return { state: "inconclusive", resource_id: resourceId, events: [], identity_evidence: [], evidence_ref: evidenceRef };
+}
+
+interface TraceMetadata {
+  readonly state: string;
+  readonly resource: string;
+  readonly eventIds: readonly string[];
+  readonly states: readonly { readonly fromState: string; readonly toState: string }[];
+}
+
+function traceMetadataMatchesPlan(metadata: TraceMetadata, state: "violating_witness" | "safe_trace", resourceId: string, plan: readonly PlannedEvent[]): boolean {
+  if (metadata.state !== state || metadata.resource !== resourceId || metadata.eventIds.length !== plan.length || metadata.states.length !== plan.length) return false;
+  return plan.every((event, index) => metadata.eventIds[index] === event.eventId
+    && metadata.states[index]?.fromState === event.fromState
+    && metadata.states[index]?.toState === event.toState);
+}
+
+function parseMetadata(message: string): TraceMetadata | undefined {
   const fields = new Map(message.split("|").map((part) => part.split("=", 2) as [string, string]));
   const state = fields.get("state");
   const resource = fields.get("resource");
-  return state === undefined || resource === undefined ? undefined : { state, resource };
+  const eventField = fields.get("events");
+  const stateField = fields.get("states");
+  if (state === undefined || resource === undefined || eventField === undefined || stateField === undefined) return undefined;
+  const eventIds = eventField === "" ? [] : eventField.split(",");
+  if (eventIds.some((eventId) => eventId === "")) return undefined;
+  const states: Array<{ readonly fromState: string; readonly toState: string }> = [];
+  for (const pair of stateField === "" ? [] : stateField.split(";")) {
+    const parts = pair.split(",");
+    if (parts.length !== 2 || parts[0] === undefined || parts[1] === undefined || parts[0] === "" || parts[1] === "") return undefined;
+    states.push({ fromState: parts[0], toState: parts[1] });
+  }
+  return { state, resource, eventIds, states };
 }
 
 function readSarifResults(value: unknown): SarifResult[] {

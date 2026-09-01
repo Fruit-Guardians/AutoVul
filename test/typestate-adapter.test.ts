@@ -85,7 +85,11 @@ describe("CodeQL Typestate adapter", () => {
       expect(observation.analyzer.evidence_kind).toBe("real_analyzer");
       expect(decideTypestate(observation, "differential", hypothesis).verificationLevel).toBe("differential");
       expect(process.calls.filter((call) => call.command.args[0] === "database")).toHaveLength(6);
-      expect(await readFile(join(root, "typestate", hypothesis.hypothesis_id, "safe.ql"), "utf8")).toContain("req");
+      const safeQuery = await readFile(join(root, "typestate", hypothesis.hypothesis_id, "safe.ql"), "utf8");
+      expect(safeQuery).toContain("req");
+      expect(safeQuery).toContain("isCurrentBindingForProperty(CallExpr identity, CallExpr authenticate, Property property)");
+      expect(safeQuery).toContain("identity.getLocation().getEndLine() < declaration.getLocation().getStartLine()");
+      expect(safeQuery).toContain("declaration.getLocation().getEndLine() < authenticate.getLocation().getStartLine()");
     } finally {
       await rm(root, { recursive: true, force: true });
     }
@@ -125,6 +129,31 @@ describe("CodeQL Typestate adapter", () => {
     try {
       const observation = await new CodeqlTypestateAdapter({ process }).execute(requestFor("run_tstate_incomplete", root), { timeoutMs: 10_000 });
       expect(observation.traces[0]?.state).toBe("inconclusive");
+      expect(decideTypestate(observation, "reproduce", hypothesis).decision.outcome).toBe("unknown");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("downgrades a trace when SARIF event or state metadata differs from the planned trace", async () => {
+    const root = await mkdtemp(join(tmpdir(), "autovul-typestate-metadata-mismatch-"));
+    const process = new ScriptedProcessPort(async (command) => {
+      if (command.args[0] === "version" || command.args[0] === "query") return processResult({ stdout: command.args[0] === "version" ? "CodeQL 2.26.1" : "" });
+      const output = command.args.find((argument) => argument.startsWith("--output="))?.slice("--output=".length);
+      if (output === undefined) return processResult({ exitCode: 2 });
+      const query = command.args[3] ?? "";
+      const results = query.includes("observations")
+        ? [sarifResult("TSTATE|kind=resource|resource=login_session", location(10)), sarifResult("TSTATE|kind=event|event=session_acquired", location(10)), sarifResult("TSTATE|kind=event|event=assign_user", location(12, 15))]
+        : query.includes("violation")
+          ? [sarifResult("TSTATE|kind=trace|state=violating_witness|resource=login_session|events=assign_user,session_acquired|states=preauth,authenticated;preauth,preauth|", location(12, 15), [{ message: "event=assign_user", location: location(12, 15) }])]
+          : [];
+      await mkdir(join(output, ".."), { recursive: true });
+      await writeFile(output, JSON.stringify({ version: "2.1.0", runs: [{ results }] }), "utf8");
+      return processResult();
+    });
+    try {
+      const observation = await new CodeqlTypestateAdapter({ process }).execute(requestFor("run_tstate_metadata_mismatch", root), { timeoutMs: 10_000 });
+      expect(observation.traces[0]).toMatchObject({ state: "inconclusive", events: [] });
       expect(decideTypestate(observation, "reproduce", hypothesis).decision.outcome).toBe("unknown");
     } finally {
       await rm(root, { recursive: true, force: true });

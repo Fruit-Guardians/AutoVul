@@ -16,12 +16,16 @@ async function main() {
   try {
   await stageSource(vulnerableCommit, join(root, "vulnerable-source"));
   await stageSource(fixedCommit, join(root, "fixed-source"));
+  await stagePreRekeySource(join(root, "pre-rekey-source"));
   const vulnerableDb = join(root, "vulnerable-db");
   const fixedDb = join(root, "fixed-db");
+  const preRekeyDb = join(root, "pre-rekey-db");
   await createDatabase(vulnerableDb, join(root, "vulnerable-source"));
   await createDatabase(fixedDb, join(root, "fixed-source"));
+  await createDatabase(preRekeyDb, join(root, "pre-rekey-source"));
 
-  const observation = await new CodeqlTypestateAdapter({ executable: codeql }).execute({
+  const adapter = new CodeqlTypestateAdapter({ executable: codeql });
+  const observation = await adapter.execute({
     hypothesis,
     target: {
       vulnerable: { kind: "codeql_database", path: vulnerableDb },
@@ -32,12 +36,22 @@ async function main() {
     runId: "run_tstate_real",
     artifactRoot: join(root, "artifacts"),
   }, { timeoutMs: 300_000 });
+  const preRekeyObservation = await adapter.execute({
+    hypothesis,
+    target: { vulnerable: { kind: "codeql_database", path: preRekeyDb } },
+    analyzer_id: "codeql",
+    mode: "reproduce",
+    runId: "run_tstate_pre_rekey",
+    artifactRoot: join(root, "pre-rekey-artifacts"),
+  }, { timeoutMs: 300_000 });
   const decision = decideTypestate(observation, "differential", hypothesis);
+  const preRekeySafeTraceCount = preRekeyObservation.traces.filter((trace) => trace.state === "safe_trace").length;
   const report = {
     schema_version: "autovul.typestate.adapter.golden.real/1",
     passed: observation.traces.some((trace) => trace.state === "violating_witness")
       && observation.fixed_traces?.some((trace) => trace.state === "safe_trace") === true
-      && decision.verificationLevel === "differential",
+      && decision.verificationLevel === "differential"
+      && preRekeySafeTraceCount === 0,
     analyzer: observation.analyzer,
     observation: {
       resource: observation.resource.state,
@@ -45,6 +59,8 @@ async function main() {
       traces: observation.traces.map((trace) => trace.state),
       fixed_traces: observation.fixed_traces?.map((trace) => trace.state),
       fixed_identity: observation.fixed_traces?.[0]?.identity_evidence[0]?.kind,
+      pre_rekey_traces: preRekeyObservation.traces.map((trace) => trace.state),
+      pre_rekey_safe_trace_count: preRekeySafeTraceCount,
     },
     decision: decision.decision,
     verification_level: decision.verificationLevel,
@@ -57,6 +73,20 @@ async function main() {
   } finally {
     if (process.env.TYPESTATE_KEEP_ARTIFACTS !== "true") await rm(root, { recursive: true, force: true });
   }
+}
+
+async function stagePreRekeySource(destinationRoot) {
+  const destination = join(destinationRoot, sourceFile);
+  await mkdir(dirname(destination), { recursive: true });
+  await writeFile(destination, `async function createSessionForUser(req, res, user) {
+  const acquired = await getSession(req, res);
+  const session = req.session;
+  await new Promise((resolve, reject) => {
+    req.session.regenerate((err) => err ? reject(err) : resolve());
+  });
+  await assignUserToSession({session, user, origin: "https://example.test"});
+}
+`, "utf8");
 }
 
 function stageSource(commit, destinationRoot) {
