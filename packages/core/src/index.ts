@@ -28,6 +28,7 @@ export { MissingCheckReplayService } from "./missing-check/replay.js";
 export { validateTypestateHypothesis } from "./typestate/validate.js";
 export { decideTypestate, type TypestateDecisionProjection } from "./typestate/decision.js";
 export { TypestateResearchService, compactTypestateResult, readTypestateRunArtifact, typestateRunIdForIdempotencyKey, TYPESTATE_RESULT_ARTIFACT, type TypestateResearchResult } from "./typestate/service.js";
+export { TypestateReplayService } from "./typestate/replay.js";
 export { projectLegacyVerificationToFlow } from "./flow/legacy-projection.js";
 export { ResearchRunService, type RunManagementResult } from "./research-run.js";
 export { RunCancellationService } from "./run-cancellation.js";
