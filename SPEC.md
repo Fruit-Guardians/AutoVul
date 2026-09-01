@@ -1,7 +1,7 @@
 # AutoVul V2 Product Specification
 
 - Status: Accepted baseline
-- Version: 1.4
+- Version: 1.5
 - Last updated: 2026-09-01
 
 ## 1. Purpose
@@ -20,6 +20,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-SCOPE-004`: The system MUST produce persisted run state and replayable Query Pack artifacts.
 - `REQ-SCOPE-005`: The system MUST support verified MissingCheck v1 research for the frozen JavaScript direct-call/dominance case family through the aggregate research/run APIs, subject to its declared single-file named-entry completeness boundary and recorded limitations.
 - `REQ-SCOPE-006`: The system MUST support verified Flow v1 research for the accepted Python, JavaScript, Java and C/C++ language families through the aggregate research/run APIs, with real Source/Sink probes, vulnerable/fixed differential analysis and model-free replay.
+- `REQ-SCOPE-007`: The system MUST support verified Typestate v1 research for one JavaScript local-binding resource, a bounded finite event/state protocol, one identity-backed prohibited transition, and a declared single-file named-function completeness boundary through the aggregate research/run APIs.
 
 ### 2.2 Extensible product direction
 
@@ -105,6 +106,18 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-MCHECK-ROOT-011`: The verified Golden MUST retain immutable target revisions and source hashes, query and evidence hashes, compact ordered results, completeness boundaries, provenance, and a fresh-process model-free replay result. External dependencies MUST be explicit.
 - `REQ-MCHECK-ROOT-012`: MissingCheck MUST remain reachable only through aggregate `autovul_research` and `autovul_run` APIs. The host retains capability selection, hypothesis creation/revision, and stopping authority.
 
+### 5.3 Typestate v1
+
+- `REQ-TSTATE-ROOT-001`: Typestate v1 MUST remain an independent Research Capability with contract version `autovul.typestate/1`. Its hypothesis MUST model exactly one `local_binding` resource, a bounded finite state/event/transition protocol, one `prohibited_transition` requiring the same identity, and one declared completeness boundary. It MUST NOT reuse Flow or MissingCheck domain types.
+- `REQ-TSTATE-ROOT-002`: The v1 contract MUST remain limited to JavaScript, `direct_lexical_binding`, and `single_file_named_function` scope. Multiple resources, cross-object protocols, concurrent interleavings, recursive composition, arbitrary extension properties, generic state-machine frameworks, and Typestate registries are out of scope.
+- `REQ-TSTATE-ROOT-003`: The CodeQL adapter MUST return only resource/event observations, ordered traces, identity evidence, locations, completeness boundaries, capability gaps, run-relative evidence refs, and Analyzer provenance. Core MUST be the sole writer of Typestate decisions and verification levels.
+- `REQ-TSTATE-ROOT-004`: `violation_observed` MUST require a persisted ordered witness whose events have continuous states and satisfy the declared prohibited transition and same-identity predicate. `no_violation_observed` is limited to the declared completeness boundary; missing, incomplete, unsupported, cross-identity, or inconclusive evidence MUST remain `unknown` or a bounded revision result.
+- `REQ-TSTATE-ROOT-005`: Differential verification MUST require a real-analyzer vulnerable violating witness and a complete fixed safe trace. A fixed witness, `not_run`, incomplete scope, capability gap, failure, timeout, cancellation, mock, or `test_double` MUST NOT raise a real verification level; `variant_validated` is unavailable.
+- `REQ-TSTATE-ROOT-006`: Typestate execution MUST use the shared idempotency, trusted-root, timeout, cancellation, lock, atomic commit, recovery, artifact, and aggregate routing infrastructure. Its committed artifact MUST bind the normalized hypothesis, targets, portable fingerprints, Analyzer/adapter and Decision Policy versions, observation, decision, verification level, and replay inputs.
+- `REQ-TSTATE-ROOT-007`: Typestate replay MUST use the shared per-run operation lease and live cancellation chain, revalidate target fingerprints and Analyzer versions, and distinguish environment block, version difference, semantic mismatch, and cancellation. It MUST write only under `typestate-replay/`, prove that the recorded `typestate/` QL/SARIF evidence hashes are unchanged, and compare resource, events, ordered traces, identity evidence, locations, violation steps, completeness, capability gaps, and normalized evidence paths.
+- `REQ-TSTATE-ROOT-008`: Typestate MUST remain reachable only through aggregate `autovul_research` and `autovul_run`; Pi and CLI MUST use the same Application API and compact result/replay contracts without a Typestate-specific model tool.
+- `REQ-TSTATE-ROOT-009`: The verified Typestate Golden MUST retain an identity-sensitive vulnerable/fixed differential, safe pre-rekey and different-identity negatives, wrong-resource and wrong-event revisions, an incomplete-scope Core policy check, a fresh-process model-free replay from a relocated runs root with freshly rebuilt databases, evidence immutability, and fingerprint/version/policy/trace mutation checks. The accepted Ghost case is evidence for this narrow boundary, not a global selector definition.
+
 ## 6. Evidence and result levels
 
 - `REQ-EVIDENCE-001`: Model output MUST be treated as a hypothesis rather than evidence.
@@ -127,6 +140,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-ARTIFACT-005`: A committed capability artifact MUST record the Capability and contract version, normalized Hypothesis, targets, Analyzer provenance, budget/mode/idempotency identity, structured Observation, Decision Policy version, Decision, verification level and replay inputs or explicit external dependencies.
 - `REQ-ARTIFACT-006`: Critical evidence MUST be durably committed before authoritative state references it. Recovery MUST use validated artifacts and commit metadata; corrupt data MUST block or fail rather than being reconstructed as success.
 - `REQ-ARTIFACT-007`: Replay MUST not require a model, host session or mutable originating-run state, and MUST distinguish identical results, environment blocks, Analyzer-version differences and semantic mismatches.
+- `REQ-ARTIFACT-008`: A portable CodeQL target fingerprint MUST exclude database creation timestamps so an equivalent target rebuilt from the same accepted inputs can replay; it MUST retain only stable database identity metadata and continue to distinguish recorded target changes.
 
 ## 8. Safety and reliability requirements
 
@@ -146,7 +160,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-INTEGRATION-005`: Pi is the currently implemented native host integration. DeepSeek Harness and MCP are product directions, not implemented support claims until their own accepted change SPEC and verification gates pass.
 - `REQ-INTEGRATION-006`: The target model-facing research interface MUST contain only `autovul_research` and `autovul_run`. Compatibility `codeql_*` tools MAY remain available but MUST NOT be presented as a third primary research interface.
 - `REQ-INTEGRATION-007`: Pi and CLI MUST route those aggregate entries through the same Application API and remain thin registration, conversion, cancellation and presentation layers.
-- `REQ-INTEGRATION-008`: Pi MUST tell the host to select Flow for source-to-sink value propagation and MissingCheck for a protected operation reachable without its required check. Its aggregate result UI MUST preserve the selected Capability, operation status, decision, verification level, observations, revision hints and artifact reference without recasting MissingCheck as Flow.
+- `REQ-INTEGRATION-008`: Pi MUST tell the host to select Flow for source-to-sink value propagation, MissingCheck for a protected operation reachable without its required check, and Typestate for one resource's ordered lifecycle transition. Its aggregate result UI MUST preserve the selected Capability, operation status, decision, verification level, observations, revision hints and artifact reference without recasting one Capability as another.
 
 ## 10. Compatibility and current limitations
 
@@ -154,7 +168,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-COMPAT-002`: Current accepted platform behavior is the tested POSIX/macOS path. Windows support MUST NOT be claimed until process-tree cleanup, paths and CI gates are implemented and verified.
 - `REQ-COMPAT-003`: Current database operations are inspection and validation. Automatic database creation or execution of target build scripts MUST NOT be claimed as implemented.
 - `REQ-COMPAT-004`: The Python V1 runtime is outside this isolated TypeScript workspace and MUST NOT be silently imported as a V2 dependency.
-- `REQ-COMPAT-005`: Flow v1 and MissingCheck v1 are the currently verified Research Capabilities. Typestate, Delta and Variant remain unsupported until their own accepted implementation and real-evidence gates pass.
+- `REQ-COMPAT-005`: Flow v1, MissingCheck v1, and Typestate v1 are the currently verified Research Capabilities. Delta and Variant remain unsupported until their own accepted implementation and real-evidence gates pass.
 
 ## 11. Baseline acceptance gates
 

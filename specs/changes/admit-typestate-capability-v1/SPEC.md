@@ -1,7 +1,7 @@
 # Change: Admit Typestate Capability v1
 
 - Change ID: `admit-typestate-capability-v1`
-- Status: Implemented
+- Status: Archived
 - Owner: AutoVul maintainers
 - Created: 2026-08-29
 - Updated: 2026-09-01
@@ -543,42 +543,27 @@ protocol or a different violation form requires a separate change SPEC.
 | 2026-08-30 | Accept Typestate as the next research direction, while retaining Draft status | Directional approval does not satisfy the real-case admission gate or the required Verified Flow runtime baseline. |
 | 2026-09-01 | Accept the Ghost CVE-2026-70594 case for narrow Typestate v1 implementation | Real CodeQL evidence demonstrates an ordered identity-backed violating witness, a fixed safe trace, a different-resource counterexample, field-specific revisions, and model-free replay. |
 | 2026-09-01 | Complete the Phase D.1 replay integrity boundary | Replay uses a dedicated namespace, preserves recorded evidence hashes, compares complete Typestate observation semantics, and shares the run lease and cancellation chain. |
+| 2026-09-01 | Mark Typestate v1 Verified | Full lint/test/pack gates, real Ghost Golden, fresh-process replay, and Pi/CLI acceptance all passed. |
+| 2026-09-01 | Archive Typestate v1 | Stable behavior was merged into root `SPEC.md`; this change remains the historical evidence record. |
 
 ## Delivery gate
 
-Accepted status authorized the narrow v1 implementation. Phases B through D.1
-are now implemented: the frozen Contracts and pure Core policy, one CodeQL
-adapter, shared-runtime execute/replay routes, aggregate Pi/CLI projection,
-and replay integrity invariants. This remains an implementation claim only;
-the Phase E real Golden, independent replay, host acceptance, and archive gate
-remain required before Verified or Archived status.
+Accepted status authorized the narrow v1 implementation. Phases B through E
+are verified and archived: the frozen Contracts and pure Core policy, one
+CodeQL adapter, shared-runtime execute/replay routes, aggregate Pi/CLI
+projection, replay integrity invariants, real Golden, and host acceptance all
+passed. The status advanced from `Implemented` to `Verified` after the final
+gates, then to `Archived` once stable behavior was merged into root `SPEC.md`.
 
-Implementation may begin in a later change because the admission gate is
-satisfied, the protocol and Analyzer choices are frozen here, and the Flow and
-MissingCheck Capabilities have supplied Verified shared-runtime baselines. Those
-baselines prove runtime behavior only; they do not import their domain
-semantics into Typestate.
+Implementation began after the admission gate because the protocol and Analyzer
+choices were frozen here and Flow and MissingCheck supplied verified shared-
+runtime baselines. Those baselines proved runtime behavior only; they did not
+import their domain semantics into Typestate.
 
 ## Verification record
 
-This is an admission verification record, not a production implementation
-verification record.
-
-- Commands and results: CodeQL `2.26.1` compiled all five case queries with
-  warnings as errors. `replay.sh` created isolated vulnerable, fixed, and safe
-  databases in `none` build mode and passed with counts `1/0` for the primary
-  vulnerable/fixed transition, `1/0` for fixed-safe/vulnerable-safe traces,
-  `0/1` for identity-aware/call-order-only safe analysis, and `0/0` for the
-  wrong-resource/wrong-event queries.
-- Requirement-to-evidence mapping: `REQ-TSTATE-001` through `009` map to the
-  admission gate and case rationale; `010` through `019` map to the frozen
-  protocol; `030` through `049` map to CodeQL observations, identity evidence,
-  counterexamples, and the decision projection; `050` through `059` remain
-  implementation acceptance requirements.
-- Skipped or blocked checks: Production contracts, runtime routing, Analyzer
-  Ports, host adapters, and support claims are intentionally not implemented in
-  this change. They are authorized only for the later phases and remain
-  unverified.
-- Remaining limitations: the evidence is single-file and direct-binding only;
-  unsupported aliasing, dynamic dispatch, framework semantics, and concurrency
-  remain outside the admitted boundary.
+See [`VERIFICATION.md`](./VERIFICATION.md) for the final requirement mapping,
+real Golden, Pi/CLI, replay, and full-gate evidence. This historical change
+record retains the narrow single-file/direct-binding limitations; unsupported
+aliasing, dynamic dispatch, framework semantics, and concurrency remain
+outside Typestate v1's verified boundary.
