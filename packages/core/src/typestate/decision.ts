@@ -82,7 +82,10 @@ export function decideTypestate(
       : fixed.unknown
         ? "unknown"
         : "no_violation_observed";
-    const fixedPolicySatisfied = fixed.completenessCode === undefined && fixed.safeTrace;
+    const fixedPolicySatisfied = fixed.completenessCode === undefined
+      && !fixed.violation
+      && !fixed.unknown
+      && fixed.safeTrace;
     decision = { ...decision, fixed_outcome: fixedOutcome, fixed_policy_satisfied: fixedPolicySatisfied };
     if (vulnerableOutcome === "violation_observed" && fixedPolicySatisfied) verificationLevel = evidenceLevel(observation, "differential");
     if (!fixedPolicySatisfied && fixedOutcome === "no_violation_observed") {
@@ -141,16 +144,13 @@ function requiredEventIssue(
   for (const eventId of [hypothesis.resource.acquisition_event, hypothesis.violation.event]) {
     const event = observation.events.find((candidate) => candidate.event_id === eventId);
     if (event === undefined || event.state === "not_run") return { code: "TSTATE_EVENT_NOT_RUN", path: "/events", action: "revise_event" };
-    if (event.state === "not_found" && !mayBeAbsentEvent(hypothesis, eventId)) return { code: "TSTATE_EVENT_NOT_FOUND", path: "/events", action: "revise_event" };
+    if (event.state === "not_found" && !isOptionalIdentityChangeEvent(hypothesis, eventId)) return { code: "TSTATE_EVENT_NOT_FOUND", path: "/events", action: "revise_event" };
   }
   return undefined;
 }
 
-function mayBeAbsentEvent(hypothesis: TypestateHypothesis, eventId: string): boolean {
-  const event = hypothesis.events.find((candidate) => candidate.id === eventId);
-  return event?.selector.kind === "direct_method"
-    && event.selector.receiver === "req.session"
-    && event.selector.name === "regenerate";
+function isOptionalIdentityChangeEvent(hypothesis: TypestateHypothesis, eventId: string): boolean {
+  return identityChangeTransitionEventIds(hypothesis).has(eventId);
 }
 
 interface TraceEvaluation {
@@ -202,6 +202,7 @@ function evaluateTraces(
 
 function classifyViolatingTrace(trace: TypestateTrace, hypothesis: TypestateHypothesis): "valid" | "identity" | "transition" {
   if (trace.resource_id !== hypothesis.resource.id || !hasSameIdentityEvidence(trace, hypothesis)) return "identity";
+  if (!hasContinuousStates(trace)) return "transition";
   const step = trace.violation_step;
   if (step === undefined || step >= trace.events.length) return "transition";
   const violationEvent = trace.events[step];
@@ -215,13 +216,14 @@ function classifyViolatingTrace(trace: TypestateTrace, hypothesis: TypestateHypo
 }
 
 function classifySafeTrace(trace: TypestateTrace, hypothesis: TypestateHypothesis): "valid" | "identity" | "transition" {
-  if (trace.resource_id !== hypothesis.resource.id || !hasIdentityChangeEvidence(trace, hypothesis)) return "identity";
-  const regenerationEvent = regenerationEventId(hypothesis);
-  if (regenerationEvent === undefined) return "transition";
   const acquisitionIndex = trace.events.findIndex((event) => event.event_id === hypothesis.resource.acquisition_event);
-  const regenerateIndex = trace.events.findIndex((event) => event.event_id === regenerationEvent);
   const assignIndex = trace.events.findIndex((event) => event.event_id === hypothesis.violation.event);
-  if (acquisitionIndex < 0 || regenerateIndex <= acquisitionIndex || assignIndex <= regenerateIndex) return "transition";
+  if (trace.resource_id !== hypothesis.resource.id) return "identity";
+  if (!hasContinuousStates(trace)) return "transition";
+  const identityChangeEvent = inferIdentityChangeEvent(trace, hypothesis, acquisitionIndex, assignIndex);
+  if (identityChangeEvent === undefined) return "identity";
+  const identityChangeIndex = trace.events.findIndex((event) => event.event_id === identityChangeEvent);
+  if (acquisitionIndex < 0 || identityChangeIndex <= acquisitionIndex || assignIndex <= identityChangeIndex) return "transition";
   return trace.events.every((event) => isDeclaredTransition(event, hypothesis)) ? "valid" : "transition";
 }
 
@@ -232,19 +234,37 @@ function hasSameIdentityEvidence(trace: TypestateTrace, hypothesis: TypestateHyp
     && evidence.event_ids.includes(hypothesis.violation.event));
 }
 
-function hasIdentityChangeEvidence(trace: TypestateTrace, hypothesis: TypestateHypothesis): boolean {
-  const regenerationEvent = regenerationEventId(hypothesis);
-  return regenerationEvent !== undefined && trace.identity_evidence.some((evidence) => evidence.kind === "identity_change"
-    && evidence.resource_id === hypothesis.resource.id
-    && evidence.event_ids.includes(hypothesis.resource.acquisition_event)
-    && evidence.event_ids.includes(regenerationEvent)
-    && evidence.event_ids.includes(hypothesis.violation.event));
+function inferIdentityChangeEvent(
+  trace: TypestateTrace,
+  hypothesis: TypestateHypothesis,
+  acquisitionIndex: number,
+  assignIndex: number,
+): string | undefined {
+  if (acquisitionIndex < 0 || assignIndex <= acquisitionIndex) return undefined;
+  const evidence = trace.identity_evidence.find((candidate) => candidate.kind === "identity_change"
+    && candidate.resource_id === hypothesis.resource.id
+    && candidate.event_ids.includes(hypothesis.resource.acquisition_event)
+    && candidate.event_ids.includes(hypothesis.violation.event));
+  if (evidence === undefined) return undefined;
+  const candidates = trace.events.filter((event, index) => index > acquisitionIndex
+    && index < assignIndex
+    && event.from_state !== event.to_state
+    && identityChangeTransitionEventIds(hypothesis).has(event.event_id)
+    && evidence.event_ids.includes(event.event_id)
+    && isDeclaredTransition(event, hypothesis));
+  return candidates.length === 1 ? candidates[0]?.event_id : undefined;
 }
 
-function regenerationEventId(hypothesis: TypestateHypothesis): string | undefined {
-  return hypothesis.events.find((event) => event.selector.kind === "direct_method"
-    && event.selector.receiver === "req.session"
-    && event.selector.name === "regenerate")?.id;
+function identityChangeTransitionEventIds(hypothesis: TypestateHypothesis): Set<string> {
+  return new Set(hypothesis.transitions
+    .filter((transition) => transition.from_state === hypothesis.violation.from_state
+      && transition.to_state !== transition.from_state
+      && transition.event !== hypothesis.violation.event)
+    .map((transition) => transition.event));
+}
+
+function hasContinuousStates(trace: TypestateTrace): boolean {
+  return trace.events.every((event, index) => index === 0 || trace.events[index - 1]?.to_state === event.from_state);
 }
 
 function isDeclaredTransition(event: { readonly event_id: string; readonly from_state: string; readonly to_state: string }, hypothesis: TypestateHypothesis): boolean {

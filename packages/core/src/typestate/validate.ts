@@ -95,6 +95,13 @@ function semanticIssues(input: unknown): TypestateValidationIssue[] {
     if (typeof violation.from_state === "string" && !stateIds.has(violation.from_state)) issues.push({ code: "TSTATE_VIOLATION_FROM_STATE_UNKNOWN", path: "/violation/from_state", allowed_values: states.slice(0, TYPESTATE_LIMITS.maxAllowedValues) });
     if (typeof violation.to_state === "string" && !stateIds.has(violation.to_state)) issues.push({ code: "TSTATE_VIOLATION_TO_STATE_UNKNOWN", path: "/violation/to_state", allowed_values: states.slice(0, TYPESTATE_LIMITS.maxAllowedValues) });
     if (typeof violation.event === "string" && !eventIds.has(violation.event)) issues.push({ code: "TSTATE_VIOLATION_EVENT_UNKNOWN", path: "/violation/event", allowed_values: events.map((event) => event.id).slice(0, TYPESTATE_LIMITS.maxAllowedValues) });
+    transitions.forEach((transition, index) => {
+      if (transition.from_state === violation.from_state
+        && transition.event === violation.event
+        && transition.to_state === violation.to_state) {
+        issues.push({ code: "TSTATE_PROHIBITED_TRANSITION_ALLOWED", path: `/transitions/${index}` });
+      }
+    });
   }
 
   if (typeof record.initial_state === "string" && stateIds.has(record.initial_state)) {
@@ -135,7 +142,7 @@ function objectRecord(value: unknown): Record<string, unknown> | undefined {
 function addDuplicateIssues(values: readonly string[], path: string, code: string, issues: TypestateValidationIssue[]): void {
   const seen = new Set<string>();
   values.forEach((value, index) => {
-    if (seen.has(value)) issues.push({ code, path: `${path}/${index}/id` });
+    if (seen.has(value)) issues.push({ code, path: path === "/states" ? `${path}/${index}` : `${path}/${index}/id` });
     seen.add(value);
   });
 }

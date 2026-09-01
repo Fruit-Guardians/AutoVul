@@ -87,6 +87,17 @@ function fixedTrace(overrides: Partial<TypestateAnalyzerObservation["traces"][nu
   };
 }
 
+function renameTraceEvent(trace: TypestateAnalyzerObservation["traces"][number], from: string, to: string) {
+  return {
+    ...trace,
+    events: trace.events.map((event) => event.event_id === from ? { ...event, event_id: to } : event),
+    identity_evidence: trace.identity_evidence.map((evidence) => ({
+      ...evidence,
+      event_ids: evidence.event_ids.map((eventId) => eventId === from ? to : eventId),
+    })),
+  };
+}
+
 function observation(overrides: Partial<TypestateAnalyzerObservation> = {}): TypestateAnalyzerObservation {
   return {
     schema_version: "autovul.typestate/1",
@@ -140,10 +151,14 @@ describe("Typestate v1 contracts and pure policy", () => {
   it("rejects unknown fields, duplicate ids, bad endpoints, and bad identity requirements", () => {
     expect(validateTypestateHypothesis({ ...hypothesis, unexpected: true })).toMatchObject({ valid: false, issues: expect.arrayContaining([{ code: "TSTATE_UNKNOWN_PROPERTY", path: "/unexpected" }]) });
     expect(validateTypestateHypothesis({ ...hypothesis, events: [...hypothesis.events, hypothesis.events[0]] })).toMatchObject({ valid: false, issues: expect.arrayContaining([{ code: "TSTATE_DUPLICATE_EVENT_ID", path: "/events/3/id" }]) });
+    const duplicateState = validateTypestateHypothesis({ ...hypothesis, states: ["preauth", "preauth", "rekeyed", "authenticated"] });
+    expect(duplicateState.issues.some((issue) => issue.code === "TSTATE_DUPLICATE_STATE_ID" && issue.path === "/states/1")).toBe(true);
     const badEndpoint = validateTypestateHypothesis({ ...hypothesis, transitions: [{ ...hypothesis.transitions[0], to_state: "closed" }] });
     expect(badEndpoint.issues.some((issue) => issue.code === "TSTATE_TRANSITION_TO_STATE_UNKNOWN" && issue.path === "/transitions/0/to_state")).toBe(true);
     const badIdentity = validateTypestateHypothesis({ ...hypothesis, violation: { ...hypothesis.violation, requires_same_identity: false } });
     expect(badIdentity.issues.some((issue) => issue.code === "TSTATE_IDENTITY_REQUIREMENT_INVALID" && issue.path === "/violation/requires_same_identity")).toBe(true);
+    const prohibitedAllowed = validateTypestateHypothesis({ ...hypothesis, transitions: [...hypothesis.transitions, { from_state: "preauth", event: "assign_user", to_state: "authenticated" }] });
+    expect(prohibitedAllowed.issues.some((issue) => issue.code === "TSTATE_PROHIBITED_TRANSITION_ALLOWED" && issue.path === "/transitions/3")).toBe(true);
   });
 
   it("accepts only the declared finite protocol and returns field-level revision issues", () => {
@@ -164,6 +179,9 @@ describe("Typestate v1 contracts and pure policy", () => {
     const result = decideTypestate(observation(), "differential", hypothesis);
     expect(result).toMatchObject({ verificationLevel: "differential", decision: { fixed_outcome: "no_violation_observed", fixed_policy_satisfied: true } });
 
+    const fixedBoth = decideTypestate(observation({ fixed_traces: [fixedTrace(), vulnerableTrace({ evidence_ref: "fixed.sarif" })] }), "differential", hypothesis);
+    expect(fixedBoth).toMatchObject({ verificationLevel: "reproduced", decision: { fixed_outcome: "violation_observed", fixed_policy_satisfied: false } });
+
     const incompleteFixed = decideTypestate(observation({ completeness: { vulnerable: { status: "complete", scope, limitations: [] }, fixed: { status: "incomplete", scope, limitations: [] } } }), "differential", hypothesis);
     expect(incompleteFixed).toMatchObject({ verificationLevel: "reproduced", decision: { fixed_outcome: "unknown", fixed_policy_satisfied: false }, observations: expect.arrayContaining([{ code: "TSTATE_COMPLETENESS_INCOMPLETE", path: "/analysis_scope" }]) });
   });
@@ -177,8 +195,34 @@ describe("Typestate v1 contracts and pure policy", () => {
     const wrongTransition = decideTypestate(observation({ traces: [vulnerableTrace({ events: [vulnerableTrace().events[0], { event_id: "assign_user", from_state: "preauth", to_state: "rekeyed", location }] })] }), "reproduce", hypothesis);
     expect(wrongTransition).toMatchObject({ decision: { outcome: "unknown" }, revisionHints: [{ action: "revise_transition", path: "/violation", reason_code: "TSTATE_TRANSITION_MISMATCH" }] });
 
+    const discontinuous = decideTypestate(observation({ traces: [vulnerableTrace({
+      events: [
+        { event_id: "session_acquired", from_state: "preauth", to_state: "preauth", location },
+        { event_id: "regenerate_request_session", from_state: "preauth", to_state: "rekeyed", location },
+        { event_id: "assign_user", from_state: "preauth", to_state: "authenticated", location },
+      ],
+      identity_evidence: [{ kind: "same_binding" as const, resource_id: "login_session", event_ids: ["session_acquired", "assign_user"], locations: [location] }],
+      violation_step: 2,
+    })] }), "reproduce", hypothesis);
+    expect(discontinuous).toMatchObject({ decision: { outcome: "unknown" }, revisionHints: [{ action: "revise_transition", reason_code: "TSTATE_TRANSITION_MISMATCH" }] });
+
     const missingAssign = decideTypestate(observation({ events: observation().events.map((event) => event.event_id === "assign_user" ? { ...event, state: "not_found" as const, locations: [] } : event), traces: [] }), "reproduce", hypothesis);
     expect(missingAssign).toMatchObject({ decision: { outcome: "unknown" }, revisionHints: [{ action: "revise_event", path: "/events", reason_code: "TSTATE_EVENT_NOT_FOUND" }] });
+  });
+
+  it("derives the identity-change event from transitions and evidence", () => {
+    const renamedEvent = "rotate_session";
+    const renamedHypothesis = {
+      ...hypothesis,
+      events: hypothesis.events.map((event) => event.id === "regenerate_request_session" ? { ...event, id: renamedEvent } : event),
+      transitions: hypothesis.transitions.map((transition) => transition.event === "regenerate_request_session" ? { ...transition, event: renamedEvent } : transition),
+    };
+    const renamed = observation({
+      events: observation().events.map((event) => event.event_id === "regenerate_request_session" ? { ...event, event_id: renamedEvent } : event),
+      fixed_events: observation().fixed_events?.map((event) => event.event_id === "regenerate_request_session" ? { ...event, event_id: renamedEvent } : event),
+      fixed_traces: [renameTraceEvent(fixedTrace(), "regenerate_request_session", renamedEvent)],
+    });
+    expect(decideTypestate(renamed, "differential", renamedHypothesis)).toMatchObject({ verificationLevel: "differential", decision: { fixed_outcome: "no_violation_observed", fixed_policy_satisfied: true } });
   });
 
   it("keeps incomplete scope, probe facts, and test doubles from becoming completed evidence", () => {

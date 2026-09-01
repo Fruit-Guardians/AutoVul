@@ -227,6 +227,7 @@ are separate from shared runtime budgets:
 | `maxFileLength` | 1024 |
 | `maxIdempotencyKeyLength` | 256 |
 
+`violation_step` is a zero-based index into the ordered `events` array.
 Additional scalar bounds are `states >= 2`, `events >= 1`,
 `transitions >= 1`, `start_line >= 1`, `end_line >= 1`, and
 `violation_step` in `0..7`. State ids and completeness limitation values are
@@ -307,7 +308,7 @@ version_difference | semantic_mismatch`.
 - `REQ-TSTATE-020`: Boundary input MUST be parsed from `unknown` into one normalized hypothesis or a bounded list of issues.
 - `REQ-TSTATE-021`: Every issue MUST contain a stable `code` and JSON Pointer `path`, plus `allowed_values` for closed repairs.
 - `REQ-TSTATE-022`: `validate` MUST be deterministic and side-effect free and MUST NOT create a run, call an Analyzer, or write artifacts.
-- `REQ-TSTATE-023`: Validation MUST reject duplicate ids, unknown transition endpoints, unreachable declared states where prohibited by the frozen contract, invalid initial state, unsupported violation form, missing resource identity, and unknown properties.
+- `REQ-TSTATE-023`: Validation MUST reject duplicate ids, unknown transition endpoints, unreachable declared states where prohibited by the frozen contract, invalid initial state, unsupported violation form, a prohibited transition declared as allowed, missing resource identity, and unknown properties.
 - `REQ-TSTATE-024`: Counts MUST use the exact Phase B limits: states 2–4, events 1–4, transitions 1–8, trace events and stored traces at most 8, locations per item at most 4, identity evidence per trace at most 8, capability gaps at most 16, evidence refs at most 32, validation issues at most 64, revision hints at most 8, compact observations at most 16, and closed `allowed_values` at most 32.
 - `REQ-TSTATE-025`: Envelope actions MUST remain a subset of `revise`, `execute`, `replay`, and `stop`.
 - `REQ-TSTATE-026`: Revision actions MUST be exactly `revise_resource`, `revise_event`, `revise_transition`, `revise_violation`, and `revise_scope`.
@@ -320,7 +321,7 @@ version_difference | semantic_mismatch`.
 - `REQ-TSTATE-030`: The Typestate Analyzer Port MUST return observations and capability gaps only; it MUST NOT return a decision or verification level.
 - `REQ-TSTATE-031`: The observation MUST separately represent resource observation, event observations, ordered traces, identity/alias evidence, completeness boundary, capability gaps, Analyzer provenance, and evidence refs.
 - `REQ-TSTATE-032`: Resource and event observation states MUST distinguish `observed`, `not_found`, and `not_run`.
-- `REQ-TSTATE-033`: A violating trace MUST retain ordered event ids, bounded source locations, resource identity evidence, and the transition step at which the violation occurred.
+- `REQ-TSTATE-033`: A violating trace MUST retain ordered event ids, bounded source locations, resource identity evidence, consecutive state continuity (`previous.to_state == next.from_state`), and the zero-based transition step at which the violation occurred.
 - `REQ-TSTATE-034`: Events on different resources MUST NOT be combined into one violating witness without accepted alias evidence.
 - `REQ-TSTATE-035`: Unsupported aliasing, reflection, callbacks, concurrency, framework dispatch, or incomplete call graphs MUST produce a capability gap or `unknown`.
 - `REQ-TSTATE-036`: Core MUST be the sole writer of Typestate `decision` and `verification_level`.
