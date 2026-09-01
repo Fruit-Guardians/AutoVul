@@ -2,6 +2,10 @@ import { readdir, readFile } from "node:fs/promises";
 import { join, relative, resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
+const typestateSpec = await readFile(join(root, "specs", "changes", "admit-typestate-capability-v1", "SPEC.md"), "utf8");
+if (!/^- Status: (Accepted|Implemented|Verified|Archived)$/m.test(typestateSpec)) {
+  throw new Error("Typestate production code requires an Accepted or later admit-typestate-capability-v1 SPEC");
+}
 const productionRoots = [
   "packages/contracts/src",
   "packages/core/src",
@@ -65,12 +69,12 @@ for (const file of coreFiles) {
 for (const relativeRoot of productionRoots) {
   for (const file of await sourceFiles(join(root, relativeRoot))) {
     const text = await readFile(file, "utf8");
-    if (/\b(?:Typestate|typestate|DeltaHypothesis|DeltaDecision|VariantHypothesis|VariantDecision)\b/.test(text)) {
-      throw new Error(`Draft Capability domain type or route leaked into production code: ${relative(root, file)}`);
+    if (/\b(?:DeltaHypothesis|DeltaDecision|VariantHypothesis|VariantDecision)\b/.test(text)) {
+      throw new Error(`Unadmitted Capability domain type or route leaked into production code: ${relative(root, file)}`);
     }
   }
 }
-for (const forbidden of ["typestate", "missingcheck", "delta", "variant"]) {
+for (const forbidden of ["missingcheck", "delta", "variant"]) {
   const path = join(root, "packages/core/src", forbidden);
   try {
     await readdir(path);

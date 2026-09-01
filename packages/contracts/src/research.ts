@@ -5,16 +5,22 @@ import { RunIdSchema } from "./schemas.js";
 /** Versioned routing identities. Domain schemas remain capability-owned. */
 export const FLOW_HYPOTHESIS_VERSION = "autovul.flow/1" as const;
 export const MISSING_CHECK_HYPOTHESIS_VERSION = "autovul.missing-check/1" as const;
+export const TYPESTATE_HYPOTHESIS_VERSION = "autovul.typestate/1" as const;
 
 export const ResearchActionSchema = Type.Union([Type.Literal("validate"), Type.Literal("execute")]);
 export type ResearchAction = Static<typeof ResearchActionSchema>;
 
-export const ResearchCapabilitySchema = Type.Union([Type.Literal("flow"), Type.Literal("missing_check")]);
+export const ResearchCapabilitySchema = Type.Union([
+  Type.Literal("flow"),
+  Type.Literal("missing_check"),
+  Type.Literal("typestate"),
+]);
 export type ResearchCapability = Static<typeof ResearchCapabilitySchema>;
 
 export const ResearchHypothesisVersionSchema = Type.Union([
   Type.Literal(FLOW_HYPOTHESIS_VERSION),
   Type.Literal(MISSING_CHECK_HYPOTHESIS_VERSION),
+  Type.Literal(TYPESTATE_HYPOTHESIS_VERSION),
 ]);
 export type ResearchHypothesisVersion = Static<typeof ResearchHypothesisVersionSchema>;
 

@@ -150,16 +150,157 @@ semantics into their domain contracts.
 
 ### Frozen hypothesis contract
 
-- `REQ-TSTATE-010`: The accepted contract version MUST be `autovul.typestate/1` unless review changes it before acceptance.
+- `REQ-TSTATE-010`: The accepted contract version MUST be exactly `autovul.typestate/1`.
 - `REQ-TSTATE-011`: A v1 hypothesis MUST describe exactly one tracked resource, one initial state, a bounded event alphabet, a bounded transition set, one violation condition, and one completeness boundary.
 - `REQ-TSTATE-012`: Resource and event selectors MUST be Typestate-owned and MUST NOT reuse FlowEndpoint or MissingCheck operation/check selectors by type alias.
 - `REQ-TSTATE-013`: Protocol states and event ids MUST be stable identifiers with strict count and length bounds.
 - `REQ-TSTATE-014`: Each transition MUST declare one `from_state`, one event, and one `to_state`; hidden side effects and executable expressions MUST be forbidden.
-- `REQ-TSTATE-015`: v1 MUST freeze exactly one supported violation form from the admission case: prohibited event-in-state, prohibited transition, or missing required terminal event.
+- `REQ-TSTATE-015`: v1 MUST support exactly one violation form: `prohibited_transition` with `requires_same_identity: true`.
 - `REQ-TSTATE-016`: The hypothesis MUST declare the resource identity and alias boundary the Analyzer is expected to support.
 - `REQ-TSTATE-017`: Target refs, Analyzer id, mode, budget, idempotency key, evidence refs, message, CWE, rationale, and presentation fields MUST remain outside the hypothesis.
 - `REQ-TSTATE-018`: The hypothesis MUST NOT contain a precomputed `violating`, `confirmed`, or `vulnerable` field.
 - `REQ-TSTATE-019`: v1 MUST reject multiple resources, concurrent event interleavings, recursive protocol composition, arbitrary extension properties, and unbounded state graphs.
+
+### Phase B schema freeze
+
+The following is the exact Phase B contract surface. The TypeBox schemas in
+`packages/contracts/src/typestate.ts` are authoritative, and every object has
+`additionalProperties: false` unless stated otherwise.
+
+`TypestateHypothesis` has exactly these required fields:
+
+```text
+schema_version: "autovul.typestate/1"
+hypothesis_id: identifier
+language: "javascript"
+resource: { id, kind, binding_name, acquisition_event, identity_model }
+initial_state: state identifier
+states: state identifier[2..4], unique
+events: event[1..4]
+transitions: transition[1..8]
+violation: { kind, from_state, event, to_state, requires_same_identity }
+analysis_scope: { kind, file, entry, event_scope, alias_boundary }
+```
+
+The exact nested fields and closed values are:
+
+- `identifier` is 3–128 characters matching
+  `^[a-z0-9][a-z0-9._-]{2,127}$`. JavaScript selector names, receivers,
+  binding names, function names, and argument properties are 1–160 characters
+  with the JavaScript identifier-compatible patterns frozen in the Contract.
+- `resource.kind` is `local_binding`; `resource.identity_model` is
+  `direct_lexical_binding`; `resource.binding_name` is the local binding;
+  `acquisition_event` is an event id.
+- An `event` has `id` and `selector`. A `direct_call` selector has `kind`,
+  `name`, and optional `argument_property`. A `direct_method` selector has
+  `kind`, `receiver`, and `name`. The selector kind enum is exactly
+  `direct_call | direct_method`.
+- A `transition` has `from_state`, `event`, and `to_state`. The sole
+  `violation.kind` is `prohibited_transition`, and
+  `requires_same_identity` is the literal `true`.
+- `analysis_scope.kind` is `single_file_named_function`; `entry` has
+  `kind: named_function` and `name`; `event_scope` is
+  `named_function_including_inline_callbacks`; `alias_boundary` is
+  `direct_lexical_binding`.
+
+The exact numeric limits are frozen as follows. These are contract limits and
+are separate from shared runtime budgets:
+
+| Limit | Value |
+| --- | ---: |
+| `maxStates` | 4 |
+| `maxEvents` | 4 |
+| `maxTransitions` | 8 |
+| `maxTraceEvents` | 8 |
+| `maxLocationsPerItem` | 4 |
+| `maxIdentityEvidence` | 8 |
+| `maxCapabilityGaps` | 16 |
+| `maxEvidenceRefs` | 32 |
+| `maxAllowedValues` | 32 |
+| `maxLimitations` | 8 |
+| `maxIssueCount` | 64 |
+| `maxActions` | 4 |
+| `maxRevisionHints` | 8 |
+| `maxCompactObservations` | 16 |
+| `maxIdentifierLength` | 128 |
+| `maxSelectorTextLength` | 160 |
+| `maxFileLength` | 1024 |
+| `maxIdempotencyKeyLength` | 256 |
+
+Additional scalar bounds are `states >= 2`, `events >= 1`,
+`transitions >= 1`, `start_line >= 1`, `end_line >= 1`, and
+`violation_step` in `0..7`. State ids and completeness limitation values are
+unique. The completeness limitation enum is exactly
+`cross_file_aliases_excluded | indirect_calls_excluded | reflection_excluded |
+dynamic_dispatch_excluded | framework_callbacks_excluded |
+concurrency_excluded | helper_semantics_excluded`.
+
+Every `location` has required `file` and `start_line`, with optional
+`end_line`. A validation issue has required `code` and JSON Pointer `path`,
+with optional bounded `allowed_values` (strings or booleans) and
+`expected_kind`. A validation result has required `valid`, `issues`, and
+`allowed_next_actions`, with an optional normalized `hypothesis` only when
+`valid` is true.
+
+The observation contract has exactly these top-level fields:
+
+```text
+schema_version, compile_accepted, resource, events, traces,
+fixed_resource?, fixed_events?, fixed_traces?, completeness,
+capability_gaps, evidence_refs, analyzer
+```
+
+`compile_accepted` is `true | false | not_run`. Resource and event states are
+`observed | not_found | not_run`. A trace state is
+`violating_witness | safe_trace | inconclusive | not_run`; every trace has
+`state`, `resource_id`, `events`, `identity_evidence`, and `evidence_ref`,
+with optional `violation_step`. Each trace event has `event_id`,
+`from_state`, `to_state`, and optional `location`. Identity evidence has
+`kind: same_binding | identity_change | direct_selector`, `resource_id`,
+`event_ids`, and `locations`. Completeness has a `vulnerable` boundary and an
+optional `fixed` boundary; each boundary has `status: complete | incomplete |
+not_run`, `scope`, and `limitations`. Analyzer provenance is restricted to
+`analyzer_id: codeql`, `evidence_kind: real_analyzer | test_double`, and the
+boolean `available`, with optional bounded `version` and `adapter_version`.
+
+The decision and compact-result contracts have these exact fields:
+
+- `TypestateDecision`: required `capability: typestate` and
+  `outcome: violation_observed | no_violation_observed | unknown`; differential
+  results may additionally contain `fixed_outcome` and
+  `fixed_policy_satisfied`.
+- `TypestateRevisionHint`: required `action`, `path`, and `reason_code`; the
+  action enum is exactly `revise_resource | revise_event |
+  revise_transition | revise_violation | revise_scope`. v1 has no free-form
+  constraint object; closed repair values live in validation issues.
+- `TypestateCompactObservation`: required `code`, with optional `path`,
+  `locations`, and `evidence_ref`.
+- `TypestateExecutionResult`: required `schema_version: v2.contracts/1`,
+  `run_id`, `operation_status`, `capability`, `decision`,
+  `verification_level`, `observations`, `revision_hints`,
+  `allowed_next_actions`, and `artifact_ref`; `budget_remaining` is optional.
+
+The standalone Typestate request contract has required `action`, `capability`,
+`hypothesis_version`, and `hypothesis`, plus optional `target`, `analyzer_id`,
+`mode`, `budget`, and `idempotency_key`. `action` is `validate | execute`,
+`analyzer_id` is `codeql`, and `mode` is `probe | reproduce | differential`.
+It is a Contracts-only branch in Phase B; host registration remains a later
+phase.
+
+`TypestateRunArtifact` has these required fields:
+
+```text
+schema_version, capability, hypothesis_version, hypothesis, target, mode,
+analyzer, operation_status, decision, verification_level, observations,
+revision_hints, allowed_next_actions
+```
+
+It may additionally contain `budget`, `idempotency_key`,
+`target_fingerprints`, `observation`, `decision_policy_version`, and
+`budget_remaining`. The replay comparison has exactly `schema_version`,
+`capability`, `status`, `recorded_decision`, optional `replay_decision`, and
+`observations`; its status enum is `match | environment_blocked |
+version_difference | semantic_mismatch`.
 
 ### Validation and revision
 
@@ -167,10 +308,10 @@ semantics into their domain contracts.
 - `REQ-TSTATE-021`: Every issue MUST contain a stable `code` and JSON Pointer `path`, plus `allowed_values` for closed repairs.
 - `REQ-TSTATE-022`: `validate` MUST be deterministic and side-effect free and MUST NOT create a run, call an Analyzer, or write artifacts.
 - `REQ-TSTATE-023`: Validation MUST reject duplicate ids, unknown transition endpoints, unreachable declared states where prohibited by the frozen contract, invalid initial state, unsupported violation form, missing resource identity, and unknown properties.
-- `REQ-TSTATE-024`: Counts for states, events, transitions, witness length, locations, and stored traces MUST be bounded in the accepted Schema.
+- `REQ-TSTATE-024`: Counts MUST use the exact Phase B limits: states 2–4, events 1–4, transitions 1–8, trace events and stored traces at most 8, locations per item at most 4, identity evidence per trace at most 8, capability gaps at most 16, evidence refs at most 32, validation issues at most 64, revision hints at most 8, compact observations at most 16, and closed `allowed_values` at most 32.
 - `REQ-TSTATE-025`: Envelope actions MUST remain a subset of `revise`, `execute`, `replay`, and `stop`.
-- `REQ-TSTATE-026`: Proposed revision actions MUST be frozen before acceptance and SHOULD distinguish `revise_resource`, `revise_event`, `revise_transition`, `revise_violation`, and `revise_scope`.
-- `REQ-TSTATE-027`: Every revision hint MUST contain a hypothesis JSON Pointer, stable reason code, and optional structured constraints backed by an observation or evidence ref.
+- `REQ-TSTATE-026`: Revision actions MUST be exactly `revise_resource`, `revise_event`, `revise_transition`, `revise_violation`, and `revise_scope`.
+- `REQ-TSTATE-027`: Every revision hint MUST contain a hypothesis JSON Pointer and stable reason code; closed repair values MUST be returned through bounded `allowed_values` or an observation/evidence reference.
 - `REQ-TSTATE-028`: Core MUST NOT return or automatically apply a replacement Typestate hypothesis.
 - `REQ-TSTATE-029`: Narrative protocol advice MUST NOT substitute for structured validation or revision fields.
 
@@ -240,7 +381,6 @@ TypestateHypothesis
   events[]
   transitions[]
   violation
-  identity_scope
   analysis_scope
 ```
 
@@ -267,10 +407,13 @@ Accepted SPEC. No production code is included in Phase A.
 
 ### Phase B — contracts and pure Core policy
 
-- Add the `typestate` capability literal only after acceptance.
-- Add strict hypothesis, observation, decision, revision, result-branch, and artifact Schemas.
-- Implement deterministic structural validation and trace evaluation.
-- Add tests proving Flow and MissingCheck domain types are not reused.
+- Freeze the `typestate` capability discriminator and `autovul.typestate/1`.
+- Add strict hypothesis, observation, decision, revision, result-branch,
+  artifact, and replay Schemas with the exact fields and limits above.
+- Implement deterministic structural validation and trace evaluation for the
+  one-resource Ghost protocol.
+- Add tests proving ordered identity, missing events, invalid transitions,
+  incomplete scope, and Flow/MissingCheck domain isolation.
 
 ### Phase C — one Analyzer adapter
 
@@ -329,7 +472,9 @@ Dependency direction remains unchanged. Typestate protocol state MUST never be s
 
 - Addition is gated and backward compatible.
 - Existing capabilities retain independent decisions and artifacts.
-- The aggregate tools gain a new discriminated branch only after acceptance.
+- The shared research request and operation-route contracts contain the
+  `typestate` discriminator in Phase B; model-facing aggregate tool
+  registration remains a later phase.
 - Rollback disables the branch while retaining versioned artifacts for read-only inspection.
 - No support claim is allowed before Verified.
 
@@ -393,8 +538,11 @@ protocol or a different violation form requires a separate change SPEC.
 ## Delivery gate
 
 Accepted status authorizes the narrow v1 implementation phases below. This
-admission change itself does not add production Schemas, modules, routing
-literals, adapters, host exposure, or support claims.
+admission evidence itself did not add production behavior. The current Phase B
+implementation is intentionally limited to the Typestate Contracts and pure
+Core policy authorized by this Accepted SPEC; it does not add an Analyzer
+adapter, shared-runtime route, replay executor, Pi/CLI host exposure, or
+support claim.
 
 Implementation may begin in a later change because the admission gate is
 satisfied, the protocol and Analyzer choices are frozen here, and the Flow and

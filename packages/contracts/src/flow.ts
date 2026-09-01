@@ -9,7 +9,6 @@ import {
   OperationBudgetSchema,
   OperationStatusSchema,
   ResearchActionSchema,
-  ResearchCapabilitySchema,
   TargetRefSchema,
   type TargetRef,
 } from "./research.js";
@@ -346,7 +345,7 @@ export type LegacyFlowProjectionArtifact = Static<typeof LegacyFlowProjectionArt
 export const FlowResearchToolInputSchema = Type.Object(
   {
     action: ResearchActionSchema,
-    capability: ResearchCapabilitySchema,
+    capability: Type.Literal("flow"),
     hypothesis_version: Type.Literal(FLOW_HYPOTHESIS_VERSION),
     hypothesis: Type.Unknown(),
     target: Type.Optional(

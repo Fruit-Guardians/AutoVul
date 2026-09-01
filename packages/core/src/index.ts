@@ -25,6 +25,8 @@ export { validateMissingCheckHypothesis } from "./missing-check/validate.js";
 export { decideMissingCheck, type MissingCheckDecisionProjection } from "./missing-check/decision.js";
 export { MissingCheckResearchService, missingCheckRunIdForIdempotencyKey, type MissingCheckResearchResult } from "./missing-check/service.js";
 export { MissingCheckReplayService } from "./missing-check/replay.js";
+export { validateTypestateHypothesis } from "./typestate/validate.js";
+export { decideTypestate, type TypestateDecisionProjection } from "./typestate/decision.js";
 export { projectLegacyVerificationToFlow } from "./flow/legacy-projection.js";
 export { ResearchRunService, type RunManagementResult } from "./research-run.js";
 export { RunCancellationService } from "./run-cancellation.js";
