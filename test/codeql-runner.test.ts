@@ -207,7 +207,7 @@ describe("CodeQL runner error mapping", () => {
     }
   });
 
-  it("keeps finalized database fingerprints stable across relocation and query-side directory changes", async () => {
+  it("keeps portable database fingerprints stable across relocation, rebuild time, and query-side directory changes", async () => {
     const root = await mkdtemp(join(tmpdir(), "autovul-runner-fingerprint-"));
     const first = join(root, "first");
     const relocated = join(root, "relocated");
@@ -224,6 +224,8 @@ describe("CodeQL runner error mapping", () => {
       expect((await runner.inspectDatabase(first, { timeoutMs: 1_000 })).portableFingerprint).toBe(firstFingerprint);
       expect((await runner.inspectDatabase(relocated, { timeoutMs: 1_000 })).portableFingerprint).toBe(firstFingerprint);
       await writeFile(join(relocated, "codeql-database.yml"), identity.replace("2026-08-31T00:00:00Z", "2026-08-31T00:00:01Z"), "utf8");
+      expect((await runner.inspectDatabase(relocated, { timeoutMs: 1_000 })).portableFingerprint).toBe(firstFingerprint);
+      await writeFile(join(relocated, "codeql-database.yml"), identity.replace("baselineLinesOfCode: 42", "baselineLinesOfCode: 43"), "utf8");
       expect((await runner.inspectDatabase(relocated, { timeoutMs: 1_000 })).portableFingerprint).not.toBe(firstFingerprint);
     } finally {
       await rm(root, { recursive: true, force: true });

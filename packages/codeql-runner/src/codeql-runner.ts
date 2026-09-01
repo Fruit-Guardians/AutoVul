@@ -136,10 +136,11 @@ export class CodeqlRunner implements CodeqlPort {
         sourceLocationPrefix: metadata.sourceLocationPrefix,
         modifiedAtMs: stat.modifiedAtMs,
       })),
+      // creationTime records a database build, not target content, so it must
+      // not make fresh-database replay fail.
       ...(databaseIdentity === undefined ? {} : { portableFingerprint: stableDigest(JSON.stringify({
         language: metadata.language,
         codeqlVersion,
-        creationTime: databaseIdentity.creationTime,
         buildMode: databaseIdentity.buildMode,
         baselineLinesOfCode: databaseIdentity.baselineLinesOfCode,
       })) }),
@@ -175,19 +176,17 @@ export class CodeqlRunner implements CodeqlPort {
   }
 }
 
-async function readDatabaseIdentity(filesystem: FileSystemPort, databasePath: string): Promise<{ readonly cliVersion?: string; readonly creationTime?: string; readonly buildMode?: string; readonly baselineLinesOfCode?: string } | undefined> {
+async function readDatabaseIdentity(filesystem: FileSystemPort, databasePath: string): Promise<{ readonly cliVersion?: string; readonly buildMode?: string; readonly baselineLinesOfCode?: string } | undefined> {
   const metadataPath = join(databasePath, "codeql-database.yml");
   if (!(await filesystem.exists(metadataPath))) return undefined;
   try {
     const text = await filesystem.readText(metadataPath);
     const value = (key: string): string | undefined => new RegExp(`^\\s*${key}:\\s*(.+?)\\s*$`, "m").exec(text)?.[1];
     const cliVersion = value("cliVersion");
-    const creationTime = value("creationTime");
     const buildMode = value("buildMode");
     const baselineLinesOfCode = value("baselineLinesOfCode");
     const identity = {
       ...(cliVersion === undefined ? {} : { cliVersion }),
-      ...(creationTime === undefined ? {} : { creationTime }),
       ...(buildMode === undefined ? {} : { buildMode }),
       ...(baselineLinesOfCode === undefined ? {} : { baselineLinesOfCode }),
     };
