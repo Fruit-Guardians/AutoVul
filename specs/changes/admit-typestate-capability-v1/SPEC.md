@@ -1,12 +1,12 @@
 # Change: Admit Typestate Capability v1
 
 - Change ID: `admit-typestate-capability-v1`
-- Status: Draft
+- Status: Accepted
 - Owner: AutoVul maintainers
 - Created: 2026-08-29
-- Updated: 2026-08-30
-- Admission gate: Unsatisfied
-- Depends on: `establish-research-capability-architecture` and one Verified shared-runtime Capability baseline (currently MissingCheck v1)
+- Updated: 2026-09-01
+- Admission gate: Satisfied by the Ghost CVE-2026-70594 evidence package
+- Depends on: `establish-research-capability-architecture` and the Verified Flow v1 and MissingCheck v1 shared-runtime baselines
 
 ## Problem
 
@@ -14,7 +14,7 @@ Some vulnerabilities are determined by the order in which operations affect one 
 
 Modeling these defects as Flow would confuse value propagation with lifecycle semantics. Modeling them as MissingCheck would lose transition order and object identity. Typestate is therefore a candidate parallel Capability, but it must be admitted by a real case and a real Analyzer witness before any production state-machine abstraction is introduced.
 
-This Draft defines the admission evidence, a deliberately narrow single-resource v1 proposal, implementation phases, and verification gates. It does not claim that Typestate is implemented or supported.
+This Accepted change SPEC defines the admission evidence, a deliberately narrow single-resource v1 contract candidate, implementation phases, and verification gates. It does not claim that Typestate is implemented or supported.
 
 ## Host boundary
 
@@ -29,7 +29,9 @@ AutoVul MUST NOT infer arbitrary protocols from an entire repository, invent mis
 - Root `SPEC.md` owns shared runtime, evidence, safety, and change control.
 - `establish-research-capability-architecture` owns the case-gated parallel-Capability rule.
 - Flow and MissingCheck semantics MUST NOT be reused as Typestate domain types.
-- A real-case admission record MUST be added to this SPEC before acceptance.
+- The real-case admission record is frozen in
+  [`evidence/ghost-cve-2026-70594/README.md`](./evidence/ghost-cve-2026-70594/README.md)
+  and [`evidence/ghost-cve-2026-70594/RESULTS.json`](./evidence/ghost-cve-2026-70594/RESULTS.json).
 - Candidate screening and rejected-case rationale are recorded in
   [`evidence/ADMISSION-SCREENING.md`](./evidence/ADMISSION-SCREENING.md). A screening
   record is not an admission record.
@@ -39,7 +41,7 @@ AutoVul MUST NOT infer arbitrary protocols from an entire repository, invent mis
 ### In scope
 
 - Define the evidence required to admit Typestate as a later Capability.
-- Propose one tracked resource, one bounded protocol, and one prohibited behavior for v1.
+- Freeze one tracked resource, one bounded protocol, and one prohibited behavior for v1.
 - Separate host-proposed protocol, Analyzer transition observations, and Core decision.
 - Define structured identity, alias, missing-event, ordering, and capability-gap feedback.
 - Reuse `autovul_research`, `autovul_run`, and the shared deterministic runtime.
@@ -56,7 +58,8 @@ AutoVul MUST NOT infer arbitrary protocols from an entire repository, invent mis
 - Recasting event order as taint Flow or a missing guard.
 - Automatic repair, exploit generation, Finding prose, severity scoring, or autonomous revision loops.
 - A Capability registry, generic base class, or placeholder modules for other paradigms.
-- Production Typestate code or support claims while the admission gate is unsatisfied.
+- Production Typestate code or support claims are not added by this admission
+  change; support remains blocked until a later implementation reaches Verified.
 
 ## Definitions
 
@@ -70,9 +73,11 @@ AutoVul MUST NOT infer arbitrary protocols from an entire repository, invent mis
 - **Completeness boundary**: the exact call graph, alias model, entry points, and event scope within which a negative result is meaningful.
 - **Typestate decision**: the Core verdict `violation_observed`, `no_violation_observed`, or `unknown`.
 
-## Admission gate
+## Admission gate — satisfied
 
-Before this SPEC may become Accepted, it MUST record:
+The nine admission requirements below are satisfied by the frozen Ghost case
+record. This acceptance authorizes only the narrow implementation phases in
+this SPEC; it does not claim that Typestate is implemented or supported.
 
 1. one reproducible vulnerability whose decisive fact is event order for one resource;
 2. why neither Flow nor MissingCheck can represent the case honestly;
@@ -84,7 +89,50 @@ Before this SPEC may become Accepted, it MUST record:
 8. at least two wrong-hypothesis fixtures producing different field-level revisions;
 9. a model-free replay artifact.
 
-No production Schema or module may be created until all nine items are satisfied.
+Evidence mapping and replay counts are in
+[`evidence/ghost-cve-2026-70594/RESULTS.json`](./evidence/ghost-cve-2026-70594/RESULTS.json).
+
+### Frozen admission case
+
+- Case: Ghost admin-session fixation, CVE-2026-70594 / GHSA-7mpp-r37j-x5wh.
+- Vulnerable source: commit
+  `a8bea3a4ceec4c852b880f4885119453c3d8588e`.
+- Fixed source: commit
+  `6b1c85c30dd0bacb4d5ffe64fc675ac9342d800c`.
+- Analyzer: CodeQL JavaScript `2.26.1`, database mode `none`, one staged source
+  file, no target build or install.
+- Contract candidate: `autovul.typestate/1`.
+- Resource: exactly one logical `login_session` request-session slot. Its
+  physical identity is the concrete object held by the accepted local binding.
+- States: exactly `preauth`, `rekeyed`, and `authenticated`.
+- Events: exactly `session_acquired`, `regenerate_request_session`, and
+  `assign_user`.
+- Allowed transitions: `preauth --session_acquired--> preauth`,
+  `preauth --regenerate_request_session--> rekeyed`, and
+  `rekeyed --assign_user--> authenticated`.
+- Sole violation: prohibited `preauth --assign_user--> authenticated` when the
+  authenticated value has the same concrete identity selected by
+  `session_acquired` and no direct `req.session.regenerate` event intervenes.
+- Identity boundary: the same lexical local must be initialized directly by
+  `await getSession(req, res)` and used as the `session` property of the direct
+  `assignUserToSession` call. The fixed safe trace binds the post-regeneration
+  `req.session` value directly. Cross-file aliases, indirect calls, reflection,
+  arbitrary dispatch, framework callback semantics, and concurrency are outside
+  the completeness boundary and cannot produce a positive witness.
+- Real evidence: the vulnerable query returns one ordered identity-backed
+  witness and the fixed target returns zero; the fixed safe-trace query returns
+  one ordered acquire/rekey/authenticate trace; a different-resource counterexample
+  returns zero under the identity-aware query and one under the call-order-only
+  control query; wrong resource and wrong event hypotheses return zero with
+  distinct revision paths.
+
+This case cannot be represented honestly as Flow because its decisive fact is
+ordered identity-preserving or identity-changing lifecycle behavior, not value
+propagation from a source to a sink. It cannot be represented honestly as
+MissingCheck because `regenerate` is not a dominating boolean guard: presence
+on another object or after authentication is insufficient. Encoding either
+identity and ordering relation in those capabilities would import Typestate
+semantics into their domain contracts.
 
 ## Requirements
 
@@ -100,7 +148,7 @@ No production Schema or module may be created until all nine items are satisfied
 - `REQ-TSTATE-008`: The host MUST retain protocol-hypothesis generation, revision, action selection, and stopping authority.
 - `REQ-TSTATE-009`: Typestate MUST NOT be documented as supported before Verified.
 
-### Proposed hypothesis contract
+### Frozen hypothesis contract
 
 - `REQ-TSTATE-010`: The accepted contract version MUST be `autovul.typestate/1` unless review changes it before acceptance.
 - `REQ-TSTATE-011`: A v1 hypothesis MUST describe exactly one tracked resource, one initial state, a bounded event alphabet, a bounded transition set, one violation condition, and one completeness boundary.
@@ -179,7 +227,7 @@ Host
   -> compact result + durable replay artifact
 ```
 
-Candidate hypothesis shape, not frozen while the admission gate is open:
+The frozen admission shape is:
 
 ```text
 TypestateHypothesis
@@ -196,7 +244,7 @@ TypestateHypothesis
   analysis_scope
 ```
 
-Candidate decision:
+The future Core decision branch is:
 
 ```text
 decision
@@ -212,9 +260,10 @@ decision
 - Freeze one resource identity, a small event alphabet, transitions, violation form, alias boundary, and completeness boundary.
 - Produce the vulnerable trace, fixed/safe counter-trace, and wrong-resource/wrong-event fixtures.
 - Select one Analyzer capable of ordered, identity-backed evidence.
-- Update this Draft with exact Schema enums and Golden inputs.
+- Preserve the exact Schema enums and Golden inputs in the admission record.
 
-Exit gate: all admission evidence is recorded and the revised SPEC is explicitly Accepted.
+Exit gate: satisfied on 2026-09-01 by the Ghost evidence package and this
+Accepted SPEC. No production code is included in Phase A.
 
 ### Phase B — contracts and pure Core policy
 
@@ -314,15 +363,21 @@ Dependency direction remains unchanged. Typestate protocol state MUST never be s
 - Package/integration smoke:
   - one Application API and two aggregate model tools; no host logic in Core.
 
-## Open questions
+## Resolved admission choices
 
-- Which real lifecycle vulnerability satisfies the admission gate?
-- Which single violation form should v1 support?
-- What resource identity and alias model can the selected Analyzer defend?
-- Is the required completeness boundary intraprocedural, interprocedural, or framework-specific?
-- Which Analyzer can persist a stable ordered trace across vulnerable and fixed targets?
+- Real case: Ghost admin-session fixation, CVE-2026-70594.
+- Single violation form: prohibited transition from `preauth` to
+  `authenticated` on the same concrete session identity without a direct
+  `regenerate_request_session` event.
+- Resource identity: one logical request-session slot, with direct lexical
+  binding evidence for the concrete object.
+- Completeness boundary: one named function in one staged JavaScript file,
+  including a direct regeneration call in its inline callback body; unsupported
+  aliases, dispatch, callbacks, reflection, and concurrency are gaps.
+- Analyzer: CodeQL JavaScript `2.26.1` in database mode `none`.
 
-These choices are material. This Draft MUST NOT become Accepted until they are resolved.
+These choices are frozen for the first narrow implementation. A broader
+protocol or a different violation form requires a separate change SPEC.
 
 ## Decision log
 
@@ -333,18 +388,40 @@ These choices are material. This Draft MUST NOT become Accepted until they are r
 | 2026-08-29 | Require identity-backed ordered witnesses | Text order and events on different objects are not lifecycle evidence. |
 | 2026-08-29 | Block production implementation before a real case | Required by the accepted architecture baseline. |
 | 2026-08-30 | Accept Typestate as the next research direction, while retaining Draft status | Directional approval does not satisfy the real-case admission gate or the required Verified Flow runtime baseline. |
+| 2026-09-01 | Accept the Ghost CVE-2026-70594 case for narrow Typestate v1 implementation | Real CodeQL evidence demonstrates an ordered identity-backed violating witness, a fixed safe trace, a different-resource counterexample, field-specific revisions, and model-free replay. |
 
 ## Delivery gate
 
-Draft status authorizes planning and case/fixture research only. It does not authorize production Schemas, modules, routing literals, adapters, host exposure, or support claims.
+Accepted status authorizes the narrow v1 implementation phases below. This
+admission change itself does not add production Schemas, modules, routing
+literals, adapters, host exposure, or support claims.
 
-Implementation may begin only after the admission gate is satisfied, the open protocol and Analyzer choices are frozen here, one Capability has supplied a Verified shared-runtime baseline, and this SPEC is explicitly Accepted. That baseline proves runtime behavior only; it does not import its domain semantics into Typestate.
+Implementation may begin in a later change because the admission gate is
+satisfied, the protocol and Analyzer choices are frozen here, and the Flow and
+MissingCheck Capabilities have supplied Verified shared-runtime baselines. Those
+baselines prove runtime behavior only; they do not import their domain
+semantics into Typestate.
 
 ## Verification record
 
-Complete this section before changing the status to Verified.
+This is an admission verification record, not a production implementation
+verification record.
 
-- Commands and results: Candidate screening performed on 2026-08-30. Public JavaScript/Python results inspected so far were either not established security cases with a vulnerable/fixed lifecycle trace, or required native/build-dependent analysis; none is admitted as evidence.
-- Requirement-to-evidence mapping: Pending an admitted real case and implementation.
-- Skipped or blocked checks: Production implementation remains blocked by the unsatisfied admission gate. MissingCheck v1 is the current Verified shared-runtime baseline; Flow closure remains intentionally deferred and does not block Typestate admission.
-- Remaining limitations: Typestate is not implemented or supported.
+- Commands and results: CodeQL `2.26.1` compiled all five case queries with
+  warnings as errors. `replay.sh` created isolated vulnerable, fixed, and safe
+  databases in `none` build mode and passed with counts `1/0` for the primary
+  vulnerable/fixed transition, `1/0` for fixed-safe/vulnerable-safe traces,
+  `0/1` for identity-aware/call-order-only safe analysis, and `0/0` for the
+  wrong-resource/wrong-event queries.
+- Requirement-to-evidence mapping: `REQ-TSTATE-001` through `009` map to the
+  admission gate and case rationale; `010` through `019` map to the frozen
+  protocol; `030` through `049` map to CodeQL observations, identity evidence,
+  counterexamples, and the decision projection; `050` through `059` remain
+  implementation acceptance requirements.
+- Skipped or blocked checks: Production contracts, runtime routing, Analyzer
+  Ports, host adapters, and support claims are intentionally not implemented in
+  this change. They are authorized only for the later phases and remain
+  unverified.
+- Remaining limitations: the evidence is single-file and direct-binding only;
+  unsupported aliasing, dynamic dispatch, framework semantics, and concurrency
+  remain outside the admitted boundary.

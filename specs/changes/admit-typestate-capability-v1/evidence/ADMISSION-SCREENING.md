@@ -1,6 +1,6 @@
 # Typestate v1 admission screening
 
-Status: active screening record; no candidate below is admitted as a Typestate v1 case.
+Status: completed screening record; G-001 is admitted as the Typestate v1 case.
 
 This record applies the nine-item admission gate in the parent SPEC. A candidate is not
 accepted merely because its description contains “use after close”, “double close”, or
@@ -10,7 +10,7 @@ boundary.
 
 ## Candidate under evaluation
 
-### G-001 — Ghost admin-session regeneration (CVE-2026-70594)
+### G-001 — Ghost admin-session regeneration (CVE-2026-70594) — admitted
 
 - Upstream: `TryGhost/Ghost`, MIT; vulnerable commit
   `a8bea3a4ceec4c852b880f4885119453c3d8588e`, fixed commit
@@ -20,23 +20,25 @@ boundary.
   caused by login retaining the existing admin session. The fixed revision first
   captures the previous session, calls `req.session.regenerate`, then assigns the
   user to the newly installed session object.
-- Candidate protocol: resource identity is the direct `req.session` object within
-  `createSessionForUser`; states are `preauth`, `rekeyed`, and `authenticated`;
-  events are `read_session`, `regenerate`, and `assign_user`; the frozen proposed
-  violation form is `assign_user` while the same pre-auth session identity is
-  still current.
+- Frozen protocol: one logical request-session slot; states are `preauth`,
+  `rekeyed`, and `authenticated`; events are `session_acquired`,
+  `regenerate_request_session`, and `assign_user`; the violation is the
+  prohibited `preauth -> authenticated` transition for the same concrete
+  identity without an intervening direct `req.session.regenerate` event.
 - Why it is not MissingCheck: `regenerate` is a state-changing identity rotation,
   not a boolean guard that dominates a protected call. The security predicate
   depends on authentication being bound to a different session identity after the
   transition, not merely on the syntactic presence of a call.
-- Proposed Analyzer boundary: CodeQL JavaScript with a single staged source file,
-  one direct `req.session` receiver, direct local aliases only, and no callbacks,
-  cross-function aliasing, reflection, or concurrent request reasoning. This is
-  a proposed boundary, not an Analyzer witness.
-- Remaining admission evidence: no CodeQL ordered identity witness has yet been
-  run; no wrong-resource/wrong-event fixtures or model-free replay exist. The
-  candidate is therefore **not admitted** and authorizes no Typestate production
-  Schema or implementation.
+- Analyzer boundary: CodeQL JavaScript with a single staged source file, direct
+  local binding identity, and a direct `req.session.regenerate` event, including
+  its inline callback body. Cross-file aliases, indirect calls, reflection,
+  arbitrary dispatch, framework callback semantics, and concurrency are outside
+  scope and must become capability gaps in a future adapter.
+- Evidence: the real transition witness, fixed safe trace, different-resource
+  counterexample, two wrong-hypothesis queries, source digests, and model-free
+  replay are recorded in
+  [`ghost-cve-2026-70594/README.md`](./ghost-cve-2026-70594/README.md) and
+  [`ghost-cve-2026-70594/RESULTS.json`](./ghost-cve-2026-70594/RESULTS.json).
 
 ## Rejected candidates
 
@@ -65,5 +67,8 @@ The next candidate MUST be rejected before implementation if any of these is abs
 
 ## Current outcome
 
-No candidate satisfies the parent SPEC’s admission gate. Typestate remains `Draft`; this
-file does not authorize contracts, routing, adapters, or a support claim.
+G-001 satisfies all nine admission-gate items. The parent change SPEC is now
+`Accepted`, which authorizes the later narrow v1 implementation phases. This
+screening record still does not itself add production contracts, routing,
+adapters, or a support claim; Typestate remains unimplemented until a later
+implementation change reaches `Verified`.
