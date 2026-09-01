@@ -196,6 +196,7 @@ export const FlowAnalyzerProvenanceSchema = Type.Object(
     analyzer_id: Type.Literal("codeql"),
     available: Type.Boolean(),
     version: Type.Optional(Type.String({ minLength: 1 })),
+    adapter_version: Type.Optional(Type.String({ minLength: 1 })),
   },
   { additionalProperties: false },
 );
@@ -286,7 +287,25 @@ export const FlowRunArtifactSchema = Type.Object(
     expectation: Type.Optional(FlowExpectationSchema),
     budget: Type.Optional(OperationBudgetSchema),
     idempotency_key: Type.Optional(Type.String({ minLength: 1 })),
-    analyzer: Type.Object({ analyzer_id: Type.Literal("codeql") }, { additionalProperties: false }),
+    // Historical Flow artifacts recorded only the analyzer id. Keep those
+    // readable so replay can return a precise unrecorded-version/fingerprint
+    // result, while new writes persist full provenance.
+    analyzer: Type.Object(
+      {
+        analyzer_id: Type.Literal("codeql"),
+        available: Type.Optional(Type.Boolean()),
+        version: Type.Optional(Type.String({ minLength: 1 })),
+        adapter_version: Type.Optional(Type.String({ minLength: 1 })),
+      },
+      { additionalProperties: false },
+    ),
+    target_fingerprints: Type.Optional(Type.Object(
+      {
+        vulnerable: Type.String({ pattern: "^[a-f0-9]{16}$" }),
+        fixed: Type.Optional(Type.String({ pattern: "^[a-f0-9]{16}$" })),
+      },
+      { additionalProperties: false },
+    )),
     observation: Type.Optional(FlowAnalyzerObservationSchema),
     decision_policy_version: Type.Optional(Type.String({ minLength: 1 })),
     operation_status: OperationStatusSchema,

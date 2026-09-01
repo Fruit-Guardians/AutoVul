@@ -74,6 +74,8 @@ export class CodeqlQueryRunner implements QueryExecutionPort, QueryProbeExecutio
     }
     for (const role of ["source", "sink"] as const) {
       const result = await this.executeProbeRole(request, role, probeRoot, options);
+      if (result.cancelled) throw new DomainError("PROCESS_CANCELLED", "process", `CodeQL ${role} probe was cancelled`, false, { role });
+      if (result.timedOut) throw new DomainError("PROCESS_TIMEOUT", "process", `CodeQL ${role} probe timed out`, true, { role });
       evidenceByRole[role] = result.evidence;
       diagnostics.push(...result.diagnostics);
       if (!result.passed) {

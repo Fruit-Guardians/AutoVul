@@ -3,12 +3,47 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { CodeqlMissingCheckAdapter, CodeqlRunner, NodeFileSystemPort } from "@autovul/codeql-runner";
+import { CodeqlFlowAdapter, CodeqlMissingCheckAdapter, CodeqlRunner, NodeFileSystemPort } from "@autovul/codeql-runner";
 import { DomainError } from "@autovul/contracts";
 
 import { processResult, ScriptedProcessPort } from "./helpers.js";
 
 describe("CodeQL runner error mapping", () => {
+  it("stops Flow execution when endpoint probing fails instead of inferring not_found", async () => {
+    let queryCalls = 0;
+    const adapter = new CodeqlFlowAdapter(
+      { execute: async () => { queryCalls += 1; throw new Error("query execution must not run"); } },
+      { executeProbe: async () => ({
+        schema_version: "v2.contracts/1" as const,
+        probe_id: "flow-probe-failure",
+        language: "python" as const,
+        intent_id: "flow-probe-failure",
+        status: "failed" as const,
+        source: { locations: [] },
+        sink: { locations: [] },
+        diagnostics: ["probe compilation failed"],
+        elapsed_ms: 1,
+      }) },
+    );
+    const request = {
+      model: {
+        schema_version: "autovul.flow/1" as const,
+        model_id: "flow-probe-failure",
+        language: "python" as const,
+        flow_mode: "taint" as const,
+        source: { kind: "environment" as const, name: "USER_INPUT" },
+        sink: { kind: "call_argument" as const, name: "eval", argument_index: 0 },
+      },
+      target: { vulnerable: { kind: "codeql_database" as const, path: "/db/vulnerable" } },
+      analyzer_id: "codeql" as const,
+      mode: "reproduce" as const,
+      runId: "run_flow_probe_failure" as const,
+      artifactRoot: "/runs/run_flow_probe_failure",
+    };
+    await expect(adapter.execute(request, { timeoutMs: 1_000 })).rejects.toMatchObject({ code: "PROBE_FAILED" });
+    expect(queryCalls).toBe(0);
+  });
+
   it("rejects MissingCheck version gaps and unreadable SARIF instead of returning complete not_run", async () => {
     const root = await mkdtemp(join(tmpdir(), "autovul-mcheck-adapter-"));
     try {

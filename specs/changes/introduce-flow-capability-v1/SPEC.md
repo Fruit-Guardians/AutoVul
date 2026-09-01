@@ -1,7 +1,7 @@
 # Change: Introduce Flow Capability v1
 
 - Change ID: `introduce-flow-capability-v1`
-- Status: Implemented
+- Status: Archived
 - Owner: AutoVul maintainers
 - Created: 2026-08-28
 - Updated: 2026-08-28
@@ -497,12 +497,23 @@ No product-level open question is intentionally deferred by this Draft. Review m
 | 2026-08-28 | Use one top-level `decision` field | Parallel verdict fields would create conflicting sources of truth. |
 | 2026-08-28 | Retain `codeql_database` as compatibility surface | Database inspection remains useful but is not a third primary research action. |
 | 2026-08-28 | Require actionable no-flow feedback | Without it, Flow v1 would only rename the existing query intent. |
+| 2026-09-01 | Verify the real Flow matrix and aggregate Pi path | All 20 four-language vulnerable/fixed cases, relocated fresh-process replay, and aggregate Pi validate/execute/replay passed. |
+| 2026-09-01 | Merge stable Flow behavior into root SPEC v1.4 and archive this change | The root SPEC is now the normative supported-behavior source. |
 
 ## Verification record
 
-Complete this section before changing the status to Verified.
+The full per-requirement record is [VERIFICATION.md](./VERIFICATION.md).
 
-- Commands and results: `npm run typecheck`, `npm run lint`, focused Flow architecture/decision/Pi tests, and the baseline package checks passed during implementation. The real Flow-specific analyzer suite has not yet been run as an acceptance gate.
-- Requirement-to-evidence mapping: contracts and shared routing are covered by `test/research-architecture.test.ts`, Flow policy by `test/flow-decision.test.ts`, aggregate Pi registration by `test/pi-extension.test.ts`, and legacy CodeQL-to-Flow projection by `test/m3-workflow.test.ts`; architecture constraints are asserted by `test/check-architecture.mjs`.
-- Skipped or blocked checks: real Flow-path CodeQL Golden/differential/relocated replay, aggregate Pi RPC E2E, and approved-model evaluation remain pending. Historical CodeQL Golden output MUST NOT be treated as Flow-path evidence.
-- Remaining limitations: Flow Capability support MUST NOT be claimed until this change is Verified.
+- Real Analyzer gate: `test:flow-golden-real` passed all 20 vulnerable/fixed
+  cases across Python, JavaScript, Java and C/C++ with CodeQL 2.26.1. Every
+  case returned vulnerable `connected`, fixed `no_path`, `differential`, and
+  the same result from a fresh process using a relocated runs root.
+- Portable evidence: `evidence/flow-v1-real-matrix/RESULTS.json` records fixture
+  tree hashes, target fingerprints, exact Analyzer/adapter versions, generated
+  QL/SARIF hashes, normalized observations and replay results.
+- Aggregate host gate: `test:flow-pi-e2e` passed Pi RPC validation, real
+  differential execution, `autovul_run` replay and terminal UI rendering.
+- Approved-model evaluation was not run and is not needed for the deterministic
+  support claim; no model-behavior success is claimed.
+- Stable behavior is merged into root `SPEC.md` v1.4. The change passed
+  `Verified` and is now `Archived`.

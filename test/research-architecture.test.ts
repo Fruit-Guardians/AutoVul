@@ -27,7 +27,7 @@ function observation(overrides: Partial<FlowAnalyzerObservation> = {}): FlowAnal
     path: { state: "not_observed", path_count: 0 },
     capability_gaps: [],
     evidence_refs: ["flow.json"],
-    analyzer: { analyzer_id: "codeql", available: true },
+    analyzer: { analyzer_id: "codeql", available: true, version: "CodeQL CLI version 2.26.1", adapter_version: "autovul.codeql-flow/1" },
     ...overrides,
   };
 }
@@ -76,11 +76,11 @@ class InterruptedAfterResearchPromotionStore extends MemoryArtifactStore {
   }
 }
 
-function application(flow: FlowExecutionPort, artifacts = new MemoryArtifactStore(), runId = "run_flow01") {
+function application(flow: FlowExecutionPort, artifacts = new MemoryArtifactStore(), runId = "run_flow01", codeql = new FakeCodeqlPort()) {
   return {
     artifacts,
     app: new Application({
-      codeql: new FakeCodeqlPort(),
+      codeql,
       artifacts,
       clock: new FixedClock(),
       ids: new FixedIdGenerator(runId),
@@ -193,8 +193,12 @@ describe("research capability architecture", () => {
     const status = await app.manageRun({ action: "status", run_id: result.run_id });
     expect(status).toMatchObject({ runId: result.run_id, status: "failed" });
     const replayed = await app.manageRun({ action: "replay", run_id: result.run_id });
-    expect(replayed).toMatchObject({ operation_status: "blocked", decision: { outcome: "unknown" } });
-    expect(flow.requests).toHaveLength(2);
+    expect(replayed).toMatchObject({
+      operation_status: "completed",
+      decision: { outcome: "unknown" },
+      observations: [{ code: "FLOW_REPLAY_ANALYZER_VERSION_UNRECORDED" }],
+    });
+    expect(flow.requests).toHaveLength(1);
     await app.close();
   });
 
@@ -216,6 +220,47 @@ describe("research capability architecture", () => {
       idempotency_key: "flow-adapter-timeout",
     }) as ResearchExecutionResult;
     expect(result).toMatchObject({ operation_status: "failed", observations: [{ code: "FLOW_ANALYZER_TIMEOUT" }] });
+    await app.close();
+  });
+
+  it("maps a failed endpoint probe to FLOW_PROBE_FAILED", async () => {
+    const flow = new ScriptedFlowPort(() => {
+      throw new DomainError("PROBE_FAILED", "process", "endpoint probe failed", false);
+    });
+    const { app } = application(flow);
+    const result = await app.research({
+      action: "execute",
+      capability: "flow",
+      hypothesis_version: "autovul.flow/1",
+      hypothesis: model,
+      analyzer_id: "codeql",
+      mode: "reproduce",
+      target: { vulnerable: { kind: "codeql_database", path: "/isolated/db" } },
+      expectation: { vulnerable: { min_paths: 1, max_paths: 1 } },
+      budget: { timeout_ms: 5_000 },
+      idempotency_key: "flow-probe-failed",
+    }) as ResearchExecutionResult;
+    expect(result).toMatchObject({ operation_status: "failed", observations: [{ code: "FLOW_PROBE_FAILED" }] });
+    await app.close();
+  });
+
+  it("blocks execution when the requested target fingerprint differs", async () => {
+    const flow = new ScriptedFlowPort(() => observation());
+    const { app } = application(flow);
+    const result = await app.research({
+      action: "execute",
+      capability: "flow",
+      hypothesis_version: "autovul.flow/1",
+      hypothesis: model,
+      analyzer_id: "codeql",
+      mode: "reproduce",
+      target: { vulnerable: { kind: "codeql_database", path: "/isolated/db", expected_fingerprint: "fedcba9876543210" } },
+      expectation: { vulnerable: { min_paths: 1, max_paths: 1 } },
+      budget: { timeout_ms: 5_000 },
+      idempotency_key: "flow-target-fingerprint-mismatch",
+    }) as ResearchExecutionResult;
+    expect(result).toMatchObject({ operation_status: "blocked", observations: [{ code: "FLOW_TARGET_FINGERPRINT_MISMATCH" }] });
+    expect(flow.requests).toHaveLength(0);
     await app.close();
   });
 
@@ -276,7 +321,7 @@ describe("research capability architecture", () => {
       path: { state: "not_observed", path_count: 0 },
       capability_gaps: [],
       evidence_refs: [],
-      analyzer: { analyzer_id: "codeql", available: true },
+      analyzer: { analyzer_id: "codeql", available: true, version: "CodeQL CLI version 2.26.1", adapter_version: "autovul.codeql-flow/1" },
       unexpected: true,
     }) as unknown as FlowAnalyzerObservation);
     const { app, artifacts } = application(malformed);
@@ -391,7 +436,7 @@ describe("research capability architecture", () => {
 
   it("replays a committed Flow artifact without calling a model", async () => {
     const flow = new ScriptedFlowPort(() => observation());
-    const { app } = application(flow);
+    const { app, artifacts } = application(flow);
     const executed = await app.research({
       action: "execute",
       capability: "flow",
@@ -412,6 +457,47 @@ describe("research capability architecture", () => {
       verification_level: "compiled",
     });
     expect(flow.requests).toHaveLength(2);
+    const artifact = JSON.parse(await artifacts.readArtifact(executed.run_id, "research/flow/result.json") ?? "null");
+    expect(artifact).toMatchObject({
+      target_fingerprints: { vulnerable: "0123456789abcdef" },
+      analyzer: { version: "CodeQL CLI version 2.26.1", adapter_version: "autovul.codeql-flow/1" },
+    });
+    await app.close();
+  });
+
+  it("blocks replay before Analyzer execution when the target fingerprint changes", async () => {
+    const flow = new ScriptedFlowPort(() => observation());
+    const codeql = new FakeCodeqlPort();
+    const { app } = application(flow, new MemoryArtifactStore(), "run_flow_fingerprint_replay", codeql);
+    const executed = await app.research({
+      action: "execute", capability: "flow", hypothesis_version: "autovul.flow/1", hypothesis: model,
+      analyzer_id: "codeql", mode: "reproduce", target: { vulnerable: { kind: "codeql_database", path: "/isolated/db" } },
+      expectation: { vulnerable: { min_paths: 1, max_paths: 1 } }, budget: { timeout_ms: 5_000 }, idempotency_key: "flow-fingerprint-replay",
+    }) as ResearchExecutionResult;
+    codeql.database = { ...codeql.database, fingerprint: "fedcba9876543210", portableFingerprint: "fedcba9876543210" };
+    const replayed = await app.manageRun({ action: "replay", run_id: executed.run_id });
+    expect(replayed).toMatchObject({ operation_status: "blocked", observations: [{ code: "FLOW_REPLAY_FINGERPRINT_DIFFERENCE" }] });
+    expect(flow.requests).toHaveLength(1);
+    await app.close();
+  });
+
+  it("downgrades replay when the Analyzer or adapter version differs", async () => {
+    let calls = 0;
+    const flow = new ScriptedFlowPort(() => {
+      calls += 1;
+      return observation(calls === 1 ? {} : { analyzer: { analyzer_id: "codeql", available: true, version: "CodeQL CLI version 2.27.0", adapter_version: "autovul.codeql-flow/2" } });
+    });
+    const { app } = application(flow);
+    const executed = await app.research({
+      action: "execute", capability: "flow", hypothesis_version: "autovul.flow/1", hypothesis: model,
+      analyzer_id: "codeql", mode: "reproduce", target: { vulnerable: { kind: "codeql_database", path: "/isolated/db" } },
+      expectation: { vulnerable: { min_paths: 1, max_paths: 1 } }, budget: { timeout_ms: 5_000 }, idempotency_key: "flow-version-replay",
+    }) as ResearchExecutionResult;
+    const replayed = await app.manageRun({ action: "replay", run_id: executed.run_id });
+    expect(replayed).toMatchObject({
+      operation_status: "completed", decision: { outcome: "unknown" }, verification_level: "generated",
+      observations: [{ code: "FLOW_REPLAY_ANALYZER_VERSION_DIFFERENCE" }],
+    });
     await app.close();
   });
 

@@ -1,8 +1,8 @@
 # AutoVul V2 Product Specification
 
 - Status: Accepted baseline
-- Version: 1.3
-- Last updated: 2026-08-31
+- Version: 1.4
+- Last updated: 2026-09-01
 
 ## 1. Purpose
 
@@ -19,6 +19,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-SCOPE-003`: The system MUST expose the same deterministic Application behavior through Pi Extension and CLI adapters.
 - `REQ-SCOPE-004`: The system MUST produce persisted run state and replayable Query Pack artifacts.
 - `REQ-SCOPE-005`: The system MUST support verified MissingCheck v1 research for the frozen JavaScript direct-call/dominance case family through the aggregate research/run APIs, subject to its declared single-file named-entry completeness boundary and recorded limitations.
+- `REQ-SCOPE-006`: The system MUST support verified Flow v1 research for the accepted Python, JavaScript, Java and C/C++ language families through the aggregate research/run APIs, with real Source/Sink probes, vulnerable/fixed differential analysis and model-free replay.
 
 ### 2.2 Extensible product direction
 
@@ -74,7 +75,22 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-CODEQL-005`: When a fixed database is supplied for differential verification, the fixed-side result MUST satisfy the declared validation policy.
 - `REQ-CODEQL-006`: A finalized Query Pack MUST be independently replayable without a model and without reading mutable state from the originating run.
 
-### 5.1 MissingCheck v1
+### 5.1 Flow v1
+
+- `REQ-FLOW-ROOT-001`: Flow v1 MUST remain an independent Research Capability with contract version `autovul.flow/1`, exactly one Source, exactly one Sink, the closed `taint | value` flow-mode set, optional directed steps, and optional barriers. It MUST NOT absorb target, Analyzer, budget, evidence, presentation or host fields into FlowModel.
+- `REQ-FLOW-ROOT-002`: Flow endpoints MUST preserve the accepted semantic matcher kinds and selectors without exposing QL syntax or CodeQL SDK types. Unsupported endpoint, step or barrier semantics MUST produce a capability gap and MUST NOT be ignored, guessed or weakened.
+- `REQ-FLOW-ROOT-003`: Flow execution MUST use only `probe`, `reproduce` and `differential`. Probe MUST NOT claim reproduction; reproduce MUST require a vulnerable target and bounded vulnerable path expectation; differential MUST also require a fixed target and bounded fixed policy.
+- `REQ-FLOW-ROOT-004`: The CodeQL adapter MUST separately record compile acceptance, Source state, Sink state, vulnerable/fixed path state, bounded locations, capability gaps, evidence references, and exact Analyzer/adapter provenance. A failed or incomplete endpoint probe MUST remain distinct from a successful `not_found` observation.
+- `REQ-FLOW-ROOT-005`: Core MUST be the sole writer of the Flow decision and verification level. The decision MUST be under one `decision` object with `capability: flow`, an outcome of `connected | no_path | unknown`, and optional fixed outcome/policy fields; it MUST NOT create a parallel Flow verdict.
+- `REQ-FLOW-ROOT-006`: A reproduced result MUST require an observed vulnerable-side path satisfying the declared Flow expectation. A differential result MUST additionally require the fixed-side policy to pass. Compile-only, probe-only, failed, blocked, cancelled, timed-out and fake-adapter results MUST NOT exceed their committed evidence strength, and Flow v1 MUST NOT produce `variant_validated`.
+- `REQ-FLOW-ROOT-007`: A completed no-path result MUST distinguish Source missing, Sink missing, both endpoints observed without a path, and capability mismatch through bounded structured observations and evidence-backed field-level revision hints; Core MUST NOT automatically apply those hints.
+- `REQ-FLOW-ROOT-008`: A successful Flow artifact MUST bind target references to portable database fingerprints, exact CodeQL and Flow-adapter versions, the Flow Decision Policy version, normalized observations and run-relative evidence before the result becomes authoritative.
+- `REQ-FLOW-ROOT-009`: Flow replay MUST validate portable target fingerprints and exact Analyzer/adapter versions before preserving the original evidence level. It MUST distinguish unrecorded or different fingerprints, unrecorded or different versions, environment block, cancellation and semantic mismatch.
+- `REQ-FLOW-ROOT-010`: The verified Flow Golden MUST cover the accepted 20 vulnerable/fixed fixtures across Python, JavaScript, Java and C/C++, retain fixture tree hashes, target fingerprints, query/SARIF hashes and Analyzer provenance, and reproduce the same differential results from a fresh process with a relocated runs root.
+- `REQ-FLOW-ROOT-011`: Flow MUST remain reachable through aggregate `autovul_research` and `autovul_run`; Pi and CLI MUST route those entries through the shared Application API. The host retains capability selection, hypothesis creation/revision, action selection and stopping authority.
+- `REQ-FLOW-ROOT-012`: The public `TaintQueryIntent`, existing `codeql_*` compatibility tools, historical Query Packs and accepted Flow semantics MUST remain readable and usable. Compatibility projection MUST use the same Flow validation and Decision Policy and MUST reject mappings that would lose semantics.
+
+### 5.2 MissingCheck v1
 
 - `REQ-MCHECK-ROOT-001`: MissingCheck v1 MUST remain an independent Research Capability for one protected direct call, one required direct check, and the closed `same_callback_cfg_dominates_operation` relation. It MUST NOT reuse Flow domain types or taint semantics.
 - `REQ-MCHECK-ROOT-002`: Its hypothesis contract MUST be `autovul.missing-check/1` and MUST declare one `single_file_named_entry_cfg` scope containing a relative file and a `named_function` entry selector.
@@ -138,7 +154,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-COMPAT-002`: Current accepted platform behavior is the tested POSIX/macOS path. Windows support MUST NOT be claimed until process-tree cleanup, paths and CI gates are implemented and verified.
 - `REQ-COMPAT-003`: Current database operations are inspection and validation. Automatic database creation or execution of target build scripts MUST NOT be claimed as implemented.
 - `REQ-COMPAT-004`: The Python V1 runtime is outside this isolated TypeScript workspace and MUST NOT be silently imported as a V2 dependency.
-- `REQ-COMPAT-005`: Flow is the first architecture Capability, but it MUST NOT be documented as supported until its own accepted change SPEC is Verified by its real Analyzer, Golden, differential and replay gates.
+- `REQ-COMPAT-005`: Flow v1 and MissingCheck v1 are the currently verified Research Capabilities. Typestate, Delta and Variant remain unsupported until their own accepted implementation and real-evidence gates pass.
 
 ## 11. Baseline acceptance gates
 

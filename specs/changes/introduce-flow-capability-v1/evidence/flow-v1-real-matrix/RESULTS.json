@@ -1,0 +1,4718 @@
+{
+  "schema_version": "autovul.flow.golden.real/1",
+  "selected_case": null,
+  "passed": true,
+  "cases": [
+    {
+      "case_id": "java_path_traversal",
+      "language": "java",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/PathTraversal.java",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/PathTraversal.java",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-java_path_traversal"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/PathTraversal.java",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/PathTraversal.java",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-java_path_traversal"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "java_path_traversal",
+        "language": "java",
+        "inputs": {
+          "fixture_root": "java_path_traversal",
+          "vulnerable_tree_sha256": "7d4613133cb64395c9a6971122e0a10d944e32b07befd7e2ebf969e24d969531",
+          "fixed_tree_sha256": "2acaf67a6e635efa8bbde21c99b8b018bcbff1e8105db75b250fe275be9a6ea0"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-java_path_traversal",
+          "language": "java",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "call",
+            "type": "java.lang.System",
+            "member": "getenv"
+          },
+          "sink": {
+            "kind": "constructor",
+            "type": "java.io.File",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "0abba6634d0c8414",
+          "fixed": "52b92024d61f4249"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/PathTraversal.java",
+                "start_line": 5
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/PathTraversal.java",
+                "start_line": 6
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-java_path_traversal/fixed.sarif",
+            "sha256": "f10cc821bd30d48c39f123f87404d9d4894a7e319a75050c4390452bafa3b60b"
+          },
+          {
+            "ref": "candidates/golden-java_path_traversal/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "candidates/golden-java_path_traversal/query.ql",
+            "sha256": "a5a92adb153832c2a3a695c663d8ada33fb48da138878161e4b866c8ff7e72b4"
+          },
+          {
+            "ref": "candidates/golden-java_path_traversal/vulnerable.sarif",
+            "sha256": "448f2b6c10d9e50371ef07635bd4c613f225e111648b321be625e0ec6ce405aa"
+          },
+          {
+            "ref": "probes/golden-java_path_traversal/sink/probe.sarif",
+            "sha256": "f87ba96823960f73fd1e596824eab78ae26492828027b604edcf3e3c153e5481"
+          },
+          {
+            "ref": "probes/golden-java_path_traversal/sink/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "probes/golden-java_path_traversal/sink/query.ql",
+            "sha256": "6f64ad04404513e429df10c64b057c986c394ab7c50dc794b49bd496f239f5d9"
+          },
+          {
+            "ref": "probes/golden-java_path_traversal/source/probe.sarif",
+            "sha256": "459b22655649fb9466c03710e87428ce9bb2ed585b0ada4ec13b516e8905e4d3"
+          },
+          {
+            "ref": "probes/golden-java_path_traversal/source/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "probes/golden-java_path_traversal/source/query.ql",
+            "sha256": "bbf6dc48737fb82f2e7f64e48545c3a9223abf38ebfd31753e826f20612122bd"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/PathTraversal.java",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/PathTraversal.java",
+                    "start_line": 6
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-java_path_traversal"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "python_command_injection",
+      "language": "python",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-python_command_injection"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-python_command_injection"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "python_command_injection",
+        "language": "python",
+        "inputs": {
+          "fixture_root": "python_command_injection",
+          "vulnerable_tree_sha256": "a536fb957b58d4c85938f173040b950a9fc7731cdf41574803bae8d2bfa0ec84",
+          "fixed_tree_sha256": "6b99ddc5ee4d807bdec8d8245522905bd8200706cd56554f45f63a1bc1331dec"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-python_command_injection",
+          "language": "python",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "environment",
+            "name": "getenv"
+          },
+          "sink": {
+            "kind": "call",
+            "module": "os",
+            "member": "system",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "0fa8b3e616e8c4af",
+          "fixed": "25920f40d332a575"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 5
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-python_command_injection/fixed.sarif",
+            "sha256": "ebfcc28c80853303abb293211c285ecc2ac0265ba5041a1b27d05293f1b39046"
+          },
+          {
+            "ref": "candidates/golden-python_command_injection/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "candidates/golden-python_command_injection/query.ql",
+            "sha256": "8839391adb13d7c253729568b78d50bf8abc2e4c564640e68b73265b42c9ea5a"
+          },
+          {
+            "ref": "candidates/golden-python_command_injection/vulnerable.sarif",
+            "sha256": "acb243fe0f1ddd3238820cc9a7d92a106128ff4599f88381929bd8113009c906"
+          },
+          {
+            "ref": "probes/golden-python_command_injection/sink/probe.sarif",
+            "sha256": "020f6c0d1cf5ba064b95e654351e90bc7a9dfb1853eecbde5643331992c8a3ad"
+          },
+          {
+            "ref": "probes/golden-python_command_injection/sink/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "probes/golden-python_command_injection/sink/query.ql",
+            "sha256": "5f1bda56982b5d5400f3ebc71ce282aa3f0163c71ce91997c1235400d0e9fdca"
+          },
+          {
+            "ref": "probes/golden-python_command_injection/source/probe.sarif",
+            "sha256": "318a337b4c2339e2b83f81fc52c6695aa281a523b242b289beeac4654353b3dd"
+          },
+          {
+            "ref": "probes/golden-python_command_injection/source/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "probes/golden-python_command_injection/source/query.ql",
+            "sha256": "275588b9476e81ccf29901a23ae21d99f72ab6136de0cdc4af024f5084054bf5"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.py",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.py",
+                    "start_line": 6
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-python_command_injection"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "cpp_buffer_overflow",
+      "language": "cpp",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 6
+              },
+              {
+                "file": "src/app.c",
+                "start_line": 7
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-cpp_buffer_overflow"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 6
+              },
+              {
+                "file": "src/app.c",
+                "start_line": 7
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-cpp_buffer_overflow"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "cpp_buffer_overflow",
+        "language": "cpp",
+        "inputs": {
+          "fixture_root": "cpp_buffer_overflow",
+          "vulnerable_tree_sha256": "0559274dec3722670838653aceaaa6342e49daa93ae4e63c5c29e9769970231c",
+          "fixed_tree_sha256": "16a5e245076fff9878248c2eb87c9368d7706e1b60e3505342599e2690e3495a"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-cpp_buffer_overflow",
+          "language": "cpp",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "function",
+            "name": "atoi"
+          },
+          "sink": {
+            "kind": "array_index"
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "d990be9d107a42ae",
+          "fixed": "ec41c12e486e4a59"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 5
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 6
+              },
+              {
+                "file": "src/app.c",
+                "start_line": 7
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-cpp_buffer_overflow/fixed.sarif",
+            "sha256": "8fe48c90d21fa460740615c418e69731b6dde4717f2434b4c91243c1ba6ce5d5"
+          },
+          {
+            "ref": "candidates/golden-cpp_buffer_overflow/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "candidates/golden-cpp_buffer_overflow/query.ql",
+            "sha256": "be7bcc9ebc7d1b77c82197555fa03304885b5af17c77b07fcff698881a54c4bc"
+          },
+          {
+            "ref": "candidates/golden-cpp_buffer_overflow/vulnerable.sarif",
+            "sha256": "7f092baa8fc11165b45ff1215d7a3ee9d13f312c002c94dda4e783786a8d1484"
+          },
+          {
+            "ref": "probes/golden-cpp_buffer_overflow/sink/probe.sarif",
+            "sha256": "4a32ba1c8caeb9f1faf2657db9e45a3d27b7c797b6ef093480ef248eea0a0397"
+          },
+          {
+            "ref": "probes/golden-cpp_buffer_overflow/sink/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "probes/golden-cpp_buffer_overflow/sink/query.ql",
+            "sha256": "2644f5f3129530fab6b8a55958e5288dd55a7c083d3c1526a44d4829dd33bbc7"
+          },
+          {
+            "ref": "probes/golden-cpp_buffer_overflow/source/probe.sarif",
+            "sha256": "ba9049017a13cb7065a12499b8939d413b82b90eb0caa4b27b5ae7c13784b916"
+          },
+          {
+            "ref": "probes/golden-cpp_buffer_overflow/source/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "probes/golden-cpp_buffer_overflow/source/query.ql",
+            "sha256": "850b1c03b5e7ed30522d133e3f89257c9bb8db2c6aab2846beecf0c80fef7a52"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.c",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.c",
+                    "start_line": 6
+                  },
+                  {
+                    "file": "src/app.c",
+                    "start_line": 7
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-cpp_buffer_overflow"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "javascript_command_injection",
+      "language": "javascript",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-javascript_command_injection"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-javascript_command_injection"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "javascript_command_injection",
+        "language": "javascript",
+        "inputs": {
+          "fixture_root": "javascript_command_injection",
+          "vulnerable_tree_sha256": "bd1b32de6c63cee38932b81d085d29a446b16ea44b38c24d8203d369f1f36bc1",
+          "fixed_tree_sha256": "867b166785b56e02ced3a71a463ff2392f152686a2a2b5d55d846acf5fbf74ca"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-javascript_command_injection",
+          "language": "javascript",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "environment",
+            "name": "env.USER_COMMAND"
+          },
+          "sink": {
+            "kind": "call",
+            "module": "child_process",
+            "member": "exec",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "b2e3db962a14a4bb",
+          "fixed": "217b58d3ec1e1584"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-javascript_command_injection/fixed.sarif",
+            "sha256": "c857fd4edf156dad2b88884a15551475c4140feaa71e1f2ccfa36dc84f7a1aaa"
+          },
+          {
+            "ref": "candidates/golden-javascript_command_injection/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "candidates/golden-javascript_command_injection/query.ql",
+            "sha256": "0b37e9f5ac16610aed41e3e16e1afe5c61db5fa3831122aa9ec2d58bbabb15b7"
+          },
+          {
+            "ref": "candidates/golden-javascript_command_injection/vulnerable.sarif",
+            "sha256": "79ab592a50debf8a86b72c95004d22b1cfccc9b58ce48e369a3a5829bee7b4be"
+          },
+          {
+            "ref": "probes/golden-javascript_command_injection/sink/probe.sarif",
+            "sha256": "6535cdd11d20ba13741371249ad5607ae63c5cf67e7d005aaba5dd135b540623"
+          },
+          {
+            "ref": "probes/golden-javascript_command_injection/sink/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "probes/golden-javascript_command_injection/sink/query.ql",
+            "sha256": "f209792b478edcb47c4264129f1329bde9396ff5c84b62ad868d0bc9071583f3"
+          },
+          {
+            "ref": "probes/golden-javascript_command_injection/source/probe.sarif",
+            "sha256": "f0d515678765b389093596b130f0a33b4abfcd570bcb9f8fc1622c710f76b7d6"
+          },
+          {
+            "ref": "probes/golden-javascript_command_injection/source/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "probes/golden-javascript_command_injection/source/query.ql",
+            "sha256": "38e5d0a8107039069d7d353312f07a4f593e589217aae49c250c6401cb072133"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.js",
+                    "start_line": 4
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.js",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-javascript_command_injection"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "python_sql_injection",
+      "language": "python",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 7
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-python_sql_injection"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 7
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-python_sql_injection"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "python_sql_injection",
+        "language": "python",
+        "inputs": {
+          "fixture_root": "python_sql_injection",
+          "vulnerable_tree_sha256": "e63954d13b466aad8656964edca94fcc9e1a16765ac3dff051f80e853944e16b",
+          "fixed_tree_sha256": "c13bcf4090950156b5645fb6f7840cb9aeaac7e83bbd74edf7bf8ecff430f84e"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-python_sql_injection",
+          "language": "python",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "environment",
+            "name": "getenv"
+          },
+          "sink": {
+            "kind": "call",
+            "module": "sqlite3",
+            "member": "connect",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "54683c033b2510d4",
+          "fixed": "5f5fdd9b2ff93abc"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 7
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-python_sql_injection/fixed.sarif",
+            "sha256": "ac471eca8d1b541bc2e47f48afe5f2bed27b7eacf8cffb0a2f57b31281b4c10e"
+          },
+          {
+            "ref": "candidates/golden-python_sql_injection/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "candidates/golden-python_sql_injection/query.ql",
+            "sha256": "9fb90c40335b341607cce6c5b3a9420ae6b03707142e9a698c029981f13d7f34"
+          },
+          {
+            "ref": "candidates/golden-python_sql_injection/vulnerable.sarif",
+            "sha256": "11f3d7013cebc546d05c867e9ee0dbbf0daad1e77c30687063e3a19bfd72be6d"
+          },
+          {
+            "ref": "probes/golden-python_sql_injection/sink/probe.sarif",
+            "sha256": "9c23e66f2514106b9c0d0519bcff306e2a8ae763a420f75d4f853cb8bc83118e"
+          },
+          {
+            "ref": "probes/golden-python_sql_injection/sink/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "probes/golden-python_sql_injection/sink/query.ql",
+            "sha256": "fdea8dba66cd986158eb33aef9f2c1b0d1003638a5284352f2805fa166dc5264"
+          },
+          {
+            "ref": "probes/golden-python_sql_injection/source/probe.sarif",
+            "sha256": "024066dd9426608bde200b830a407ce9dc92320de9be3ed2d936914366363bc1"
+          },
+          {
+            "ref": "probes/golden-python_sql_injection/source/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "probes/golden-python_sql_injection/source/query.ql",
+            "sha256": "275588b9476e81ccf29901a23ae21d99f72ab6136de0cdc4af024f5084054bf5"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.py",
+                    "start_line": 6
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.py",
+                    "start_line": 7
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-python_sql_injection"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "java_command_injection",
+      "language": "java",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/CommandInjection.java",
+                "start_line": 3
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/CommandInjection.java",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-java_command_injection"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/CommandInjection.java",
+                "start_line": 3
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/CommandInjection.java",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-java_command_injection"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "java_command_injection",
+        "language": "java",
+        "inputs": {
+          "fixture_root": "java_command_injection",
+          "vulnerable_tree_sha256": "ebe930f90bb463dbed12150ab790eba71c7480b85af529f1ef819248de0e01f2",
+          "fixed_tree_sha256": "76dc445e5555b1581604cf581914db8d68354807c0bc80d9febcbbf6310452f3"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-java_command_injection",
+          "language": "java",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "call",
+            "type": "java.lang.System",
+            "member": "getenv"
+          },
+          "sink": {
+            "kind": "call",
+            "type": "java.lang.Runtime",
+            "member": "exec",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "629458b2602b0a07",
+          "fixed": "83ed1a0faf709410"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/CommandInjection.java",
+                "start_line": 3
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/CommandInjection.java",
+                "start_line": 4
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-java_command_injection/fixed.sarif",
+            "sha256": "2fe5343b9863d731c9b56fdbc421d897cbd2cdad9a87d6bdaa6715cf8c351c37"
+          },
+          {
+            "ref": "candidates/golden-java_command_injection/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "candidates/golden-java_command_injection/query.ql",
+            "sha256": "9ac1e0b522681d58b080db0556d504ec3a3f0f4a64597c03310fafcac9017c74"
+          },
+          {
+            "ref": "candidates/golden-java_command_injection/vulnerable.sarif",
+            "sha256": "b6ce6379df61cb5f87dbe3326418417b66c0ab0d4744c8c02916bf29845e08df"
+          },
+          {
+            "ref": "probes/golden-java_command_injection/sink/probe.sarif",
+            "sha256": "4a5739f5130c581e53f39adb977d9f50a332a1908a062de22b2f788368fa7566"
+          },
+          {
+            "ref": "probes/golden-java_command_injection/sink/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "probes/golden-java_command_injection/sink/query.ql",
+            "sha256": "13e4229f6b5f98e9d419ecf5723b43e79bf2ff62984968c0d17484a44b402e6c"
+          },
+          {
+            "ref": "probes/golden-java_command_injection/source/probe.sarif",
+            "sha256": "8591fe09d4ce96cc6d0ddaf461d35831de320203aa8d90d1112b774f58ce6d50"
+          },
+          {
+            "ref": "probes/golden-java_command_injection/source/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "probes/golden-java_command_injection/source/query.ql",
+            "sha256": "bbf6dc48737fb82f2e7f64e48545c3a9223abf38ebfd31753e826f20612122bd"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/CommandInjection.java",
+                    "start_line": 3
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/CommandInjection.java",
+                    "start_line": 4
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-java_command_injection"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "cpp_command_injection",
+      "language": "cpp",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-cpp_command_injection"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-cpp_command_injection"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "cpp_command_injection",
+        "language": "cpp",
+        "inputs": {
+          "fixture_root": "cpp_command_injection",
+          "vulnerable_tree_sha256": "257a30c059e089f4e6ac769c8d61f2f73b91b36b29723942cb0ac5658e9edb9e",
+          "fixed_tree_sha256": "9c4320e003ba8b766b295250ce76371de92b3afb6b1513ce09425d241ed638f1"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-cpp_command_injection",
+          "language": "cpp",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "function",
+            "name": "getenv"
+          },
+          "sink": {
+            "kind": "function",
+            "name": "system",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "8334c7ef0dc3ddd0",
+          "fixed": "1ac4f977de67fb50"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 4
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 5
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-cpp_command_injection/fixed.sarif",
+            "sha256": "27bbbaba41a857a860b2b2ff45c235bad42d7cae0dce8de86fcc017997a01d3a"
+          },
+          {
+            "ref": "candidates/golden-cpp_command_injection/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "candidates/golden-cpp_command_injection/query.ql",
+            "sha256": "7cb1d9ff6a9eb665275223e8c160d2d54e4bd9cc9bc6c0bac3fee0b164ccbe6c"
+          },
+          {
+            "ref": "candidates/golden-cpp_command_injection/vulnerable.sarif",
+            "sha256": "24c7377c3f16dddd5a94fa41d4de03d186974de7f398ab562abd4bf5e5783525"
+          },
+          {
+            "ref": "probes/golden-cpp_command_injection/sink/probe.sarif",
+            "sha256": "75811b61009eb5b274adcf28a9795cb916c57b10ecd90b6fcf0068299c3f2f84"
+          },
+          {
+            "ref": "probes/golden-cpp_command_injection/sink/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "probes/golden-cpp_command_injection/sink/query.ql",
+            "sha256": "b3640e71cc333709482a030e8ec3f23e24165153a294f2c7653e291ab4a6554c"
+          },
+          {
+            "ref": "probes/golden-cpp_command_injection/source/probe.sarif",
+            "sha256": "b57d3d45c2cbf6c89d1f2c67e16bd67dbf5507c016d49e530ff467688ee23e51"
+          },
+          {
+            "ref": "probes/golden-cpp_command_injection/source/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "probes/golden-cpp_command_injection/source/query.ql",
+            "sha256": "667dd0fd85528600df481ba442a962d6886bed4d78a03ff3d3ae143772bb7ec6"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.c",
+                    "start_line": 4
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.c",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-cpp_command_injection"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "javascript_path_traversal",
+      "language": "javascript",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-javascript_path_traversal"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-javascript_path_traversal"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "javascript_path_traversal",
+        "language": "javascript",
+        "inputs": {
+          "fixture_root": "javascript_path_traversal",
+          "vulnerable_tree_sha256": "a173696f9fba0e9c9338810aeb5a4705c449244a3b6d89d9791ee7c1ad0590e2",
+          "fixed_tree_sha256": "cd5ed7e161fd58606f9312c5a0809ad3166fa9d2aca61855b23653ca1f8f3ff9"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-javascript_path_traversal",
+          "language": "javascript",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "environment",
+            "name": "env.USER_FILE"
+          },
+          "sink": {
+            "kind": "call",
+            "module": "fs",
+            "member": "readFileSync",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "8626a01fce4dc720",
+          "fixed": "941a06a659b37be3"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-javascript_path_traversal/fixed.sarif",
+            "sha256": "06fde7ce3d17004a238b8d4ce8ae3c5422b1b39ddfa67dadcece22cab49a0367"
+          },
+          {
+            "ref": "candidates/golden-javascript_path_traversal/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "candidates/golden-javascript_path_traversal/query.ql",
+            "sha256": "ad3e16aecc88c65c82eb9c11bbaea8dbaa1237e0c1b6e8012f50fb2f4605e6cd"
+          },
+          {
+            "ref": "candidates/golden-javascript_path_traversal/vulnerable.sarif",
+            "sha256": "5d2b8a15f120c97aef42c7a1fb79df69bbdcce5aa3b60c7ea9c2c01ccd2f3522"
+          },
+          {
+            "ref": "probes/golden-javascript_path_traversal/sink/probe.sarif",
+            "sha256": "a0125d360f5d47cbc8f84745c3182008bbe912f32bdfaac6d5ff9fedcafdfe64"
+          },
+          {
+            "ref": "probes/golden-javascript_path_traversal/sink/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "probes/golden-javascript_path_traversal/sink/query.ql",
+            "sha256": "cc6acdfbd145a534ae88f0487205f88a8e81b74d376739c27874b15e8b46fba7"
+          },
+          {
+            "ref": "probes/golden-javascript_path_traversal/source/probe.sarif",
+            "sha256": "eaec5ea173c7e99c2d8ae3a16630ce47ace945766e5e98b5c4988d5ff8067123"
+          },
+          {
+            "ref": "probes/golden-javascript_path_traversal/source/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "probes/golden-javascript_path_traversal/source/query.ql",
+            "sha256": "82fd57b31666a79f92c82fc59e02786386af7a7548503c6101d01a0139086e03"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.js",
+                    "start_line": 4
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.js",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-javascript_path_traversal"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "python_path_traversal",
+      "language": "python",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-python_path_traversal"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-python_path_traversal"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "python_path_traversal",
+        "language": "python",
+        "inputs": {
+          "fixture_root": "python_path_traversal",
+          "vulnerable_tree_sha256": "e18c692a208b3e22b02b5e25b14d9e3af55a2dae7330e52cb867cdc468d41774",
+          "fixed_tree_sha256": "2dfba4995d1ce81f0136277aaa96bca5b6f98e60ad6fdbf606898448362982c0"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-python_path_traversal",
+          "language": "python",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "environment",
+            "name": "getenv"
+          },
+          "sink": {
+            "kind": "call",
+            "module": "os",
+            "member": "open",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "d1c2665b94c4d7fc",
+          "fixed": "8ee221da1cfe3c43"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 5
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-python_path_traversal/fixed.sarif",
+            "sha256": "e6ea96b345712b733eb4201d24c1d488095fb07e183b10c8213bb44180e9b260"
+          },
+          {
+            "ref": "candidates/golden-python_path_traversal/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "candidates/golden-python_path_traversal/query.ql",
+            "sha256": "20d7e74840297c4761a459733ecaa1e30d280d02497bcb215d638ef2eb9efb1c"
+          },
+          {
+            "ref": "candidates/golden-python_path_traversal/vulnerable.sarif",
+            "sha256": "c4b080948f1ad2795adb8fde300af70b8e0bbbbd29ab464df826b3399681a0c9"
+          },
+          {
+            "ref": "probes/golden-python_path_traversal/sink/probe.sarif",
+            "sha256": "4d825ebe087c8b200fe4d3a7fcec124637e006d5538b6b8192071ec1e12690d1"
+          },
+          {
+            "ref": "probes/golden-python_path_traversal/sink/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "probes/golden-python_path_traversal/sink/query.ql",
+            "sha256": "05fc1e49f205c259a253a0ad0096737a589d5005e73575f5e439fb96c5fc1c96"
+          },
+          {
+            "ref": "probes/golden-python_path_traversal/source/probe.sarif",
+            "sha256": "7babfba1fc1a5f0a4598470eefe3703f0bd16d1e98206fb763d92c1b0b3ebc92"
+          },
+          {
+            "ref": "probes/golden-python_path_traversal/source/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "probes/golden-python_path_traversal/source/query.ql",
+            "sha256": "275588b9476e81ccf29901a23ae21d99f72ab6136de0cdc4af024f5084054bf5"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.py",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.py",
+                    "start_line": 6
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-python_path_traversal"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "python_ssrf",
+      "language": "python",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 7
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-python_ssrf"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 7
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-python_ssrf"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "python_ssrf",
+        "language": "python",
+        "inputs": {
+          "fixture_root": "python_ssrf",
+          "vulnerable_tree_sha256": "068eab19b25781fd71849d636a2364e1504a8b33eaf963e845efcadc4412aec0",
+          "fixed_tree_sha256": "ca6adf2977385a4f14ec7d274963cb503a2fc8b887edde87e6b669e80a0b3962"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-python_ssrf",
+          "language": "python",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "environment",
+            "name": "getenv"
+          },
+          "sink": {
+            "kind": "call",
+            "module": "requests",
+            "member": "get",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "437e66f6d7b8e123",
+          "fixed": "17b7c30674769be3"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 7
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-python_ssrf/fixed.sarif",
+            "sha256": "e5dd6134762e81b932129c88401ffb5ee40e332f436d227397b42cb3c5191c49"
+          },
+          {
+            "ref": "candidates/golden-python_ssrf/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "candidates/golden-python_ssrf/query.ql",
+            "sha256": "8463389f78e880b84486ecd6f3d780d5e0e69e6b45a06bc8978eb36c027fd36a"
+          },
+          {
+            "ref": "candidates/golden-python_ssrf/vulnerable.sarif",
+            "sha256": "e81f55b1c8074c41939c8ab6e1f44e297dea894fb0ab7194463ae497388453f1"
+          },
+          {
+            "ref": "probes/golden-python_ssrf/sink/probe.sarif",
+            "sha256": "0e2cfa9e0b061281065a67f993c9c9c987d32d2b0e85e959c327ee635966de4e"
+          },
+          {
+            "ref": "probes/golden-python_ssrf/sink/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "probes/golden-python_ssrf/sink/query.ql",
+            "sha256": "e25a20ed42a882b0edee02b970391a50770415d8087fca4db1871e088f58d187"
+          },
+          {
+            "ref": "probes/golden-python_ssrf/source/probe.sarif",
+            "sha256": "c601a5b08cfa233f8fd76ca4f351e158acc8b06cebf9b6f18b6ec55ea959ac83"
+          },
+          {
+            "ref": "probes/golden-python_ssrf/source/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "probes/golden-python_ssrf/source/query.ql",
+            "sha256": "275588b9476e81ccf29901a23ae21d99f72ab6136de0cdc4af024f5084054bf5"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.py",
+                    "start_line": 6
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.py",
+                    "start_line": 7
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-python_ssrf"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "python_unsafe_deserialization",
+      "language": "python",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 7
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-python_unsafe_deserialization"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 7
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-python_unsafe_deserialization"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "python_unsafe_deserialization",
+        "language": "python",
+        "inputs": {
+          "fixture_root": "python_unsafe_deserialization",
+          "vulnerable_tree_sha256": "21c4acee50ebb45c090aecd7a129ff9eca21ed16ff559411ac625e8f228264be",
+          "fixed_tree_sha256": "8494060de4739f46d7a34f088cd658993ea3b31e659320b5a4f09c62b623fe73"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-python_unsafe_deserialization",
+          "language": "python",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "environment",
+            "name": "getenv"
+          },
+          "sink": {
+            "kind": "call",
+            "module": "pickle",
+            "member": "loads",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "a9d966a502454e92",
+          "fixed": "bd4113f5b9c5bb4a"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 6
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.py",
+                "start_line": 7
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-python_unsafe_deserialization/fixed.sarif",
+            "sha256": "d997b410a608ff0bea8a954fd7abde3d5f4156e375167da329fcb066ae6b8418"
+          },
+          {
+            "ref": "candidates/golden-python_unsafe_deserialization/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "candidates/golden-python_unsafe_deserialization/query.ql",
+            "sha256": "7e3ac1b8e7c266f5155317348b50038e116e8e562b90676d5f5f68d24cac6f5d"
+          },
+          {
+            "ref": "candidates/golden-python_unsafe_deserialization/vulnerable.sarif",
+            "sha256": "c6713fba99c2d28fe10f15aa1647f5d3342ca2e0991534f8e5c88380fa678795"
+          },
+          {
+            "ref": "probes/golden-python_unsafe_deserialization/sink/probe.sarif",
+            "sha256": "24e4bfa56d85563ba750bb658f188cc6774f37d6d531bd1aaf83396d60d230ee"
+          },
+          {
+            "ref": "probes/golden-python_unsafe_deserialization/sink/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "probes/golden-python_unsafe_deserialization/sink/query.ql",
+            "sha256": "fa9fed8096534e106fbad0a6aa283ef151436a6a1a8dc62d322b6b1a5b89100c"
+          },
+          {
+            "ref": "probes/golden-python_unsafe_deserialization/source/probe.sarif",
+            "sha256": "42535a37db22d1d7820aeb75079acbdde7660c5abc7d9d70dc5860c02f415e49"
+          },
+          {
+            "ref": "probes/golden-python_unsafe_deserialization/source/qlpack.yml",
+            "sha256": "0e83a8032dea91ab0fe88dad0431636c28826f21554eb8c0860920ca6769bb2f"
+          },
+          {
+            "ref": "probes/golden-python_unsafe_deserialization/source/query.ql",
+            "sha256": "275588b9476e81ccf29901a23ae21d99f72ab6136de0cdc4af024f5084054bf5"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.py",
+                    "start_line": 6
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.py",
+                    "start_line": 7
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-python_unsafe_deserialization"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "javascript_eval_injection",
+      "language": "javascript",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-javascript_eval_injection"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-javascript_eval_injection"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "javascript_eval_injection",
+        "language": "javascript",
+        "inputs": {
+          "fixture_root": "javascript_eval_injection",
+          "vulnerable_tree_sha256": "fea4d96a64b2e6f31f1d405765d684c8478d4e703ce9eb81774d218fc6016e90",
+          "fixed_tree_sha256": "8111f2876dc74eb9dd6b34af75c77a3c627c94ba3675322e50fa75c74940e64e"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-javascript_eval_injection",
+          "language": "javascript",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "environment",
+            "name": "env.USER_CODE"
+          },
+          "sink": {
+            "kind": "call",
+            "module": "vm",
+            "member": "runInNewContext",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "dc08f984a368025d",
+          "fixed": "0870c44ce0ba0ce5"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-javascript_eval_injection/fixed.sarif",
+            "sha256": "5689df18c336c1e7b49c611d0d2fe61cda7397a620858792db62348b04c5cd1d"
+          },
+          {
+            "ref": "candidates/golden-javascript_eval_injection/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "candidates/golden-javascript_eval_injection/query.ql",
+            "sha256": "23ff2ef27a5b3a9cdc684d15b491dd23a2850e3608e153ffbae23974885fcdd0"
+          },
+          {
+            "ref": "candidates/golden-javascript_eval_injection/vulnerable.sarif",
+            "sha256": "e9d4f9d708266865f21f5375be886d378d2b44cda08d2fc9c37a1b0e4f20d6b3"
+          },
+          {
+            "ref": "probes/golden-javascript_eval_injection/sink/probe.sarif",
+            "sha256": "9184b0371723fe365dc033837406c6c94c4a2ee5786ace592dec3a41d27b4ba9"
+          },
+          {
+            "ref": "probes/golden-javascript_eval_injection/sink/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "probes/golden-javascript_eval_injection/sink/query.ql",
+            "sha256": "a9c499fa8d8bc35342bd7c40dedcfe8a7b4caf10f30e5ceae4ea4dd0a773f6c0"
+          },
+          {
+            "ref": "probes/golden-javascript_eval_injection/source/probe.sarif",
+            "sha256": "6ed551fa603de385ec7770083473d20ca5f41baa4169412d470f430332ea2ea7"
+          },
+          {
+            "ref": "probes/golden-javascript_eval_injection/source/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "probes/golden-javascript_eval_injection/source/query.ql",
+            "sha256": "4e248c94d6d4dcc56cc2988d1e620f1e45fce2cccdfca6f51454c79cc7def8b0"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.js",
+                    "start_line": 4
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.js",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-javascript_eval_injection"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "javascript_file_write",
+      "language": "javascript",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-javascript_file_write"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-javascript_file_write"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "javascript_file_write",
+        "language": "javascript",
+        "inputs": {
+          "fixture_root": "javascript_file_write",
+          "vulnerable_tree_sha256": "49c93e52371df80d1d004f8227d80e5feb6c5f261462363c79273b78d8ee164b",
+          "fixed_tree_sha256": "a9785a9d8b2bbfdcb27778cb5a956b7cc10da8b1a494e0cce3ecdae8d7d52ef3"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-javascript_file_write",
+          "language": "javascript",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "environment",
+            "name": "env.USER_FILE"
+          },
+          "sink": {
+            "kind": "call",
+            "module": "fs",
+            "member": "writeFileSync",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "a9e3e00b17e2000c",
+          "fixed": "cebe812b91bbd02c"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-javascript_file_write/fixed.sarif",
+            "sha256": "976ce59d6756d0104cff711ce54c35d99e830d178798d502e3b890effb9aaea0"
+          },
+          {
+            "ref": "candidates/golden-javascript_file_write/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "candidates/golden-javascript_file_write/query.ql",
+            "sha256": "a5595aaa5e1e3ce378f1f97e414e14f664fb92bd24d7df58d395ffd4b1bf3343"
+          },
+          {
+            "ref": "candidates/golden-javascript_file_write/vulnerable.sarif",
+            "sha256": "5fe11058beaa4d8ce8a57153b94753564c0ed5a754d9b513ec1d04e2527be17a"
+          },
+          {
+            "ref": "probes/golden-javascript_file_write/sink/probe.sarif",
+            "sha256": "dd7de92486e693cf5fed9dd2af5324a19f8e81877675ce82751728ef5c400876"
+          },
+          {
+            "ref": "probes/golden-javascript_file_write/sink/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "probes/golden-javascript_file_write/sink/query.ql",
+            "sha256": "e023eda1559d7b68b4716733fb639492495db84c724a70a5f6174b1986ca080f"
+          },
+          {
+            "ref": "probes/golden-javascript_file_write/source/probe.sarif",
+            "sha256": "4985033e9357faf399d54e01640ccc06b1965b8331888ebe6bc20ea499247f70"
+          },
+          {
+            "ref": "probes/golden-javascript_file_write/source/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "probes/golden-javascript_file_write/source/query.ql",
+            "sha256": "82fd57b31666a79f92c82fc59e02786386af7a7548503c6101d01a0139086e03"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.js",
+                    "start_line": 4
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.js",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-javascript_file_write"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "javascript_ssrf",
+      "language": "javascript",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-javascript_ssrf"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-javascript_ssrf"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "javascript_ssrf",
+        "language": "javascript",
+        "inputs": {
+          "fixture_root": "javascript_ssrf",
+          "vulnerable_tree_sha256": "95036ee4b2fcb8f086fb18799324a70545824b0355a856bcb354516d11485d9f",
+          "fixed_tree_sha256": "1ce455eea3586889e714b4ef9c5ce13bcaeade691f2212cdfa331461aff2174c"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-javascript_ssrf",
+          "language": "javascript",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "environment",
+            "name": "env.USER_URL"
+          },
+          "sink": {
+            "kind": "call",
+            "module": "http",
+            "member": "request",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "725125c416331df9",
+          "fixed": "6286124aa7e52247"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 4
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.js",
+                "start_line": 5
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-javascript_ssrf/fixed.sarif",
+            "sha256": "3d5346ad9fca57fe7cdedd303ba9f536c2979ce2891d25d48a45e70cdbd67392"
+          },
+          {
+            "ref": "candidates/golden-javascript_ssrf/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "candidates/golden-javascript_ssrf/query.ql",
+            "sha256": "929cb4dbaae75b8795c43c9f802910d49af4e93c9b835e506d6c90dba8c58663"
+          },
+          {
+            "ref": "candidates/golden-javascript_ssrf/vulnerable.sarif",
+            "sha256": "d347425ef55fa1b822e626ed407308bd4358c86f8db747c106a9549bdf267e37"
+          },
+          {
+            "ref": "probes/golden-javascript_ssrf/sink/probe.sarif",
+            "sha256": "9ef970b387c2cd39b525a883a4d7f252bb450265f4390cf60a0ebda6915b67b7"
+          },
+          {
+            "ref": "probes/golden-javascript_ssrf/sink/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "probes/golden-javascript_ssrf/sink/query.ql",
+            "sha256": "c6deda74d2785fdbc1e883cdb0fe6610a977d4d529159234f2d2fa411efeb479"
+          },
+          {
+            "ref": "probes/golden-javascript_ssrf/source/probe.sarif",
+            "sha256": "76f5652cf197995142f957c949e572d0f04ba1eebdf91fb15739303d4efe5bd1"
+          },
+          {
+            "ref": "probes/golden-javascript_ssrf/source/qlpack.yml",
+            "sha256": "f7499f2568bc9b9dc286bf63df4252ccb1b7b89105c9ce0f63c877164a975169"
+          },
+          {
+            "ref": "probes/golden-javascript_ssrf/source/query.ql",
+            "sha256": "9e1b3f0e2e6b21700f1463b5d79fb0da09e08999c40f2fea96cc9716d172e3a2"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.js",
+                    "start_line": 4
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.js",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-javascript_ssrf"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "java_sql_injection",
+      "language": "java",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/SqlInjection.java",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/SqlInjection.java",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-java_sql_injection"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/SqlInjection.java",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/SqlInjection.java",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-java_sql_injection"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "java_sql_injection",
+        "language": "java",
+        "inputs": {
+          "fixture_root": "java_sql_injection",
+          "vulnerable_tree_sha256": "4ad76706903fa9fa244a56699a3d21b43287ce72c18925b5ed5af428a1c6ea73",
+          "fixed_tree_sha256": "09280522884846feb0e25baeb7cb5049b3610c8e2e185c94849d5efdc297153e"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-java_sql_injection",
+          "language": "java",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "call",
+            "type": "java.lang.System",
+            "member": "getenv"
+          },
+          "sink": {
+            "kind": "call",
+            "type": "java.sql.Statement",
+            "member": "executeQuery",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "09217a404eab9f5d",
+          "fixed": "33dba18fe1d60238"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/SqlInjection.java",
+                "start_line": 5
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/SqlInjection.java",
+                "start_line": 6
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-java_sql_injection/fixed.sarif",
+            "sha256": "43c0db0c35e3c92b683c2fd48f857def7376ef1e59ee203c1039e10eb63aa726"
+          },
+          {
+            "ref": "candidates/golden-java_sql_injection/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "candidates/golden-java_sql_injection/query.ql",
+            "sha256": "272a7266c99e38a176ec1e1058846007171ab43321d96620e69068cf5d903d9a"
+          },
+          {
+            "ref": "candidates/golden-java_sql_injection/vulnerable.sarif",
+            "sha256": "b86a397b092e230a63353419cc7d982e3e9f4825af960fff519da1bf7309af2d"
+          },
+          {
+            "ref": "probes/golden-java_sql_injection/sink/probe.sarif",
+            "sha256": "9ffa491a920faba87ab644e115b2cddb6e064b7808870979f55784596e2ac74d"
+          },
+          {
+            "ref": "probes/golden-java_sql_injection/sink/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "probes/golden-java_sql_injection/sink/query.ql",
+            "sha256": "127189b8e2b52f6e3c1dace267768ff5630e636635dc3b94363b85a7be9a18b8"
+          },
+          {
+            "ref": "probes/golden-java_sql_injection/source/probe.sarif",
+            "sha256": "35769192dec6814ad2c19f3c50493980acb01fe0d2b5c3ba99c5bc9b57f2bbfc"
+          },
+          {
+            "ref": "probes/golden-java_sql_injection/source/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "probes/golden-java_sql_injection/source/query.ql",
+            "sha256": "bbf6dc48737fb82f2e7f64e48545c3a9223abf38ebfd31753e826f20612122bd"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/SqlInjection.java",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/SqlInjection.java",
+                    "start_line": 6
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-java_sql_injection"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "java_ssrf",
+      "language": "java",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/UrlFetch.java",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/UrlFetch.java",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-java_ssrf"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/UrlFetch.java",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/UrlFetch.java",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-java_ssrf"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "java_ssrf",
+        "language": "java",
+        "inputs": {
+          "fixture_root": "java_ssrf",
+          "vulnerable_tree_sha256": "c35124b35c457a965678de6d7bfdd4f98eea7d92c51dbfa20fdbae6c50aec521",
+          "fixed_tree_sha256": "23c0fdfcb9b8f90313b1c562821a2fd7171fea0d13104d9429e53850009d646b"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-java_ssrf",
+          "language": "java",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "call",
+            "type": "java.lang.System",
+            "member": "getenv"
+          },
+          "sink": {
+            "kind": "constructor",
+            "type": "java.net.URL",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "2acfbfd5a205cef2",
+          "fixed": "68b41d0405108b49"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/UrlFetch.java",
+                "start_line": 5
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/UrlFetch.java",
+                "start_line": 6
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-java_ssrf/fixed.sarif",
+            "sha256": "dadf2e16f9dcfb1151bf7d6987dced54d182ac38256dab08eeae945b3356da8a"
+          },
+          {
+            "ref": "candidates/golden-java_ssrf/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "candidates/golden-java_ssrf/query.ql",
+            "sha256": "7be712d267dc4eab015730858564aa630bd41a8cc1315f7dff35d93d73f8b1b8"
+          },
+          {
+            "ref": "candidates/golden-java_ssrf/vulnerable.sarif",
+            "sha256": "889543b485b6105914c98ba232ad4dafeb58b2b6347ac4c5dec60d9e91dbe219"
+          },
+          {
+            "ref": "probes/golden-java_ssrf/sink/probe.sarif",
+            "sha256": "c424a82d264c9840b97cfc5e5806bd2a8c3c67659374108a872af5f243af825b"
+          },
+          {
+            "ref": "probes/golden-java_ssrf/sink/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "probes/golden-java_ssrf/sink/query.ql",
+            "sha256": "6ca982dfb59a5ad6d7904d01ed2cfd64fa3319f8d59d17a77e935f663b4463d8"
+          },
+          {
+            "ref": "probes/golden-java_ssrf/source/probe.sarif",
+            "sha256": "fda85f822170be4bf2bc65738a417d3361ea5e57e852a01874d1dba280af18f6"
+          },
+          {
+            "ref": "probes/golden-java_ssrf/source/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "probes/golden-java_ssrf/source/query.ql",
+            "sha256": "bbf6dc48737fb82f2e7f64e48545c3a9223abf38ebfd31753e826f20612122bd"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/UrlFetch.java",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/UrlFetch.java",
+                    "start_line": 6
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-java_ssrf"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "java_file_write",
+      "language": "java",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/FileWrite.java",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/FileWrite.java",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-java_file_write"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/FileWrite.java",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/FileWrite.java",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-java_file_write"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "java_file_write",
+        "language": "java",
+        "inputs": {
+          "fixture_root": "java_file_write",
+          "vulnerable_tree_sha256": "d9b0493da2cc4a43e72c4e5a1197b28eaa216ebf15f1a8e94b23a62b150ce7e8",
+          "fixed_tree_sha256": "2c5c108253e1442e46f412f86ed4e710e063c82e8b346325771af2c7c4685c24"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-java_file_write",
+          "language": "java",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "call",
+            "type": "java.lang.System",
+            "member": "getenv"
+          },
+          "sink": {
+            "kind": "constructor",
+            "type": "java.io.FileOutputStream",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "a72f5ad2b64d7a43",
+          "fixed": "5a74233cba0a84a5"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/FileWrite.java",
+                "start_line": 5
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/FileWrite.java",
+                "start_line": 6
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-java_file_write/fixed.sarif",
+            "sha256": "a54eeac64f3677ea70fcfa3d73f610e95ef971a93416e450799c7fd27aeda28d"
+          },
+          {
+            "ref": "candidates/golden-java_file_write/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "candidates/golden-java_file_write/query.ql",
+            "sha256": "909f84a3bf11cf303be773155e4c2b9ce2bff1aece557ecad11de77dfa2be2b2"
+          },
+          {
+            "ref": "candidates/golden-java_file_write/vulnerable.sarif",
+            "sha256": "09e1719b33cd07906ba91261360e1a798e9fc914a11269c482de8e4a9db0828b"
+          },
+          {
+            "ref": "probes/golden-java_file_write/sink/probe.sarif",
+            "sha256": "fe4674ac3cf76da6e6ed876944f0ea9c23d951c6f219046ba1915b8138f9123f"
+          },
+          {
+            "ref": "probes/golden-java_file_write/sink/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "probes/golden-java_file_write/sink/query.ql",
+            "sha256": "ecc59c510f615e8ff5fdf70fefe7e2d20ac0d5f26eac865b0de5522ebe19b4f4"
+          },
+          {
+            "ref": "probes/golden-java_file_write/source/probe.sarif",
+            "sha256": "5a8d7f1bcab4132b04bcb63e199cf999fbb45dbded9a89f9d6ed8b8019763f6b"
+          },
+          {
+            "ref": "probes/golden-java_file_write/source/qlpack.yml",
+            "sha256": "e4140a5eec15cd6cb262a8fc01897fbaf6fda8702b05159d095823a4e78dde32"
+          },
+          {
+            "ref": "probes/golden-java_file_write/source/query.ql",
+            "sha256": "bbf6dc48737fb82f2e7f64e48545c3a9223abf38ebfd31753e826f20612122bd"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/FileWrite.java",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/FileWrite.java",
+                    "start_line": 6
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-java_file_write"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "cpp_popen_command_injection",
+      "language": "cpp",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-cpp_popen_command_injection"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-cpp_popen_command_injection"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "cpp_popen_command_injection",
+        "language": "cpp",
+        "inputs": {
+          "fixture_root": "cpp_popen_command_injection",
+          "vulnerable_tree_sha256": "158afc225941c2bd03218f4fb0d24b5aa494f04d2b2336178800e8fbeb9155b6",
+          "fixed_tree_sha256": "aaeec14513e27a7f1556c8247fa3076206f4c8c84207dcba2781a30a912c9386"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-cpp_popen_command_injection",
+          "language": "cpp",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "function",
+            "name": "getenv"
+          },
+          "sink": {
+            "kind": "function",
+            "name": "popen",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "243e5f10894ef597",
+          "fixed": "96eb46ae86ed194d"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 5
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 6
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-cpp_popen_command_injection/fixed.sarif",
+            "sha256": "9ba6b96dbd0fc0d94b0187954de26fd18383c4f66aa39d9428f740d8413dbd77"
+          },
+          {
+            "ref": "candidates/golden-cpp_popen_command_injection/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "candidates/golden-cpp_popen_command_injection/query.ql",
+            "sha256": "67c1379ed119905819a723b21f0f635131fe42e63f744aa4bc293cfbb0696a11"
+          },
+          {
+            "ref": "candidates/golden-cpp_popen_command_injection/vulnerable.sarif",
+            "sha256": "8de2666a714310b5f6c7298124f6c923484f75f13bdfc9317741488ac66f511b"
+          },
+          {
+            "ref": "probes/golden-cpp_popen_command_injection/sink/probe.sarif",
+            "sha256": "cbdb40a36669e97d3f08a93aafff35be27a0ee04bebeafd070e5cbff2bc398ee"
+          },
+          {
+            "ref": "probes/golden-cpp_popen_command_injection/sink/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "probes/golden-cpp_popen_command_injection/sink/query.ql",
+            "sha256": "07f026805774ec83b1a23929d21d4a1d608c8e63e557f26404a846bed7aeba73"
+          },
+          {
+            "ref": "probes/golden-cpp_popen_command_injection/source/probe.sarif",
+            "sha256": "235026b93d9dcb2e678b12834ee36db5c86235c319d73ee36135b039cda31570"
+          },
+          {
+            "ref": "probes/golden-cpp_popen_command_injection/source/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "probes/golden-cpp_popen_command_injection/source/query.ql",
+            "sha256": "667dd0fd85528600df481ba442a962d6886bed4d78a03ff3d3ae143772bb7ec6"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.c",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.c",
+                    "start_line": 6
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-cpp_popen_command_injection"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "cpp_path_traversal",
+      "language": "cpp",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-cpp_path_traversal"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 5
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-cpp_path_traversal"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "cpp_path_traversal",
+        "language": "cpp",
+        "inputs": {
+          "fixture_root": "cpp_path_traversal",
+          "vulnerable_tree_sha256": "8c47a0bb3a45786dd3b125437f83a1435eacc836dd89d3acc4e352c70b97913e",
+          "fixed_tree_sha256": "a59a422283e83faa2dc4cd392bf0f283571583f79bc91d18eaa0e32d43a0ecf8"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-cpp_path_traversal",
+          "language": "cpp",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "function",
+            "name": "getenv"
+          },
+          "sink": {
+            "kind": "function",
+            "name": "fopen",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "ae577d12b4116e31",
+          "fixed": "9c4f098406ce4c6f"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 5
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 6
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-cpp_path_traversal/fixed.sarif",
+            "sha256": "89549b93e26812978dfeb80376614da41918d5025075cab77838d4c9bb2f470e"
+          },
+          {
+            "ref": "candidates/golden-cpp_path_traversal/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "candidates/golden-cpp_path_traversal/query.ql",
+            "sha256": "d6d6e104ee85902c24425ff0a146533ce715fa1cea7dd553a53588d729abc39b"
+          },
+          {
+            "ref": "candidates/golden-cpp_path_traversal/vulnerable.sarif",
+            "sha256": "224d59cb828a6c67d80908d04e459bdcb97c80dd195e544df281e05d63069825"
+          },
+          {
+            "ref": "probes/golden-cpp_path_traversal/sink/probe.sarif",
+            "sha256": "defbf684dbb85f188835937818b7eb4683ebc964f1cd94a106132a186b991920"
+          },
+          {
+            "ref": "probes/golden-cpp_path_traversal/sink/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "probes/golden-cpp_path_traversal/sink/query.ql",
+            "sha256": "406ae9a304772ff484162853c4ce0ab75c91081845678cab8aeee7e5a234c980"
+          },
+          {
+            "ref": "probes/golden-cpp_path_traversal/source/probe.sarif",
+            "sha256": "c68bc248ec94a00c4567d635be4c1694ad81ced1c022d68928221fda8789d917"
+          },
+          {
+            "ref": "probes/golden-cpp_path_traversal/source/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "probes/golden-cpp_path_traversal/source/query.ql",
+            "sha256": "667dd0fd85528600df481ba442a962d6886bed4d78a03ff3d3ae143772bb7ec6"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.c",
+                    "start_line": 5
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.c",
+                    "start_line": 6
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-cpp_path_traversal"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    },
+    {
+      "case_id": "cpp_allocation_size",
+      "language": "cpp",
+      "passed": true,
+      "execute": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-cpp_allocation_size"
+          }
+        ]
+      },
+      "replay": {
+        "operation_status": "completed",
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "observations": [
+          {
+            "code": "SOURCE_OBSERVED",
+            "path": "/source",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 4
+              }
+            ]
+          },
+          {
+            "code": "SINK_OBSERVED",
+            "path": "/sink",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 6
+              }
+            ]
+          },
+          {
+            "code": "PATH_OBSERVED",
+            "evidence_ref": "probes/golden-cpp_allocation_size"
+          }
+        ]
+      },
+      "portable_evidence": {
+        "schema_version": "autovul.flow.portable-evidence/1",
+        "case_id": "cpp_allocation_size",
+        "language": "cpp",
+        "inputs": {
+          "fixture_root": "cpp_allocation_size",
+          "vulnerable_tree_sha256": "655b27e080f35c64e78ec77962aa22c757052608dddb09c6e4e22b1967f8bde0",
+          "fixed_tree_sha256": "90e2934aa9cda3e63f51967de02d537ef5e4658c970bf987a26b5b43c0e77a81"
+        },
+        "model": {
+          "schema_version": "autovul.flow/1",
+          "model_id": "golden-cpp_allocation_size",
+          "language": "cpp",
+          "flow_mode": "taint",
+          "source": {
+            "kind": "function",
+            "name": "getenv"
+          },
+          "sink": {
+            "kind": "function",
+            "name": "malloc",
+            "argument_index": 0
+          }
+        },
+        "target_fingerprints": {
+          "vulnerable": "6aaf84ba0dfed195",
+          "fixed": "e8cf3f0dd4575d9a"
+        },
+        "analyzer": {
+          "analyzer_id": "codeql",
+          "available": true,
+          "adapter_version": "autovul.codeql-flow/1",
+          "version": "CodeQL command-line toolchain release 2.26.1."
+        },
+        "decision_policy_version": "autovul.flow.decision/1",
+        "observation": {
+          "compile_accepted": true,
+          "source": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 4
+              }
+            ]
+          },
+          "sink": {
+            "state": "observed",
+            "locations": [
+              {
+                "file": "src/app.c",
+                "start_line": 6
+              }
+            ]
+          },
+          "path": {
+            "state": "observed",
+            "path_count": 1
+          },
+          "fixed_path": {
+            "state": "not_observed",
+            "path_count": 0
+          }
+        },
+        "decision": {
+          "capability": "flow",
+          "outcome": "connected",
+          "fixed_outcome": "no_path",
+          "fixed_policy_satisfied": true
+        },
+        "verification_level": "differential",
+        "evidence_files": [
+          {
+            "ref": "candidates/golden-cpp_allocation_size/fixed.sarif",
+            "sha256": "62b7260be80903bd0c0139d64607151931c0b97368c6211b7f008cf1b58a2aeb"
+          },
+          {
+            "ref": "candidates/golden-cpp_allocation_size/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "candidates/golden-cpp_allocation_size/query.ql",
+            "sha256": "9e3c4e395766bb7b56d9a28e2bf0f5d9fd2f943a6a31b2b47b70904af18b0a0e"
+          },
+          {
+            "ref": "candidates/golden-cpp_allocation_size/vulnerable.sarif",
+            "sha256": "73b845bcb5464b9a556a7e22345078e4b0866232cb54e74e8a52b1a6504116ca"
+          },
+          {
+            "ref": "probes/golden-cpp_allocation_size/sink/probe.sarif",
+            "sha256": "f2dfc24474ba89f1541fa973e34eb58b4a902200ac68108103c52d50e522da36"
+          },
+          {
+            "ref": "probes/golden-cpp_allocation_size/sink/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "probes/golden-cpp_allocation_size/sink/query.ql",
+            "sha256": "b76736968855ce1114ecb7d73d43deb4de67990fdfadaaed8c2b8d1cd833040d"
+          },
+          {
+            "ref": "probes/golden-cpp_allocation_size/source/probe.sarif",
+            "sha256": "497ad9481ac213b0cbf5138b968f58849afccca8d2865b86cb34010f69e9b54c"
+          },
+          {
+            "ref": "probes/golden-cpp_allocation_size/source/qlpack.yml",
+            "sha256": "b1d05fc676595118eed8587f1419991457958721f4d6662d6df2b39f261bf4ca"
+          },
+          {
+            "ref": "probes/golden-cpp_allocation_size/source/query.ql",
+            "sha256": "667dd0fd85528600df481ba442a962d6886bed4d78a03ff3d3ae143772bb7ec6"
+          }
+        ],
+        "replay": {
+          "runs_root_relocated": true,
+          "result": {
+            "operation_status": "completed",
+            "decision": {
+              "capability": "flow",
+              "outcome": "connected",
+              "fixed_outcome": "no_path",
+              "fixed_policy_satisfied": true
+            },
+            "verification_level": "differential",
+            "observations": [
+              {
+                "code": "SOURCE_OBSERVED",
+                "path": "/source",
+                "locations": [
+                  {
+                    "file": "src/app.c",
+                    "start_line": 4
+                  }
+                ]
+              },
+              {
+                "code": "SINK_OBSERVED",
+                "path": "/sink",
+                "locations": [
+                  {
+                    "file": "src/app.c",
+                    "start_line": 6
+                  }
+                ]
+              },
+              {
+                "code": "PATH_OBSERVED",
+                "evidence_ref": "probes/golden-cpp_allocation_size"
+              }
+            ]
+          }
+        },
+        "external_dependencies": [
+          "CodeQL CLI and language packs matching analyzer provenance",
+          "target databases reconstructed from the fixture trees identified by SHA-256"
+        ]
+      }
+    }
+  ]
+}

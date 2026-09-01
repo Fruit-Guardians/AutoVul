@@ -210,9 +210,11 @@ export class FlowResearchService {
     runId: string,
     artifactRoot: string,
   ): Promise<ResearchExecutionResult> {
+    let targetFingerprints: { readonly vulnerable: string; readonly fixed?: string } | undefined;
     try {
-      await this.codeql.validateDatabase(target.vulnerable.path, options);
-      if (target.fixed !== undefined) await this.codeql.validateDatabase(target.fixed.path, options);
+      const vulnerable = await validateAndFingerprint(this.codeql, target.vulnerable, options);
+      const fixed = target.fixed === undefined ? undefined : await validateAndFingerprint(this.codeql, target.fixed, options);
+      targetFingerprints = { vulnerable, ...(fixed === undefined ? {} : { fixed }) };
     } catch (error: unknown) {
       const classified = classifyFlowFailure(cancellationOr(error, options.signal, runId), "prerequisite");
       return this.finish(runId, classified.error, {
@@ -237,8 +239,19 @@ export class FlowResearchService {
           observations: [{ code: "FLOW_ANALYZER_UNAVAILABLE", evidence_ref: FLOW_RESULT_ARTIFACT }],
           revisionHints: [], allowedNextActions: ["revise", "stop"], artifactRef: FLOW_RESULT_ARTIFACT,
         });
-        await this.writeCommitted(runId, blocked, { model, target, mode, request, observation });
+        await this.writeCommitted(runId, blocked, { model, target, mode, request, observation, targetFingerprints });
         await this.status.fail(runId, asDomainError(new Error("Flow analyzer unavailable")).toRecord());
+        return blocked;
+      }
+      if (observation.capability_gaps.length === 0 && (observation.analyzer.version === undefined || observation.analyzer.adapter_version === undefined)) {
+        const blocked = compactFlowResult({
+          runId, operationStatus: "blocked", decision: { capability: "flow", outcome: "unknown" },
+          verificationLevel: "generated",
+          observations: [{ code: "FLOW_ANALYZER_VERSION_UNAVAILABLE", evidence_ref: FLOW_RESULT_ARTIFACT }],
+          revisionHints: [], allowedNextActions: ["revise", "stop"], artifactRef: FLOW_RESULT_ARTIFACT,
+        });
+        await this.writeCommitted(runId, blocked, { model, target, mode, request, observation, targetFingerprints });
+        await this.status.fail(runId, new DomainError("CODEQL_RESOLVE_FAILED", "process", "Flow Analyzer or adapter version is unavailable", false).toRecord());
         return blocked;
       }
       const projection = decideFlow(observation, mode, request.expectation);
@@ -252,7 +265,7 @@ export class FlowResearchService {
         allowedNextActions: projection.allowedNextActions,
         artifactRef: FLOW_RESULT_ARTIFACT,
       });
-      await this.writeCommitted(runId, completed, { model, target, mode, request, observation, decisionPolicyVersion: FLOW_DECISION_POLICY_VERSION });
+      await this.writeCommitted(runId, completed, { model, target, mode, request, observation, targetFingerprints, decisionPolicyVersion: FLOW_DECISION_POLICY_VERSION });
       await this.status.complete(runId, projection.verificationLevel, "flow_execute");
       return completed;
     } catch (error: unknown) {
@@ -261,7 +274,7 @@ export class FlowResearchService {
         runId, operationStatus: classified.operationStatus, decision: { capability: "flow", outcome: "unknown" },
         verificationLevel: "generated", observations: [{ code: classified.observationCode, evidence_ref: FLOW_RESULT_ARTIFACT }],
         revisionHints: [], allowedNextActions: ["revise", "stop"], artifactRef: FLOW_RESULT_ARTIFACT,
-      }, { model, target, mode, request });
+      }, { model, target, mode, request, targetFingerprints });
     }
   }
 
@@ -274,6 +287,7 @@ export class FlowResearchService {
       readonly target: { readonly vulnerable: TargetRef; readonly fixed?: TargetRef };
       readonly mode: "probe" | "reproduce" | "differential";
       readonly request: FlowResearchToolInput;
+      readonly targetFingerprints?: { readonly vulnerable: string; readonly fixed?: string };
     },
   ): Promise<ResearchExecutionResult> {
     const domainError = asDomainError(error);
@@ -299,6 +313,7 @@ export class FlowResearchService {
       readonly mode: "probe" | "reproduce" | "differential";
       readonly request: FlowResearchToolInput;
       readonly observation?: FlowAnalyzerObservation;
+      readonly targetFingerprints?: { readonly vulnerable: string; readonly fixed?: string };
       readonly decisionPolicyVersion?: string;
     },
   ): Promise<void> {
@@ -312,7 +327,8 @@ export class FlowResearchService {
       ...(extra.request.expectation === undefined ? {} : { expectation: extra.request.expectation }),
       ...(extra.request.budget === undefined ? {} : { budget: extra.request.budget }),
       ...(extra.request.idempotency_key === undefined ? {} : { idempotency_key: extra.request.idempotency_key }),
-      analyzer: { analyzer_id: "codeql" },
+      analyzer: extra.observation?.analyzer ?? { analyzer_id: "codeql", available: false },
+      ...(extra.targetFingerprints === undefined ? {} : { target_fingerprints: extra.targetFingerprints }),
       ...(extra.observation === undefined ? {} : { observation: extra.observation }),
       ...(extra.decisionPolicyVersion === undefined ? {} : { decision_policy_version: extra.decisionPolicyVersion }),
       operation_status: result.operation_status,
@@ -414,6 +430,15 @@ function classifyFlowFailure(error: unknown, stage: "prerequisite" | "execution"
   if (domainError.code === "DATABASE_NOT_FOUND" || domainError.code === "DATABASE_INVALID" || domainError.code === "DATABASE_PATH_OUTSIDE_WORKSPACE") {
     return { error, operationStatus: "blocked", observationCode: "FLOW_DATABASE_PREREQUISITE_BLOCKED" };
   }
+  if (domainError.code === "DATABASE_FINGERPRINT_UNAVAILABLE") {
+    return { error, operationStatus: "blocked", observationCode: "FLOW_TARGET_FINGERPRINT_UNAVAILABLE" };
+  }
+  if (domainError.code === "DATABASE_FINGERPRINT_MISMATCH") {
+    return { error, operationStatus: "blocked", observationCode: "FLOW_TARGET_FINGERPRINT_MISMATCH" };
+  }
+  if (domainError.code === "PROBE_FAILED") {
+    return { error, operationStatus: "failed", observationCode: "FLOW_PROBE_FAILED" };
+  }
   if (domainError.code === "PROCESS_TIMEOUT") {
     return { error, operationStatus: "failed", observationCode: "FLOW_ANALYZER_TIMEOUT" };
   }
@@ -425,4 +450,19 @@ function classifyFlowFailure(error: unknown, stage: "prerequisite" | "execution"
     operationStatus: stage === "prerequisite" ? "blocked" : "failed",
     observationCode: stage === "prerequisite" ? "FLOW_DATABASE_PREREQUISITE_BLOCKED" : "FLOW_EXECUTION_FAILED",
   };
+}
+
+async function validateAndFingerprint(codeql: CodeqlPort, target: TargetRef, options: CodeqlOperationOptions): Promise<string> {
+  const manifest = await codeql.validateDatabase(target.path, options);
+  if (manifest.portableFingerprint === undefined) {
+    throw new DomainError("DATABASE_FINGERPRINT_UNAVAILABLE", "database", `Database fingerprint is unavailable for ${target.path}`, false, { path: target.path });
+  }
+  if (target.expected_fingerprint !== undefined && target.expected_fingerprint !== manifest.portableFingerprint) {
+    throw new DomainError("DATABASE_FINGERPRINT_MISMATCH", "database", `Database fingerprint differs for ${target.path}`, false, {
+      path: target.path,
+      expected: target.expected_fingerprint,
+      observed: manifest.portableFingerprint,
+    });
+  }
+  return manifest.portableFingerprint;
 }

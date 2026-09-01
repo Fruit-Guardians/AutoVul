@@ -83,7 +83,7 @@ export class Application implements ApplicationApi {
     this.cancellations = new RunCancellationService();
     this.flowResearch = new FlowResearchService(status, dependencies.codeql, flow, dependencies.artifacts, this.cancellations);
     this.missingCheckResearch = new MissingCheckResearchService(status, dependencies.codeql, missingCheck, dependencies.artifacts, this.cancellations);
-    this.researchRuns = new ResearchRunService(status, dependencies.artifacts, new FlowReplayService(status, flow, dependencies.artifacts), new MissingCheckReplayService(status, dependencies.codeql, missingCheck, dependencies.artifacts), this.cancellations);
+    this.researchRuns = new ResearchRunService(status, dependencies.artifacts, new FlowReplayService(status, dependencies.codeql, flow, dependencies.artifacts), new MissingCheckReplayService(status, dependencies.codeql, missingCheck, dependencies.artifacts), this.cancellations);
   }
 
   doctor(options: Partial<CodeqlOperationOptions> = {}): Promise<DoctorResult> {

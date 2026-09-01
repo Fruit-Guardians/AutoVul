@@ -52,7 +52,7 @@ Each capability owns its hypothesis shape, observations and success predicate. C
 
 The planned Flow Model describes Source, Sink, explicit propagation steps and barriers. Target references, analyzer selection and budgets belong to the execution request. CodeQL becomes an optional execution backend rather than part of the Flow Model.
 
-The aggregate capability API (`autovul_research` and `autovul_run`) is implemented alongside the existing CodeQL compatibility surface. The narrowly frozen MissingCheck v1 is `Verified` for its declared JavaScript single-file CFG boundary; Flow remains `Implemented`, not `Verified`, and MUST NOT be claimed as supported.
+The aggregate capability API (`autovul_research` and `autovul_run`) is implemented alongside the existing CodeQL compatibility surface. Flow v1 is verified across the accepted 20-case Python, JavaScript, Java and C/C++ real-CodeQL matrix, including vulnerable/fixed differential analysis and relocated model-free replay. The narrowly frozen MissingCheck v1 is verified for its declared JavaScript single-file CFG boundary. Typestate, Delta and Variant are not implemented support claims.
 
 See:
 
