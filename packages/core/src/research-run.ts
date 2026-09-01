@@ -6,6 +6,7 @@ import {
   type AutovulRunToolInput,
   type ResearchExecutionResult,
   type MissingCheckExecutionResult,
+  type TypestateReplayComparison,
   type RunManifest,
 } from "@autovul/contracts";
 
@@ -15,13 +16,14 @@ import { RunStatusService } from "./status-service.js";
 import { RunCancellationService } from "./run-cancellation.js";
 import { FlowReplayService } from "./flow/replay.js";
 import { MissingCheckReplayService } from "./missing-check/replay.js";
+import { TypestateReplayService } from "./typestate/replay.js";
 
-export type RunManagementResult = RunManifest | ResearchExecutionResult | MissingCheckExecutionResult;
+export type RunManagementResult = RunManifest | ResearchExecutionResult | MissingCheckExecutionResult | TypestateReplayComparison;
 
 /**
  * Shared run management owns status, cancellation and route lookup only.
- * Capability replay remains an explicit static branch until a second real
- * Capability makes a more general routing abstraction necessary.
+ * Capability replay remains an explicit static branch; domain semantics do
+ * not move into a shared registry or generic state-machine abstraction.
  */
 export class ResearchRunService {
   constructor(
@@ -29,6 +31,7 @@ export class ResearchRunService {
     private readonly artifacts: ArtifactStorePort,
     private readonly flowReplay: FlowReplayService,
     private readonly missingCheckReplay: MissingCheckReplayService,
+    private readonly typestateReplay: TypestateReplayService,
     private readonly cancellations: RunCancellationService,
   ) {}
 
@@ -48,6 +51,7 @@ export class ResearchRunService {
     const route = await readResearchOperationRoute(this.artifacts, request.run_id).catch(() => undefined);
     if (route?.capability === "flow") return this.flowReplay.replay(request.run_id, route, options);
     if (route?.capability === "missing_check") return this.missingCheckReplay.replay(request.run_id, route, options);
+    if (route?.capability === "typestate") return this.typestateReplay.replay(request.run_id, route, options);
     // Explicit routing, not a generic capability registry.
     return this.flowReplay.blocked(request.run_id, route === undefined ? "RESEARCH_REPLAY_ROUTE_MISSING" : "RESEARCH_REPLAY_ROUTE_UNSUPPORTED", ["stop"]);
   }

@@ -140,12 +140,12 @@ describe("Typestate v1 contracts and pure policy", () => {
     expect(unreachable.issues.some((issue) => issue.code === "TSTATE_STATE_UNREACHABLE" && issue.path === "/states/3")).toBe(true);
   });
 
-  it("exposes only the shared typestate discriminator in Phase B", () => {
+  it("routes the Typestate branch through the aggregate research contract", () => {
     expect(Value.Check(ResearchCapabilitySchema, "typestate")).toBe(true);
     expect(Value.Check(ResearchHypothesisVersionSchema, "autovul.typestate/1")).toBe(true);
     expect(Value.Check(ResearchRequestSchema, { action: "validate", capability: "typestate", hypothesis_version: "autovul.typestate/1", hypothesis })).toBe(true);
     expect(Value.Check(TypestateResearchToolInputSchema, { action: "validate", capability: "typestate", hypothesis_version: "autovul.typestate/1", hypothesis })).toBe(true);
-    expect(Value.Check(AutovulResearchToolInputSchema, { action: "validate", capability: "typestate", hypothesis_version: "autovul.typestate/1", hypothesis })).toBe(false);
+    expect(Value.Check(AutovulResearchToolInputSchema, { action: "validate", capability: "typestate", hypothesis_version: "autovul.typestate/1", hypothesis })).toBe(true);
   });
 
   it("rejects unknown fields, duplicate ids, bad endpoints, and bad identity requirements", () => {

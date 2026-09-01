@@ -104,4 +104,27 @@ describe("V2 CLI", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("routes Typestate validation through the aggregate research command", async () => {
+    const root = await mkdtemp(join(tmpdir(), "autovul-cli-typestate-"));
+    try {
+      const requestPath = join(root, "typestate-request.json");
+      await writeFile(requestPath, JSON.stringify({
+        capability: "typestate",
+        hypothesis_version: "autovul.typestate/1",
+        hypothesis: {},
+      }), "utf8");
+      const output = ioBuffer();
+      expect(await runCli(["research", "validate", "--request", requestPath, "--json", "--runs-dir", root], {
+        stdout: (value) => output.stdout.push(value),
+        stderr: (value) => output.stderr.push(value),
+      })).toBe(0);
+      const result = JSON.parse(output.stdout.join("")) as { readonly ok: boolean; readonly result?: { readonly valid?: boolean; readonly issues?: readonly { readonly code: string }[] } };
+      expect(result.ok).toBe(true);
+      expect(result.result?.valid).toBe(false);
+      expect(result.result?.issues?.[0]?.code).toBe("TSTATE_HYPOTHESIS_VERSION_INVALID");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });

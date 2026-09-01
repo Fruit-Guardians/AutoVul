@@ -12,15 +12,18 @@ import type {
   MissingCheckValidationResult,
   ResearchExecutionResult,
   RunManifest,
+  TypestateExecutionResult,
+  TypestateReplayComparison,
+  TypestateValidationResult,
 } from "@autovul/contracts";
 
-export type ToolDetails = DoctorResult | DatabaseResult | ProbeEvidence | QueryDraftReport | QueryWorkflowStatus | QueryVerification | QueryPackManifest | FlowValidationResult | MissingCheckValidationResult | ResearchExecutionResult | MissingCheckExecutionResult | RunManifest | DomainErrorRecord;
+export type ToolDetails = DoctorResult | DatabaseResult | ProbeEvidence | QueryDraftReport | QueryWorkflowStatus | QueryVerification | QueryPackManifest | FlowValidationResult | MissingCheckValidationResult | ResearchExecutionResult | MissingCheckExecutionResult | TypestateValidationResult | TypestateExecutionResult | TypestateReplayComparison | RunManifest | DomainErrorRecord;
 
 export interface PiUiState {
   status: "ready" | "running" | "completed" | "blocked" | "failed" | "cancelled" | "budget_exhausted";
   phase: string;
   runId?: string;
-  capability?: "flow" | "missing_check";
+  capability?: "flow" | "missing_check" | "typestate";
   decisionOutcome?: string;
   operationStatus?: string;
   verificationLevel?: string;

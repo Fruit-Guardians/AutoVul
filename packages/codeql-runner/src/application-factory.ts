@@ -14,6 +14,7 @@ import { CodeqlQueryRunner } from "./query-runner.js";
 import { CodeqlLspDraftRunner } from "./lsp/draft-runner.js";
 import { CodeqlFlowAdapter } from "./flow-adapter.js";
 import { CodeqlMissingCheckAdapter } from "./missing-check-adapter.js";
+import { CodeqlTypestateAdapter } from "./typestate-adapter.js";
 
 export interface LocalApplicationOptions {
   readonly cwd?: string;
@@ -43,6 +44,7 @@ export function createLocalApplication(options: LocalApplicationOptions = {}): A
     probes: queries,
     flow: new CodeqlFlowAdapter(queries, queries),
     missingCheck: new CodeqlMissingCheckAdapter({ executable, cwd, filesystem }),
+    typestate: new CodeqlTypestateAdapter({ executable, cwd, filesystem }),
     drafts,
     artifacts: new LocalArtifactStore(runsDir, filesystem),
     clock: new SystemClock(),

@@ -21,6 +21,9 @@ import type { MissingCheckExecutionPort } from "./missing-check/port.js";
 import { MissingCheckReplayService } from "./missing-check/replay.js";
 import { ResearchRunService, type RunManagementResult } from "./research-run.js";
 import { RunCancellationService } from "./run-cancellation.js";
+import { TypestateResearchService, type TypestateResearchResult } from "./typestate/service.js";
+import type { TypestateExecutionPort } from "./typestate/port.js";
+import { TypestateReplayService } from "./typestate/replay.js";
 
 export interface ApplicationApi {
   doctor(options?: Partial<CodeqlOperationOptions>): Promise<DoctorResult>;
@@ -34,7 +37,7 @@ export interface ApplicationApi {
   queryProbe(runId: unknown, intent: unknown, options?: Partial<CodeqlOperationOptions>): Promise<ProbeEvidence>;
   queryDraft(runId: unknown, candidate: unknown, options?: Partial<CodeqlOperationOptions>): Promise<QueryDraftReport>;
   workflowFinalize(runId: unknown, options?: Partial<CodeqlOperationOptions>): Promise<QueryPackManifest>;
-  research(input: unknown, options?: Partial<CodeqlOperationOptions>): Promise<ResearchResult | MissingCheckResearchResult>;
+  research(input: unknown, options?: Partial<CodeqlOperationOptions>): Promise<ResearchResult | MissingCheckResearchResult | TypestateResearchResult>;
   manageRun(input: unknown, options?: Partial<CodeqlOperationOptions>): Promise<RunManagementResult>;
   close(): Promise<void>;
 }
@@ -49,6 +52,7 @@ export interface ApplicationDependencies {
   readonly drafts?: QueryDraftExecutionPort;
   readonly flow?: FlowExecutionPort;
   readonly missingCheck?: MissingCheckExecutionPort;
+  readonly typestate?: TypestateExecutionPort;
   readonly defaultTimeoutMs?: number;
 }
 
@@ -57,6 +61,7 @@ export class Application implements ApplicationApi {
   private readonly queryWorkflow: QueryWorkflowService;
   private readonly flowResearch: FlowResearchService;
   private readonly missingCheckResearch: MissingCheckResearchService;
+  private readonly typestateResearch: TypestateResearchService;
   private readonly researchRuns: ResearchRunService;
   private readonly cancellations: RunCancellationService;
   private readonly defaultTimeoutMs: number;
@@ -80,10 +85,19 @@ export class Application implements ApplicationApi {
     );
     const flow = dependencies.flow ?? unavailableFlowExecutionPort();
     const missingCheck = dependencies.missingCheck ?? unavailableMissingCheckExecutionPort();
+    const typestate = dependencies.typestate ?? unavailableTypestateExecutionPort();
     this.cancellations = new RunCancellationService();
     this.flowResearch = new FlowResearchService(status, dependencies.codeql, flow, dependencies.artifacts, this.cancellations);
     this.missingCheckResearch = new MissingCheckResearchService(status, dependencies.codeql, missingCheck, dependencies.artifacts, this.cancellations);
-    this.researchRuns = new ResearchRunService(status, dependencies.artifacts, new FlowReplayService(status, dependencies.codeql, flow, dependencies.artifacts), new MissingCheckReplayService(status, dependencies.codeql, missingCheck, dependencies.artifacts), this.cancellations);
+    this.typestateResearch = new TypestateResearchService(status, dependencies.codeql, typestate, dependencies.artifacts, this.cancellations);
+    this.researchRuns = new ResearchRunService(
+      status,
+      dependencies.artifacts,
+      new FlowReplayService(status, dependencies.codeql, flow, dependencies.artifacts),
+      new MissingCheckReplayService(status, dependencies.codeql, missingCheck, dependencies.artifacts),
+      new TypestateReplayService(status, dependencies.codeql, typestate, dependencies.artifacts),
+      this.cancellations,
+    );
   }
 
   doctor(options: Partial<CodeqlOperationOptions> = {}): Promise<DoctorResult> {
@@ -130,8 +144,11 @@ export class Application implements ApplicationApi {
     return this.admitWithOptions(options, (resolved) => this.queryWorkflow.finalize(runId, resolved));
   }
 
-  research(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<ResearchResult | MissingCheckResearchResult> {
-    return this.admitWithOptions<ResearchResult | MissingCheckResearchResult>(options, (resolved) => {
+  research(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<ResearchResult | MissingCheckResearchResult | TypestateResearchResult> {
+    return this.admitWithOptions<ResearchResult | MissingCheckResearchResult | TypestateResearchResult>(options, (resolved) => {
+      if (input !== null && typeof input === "object" && !Array.isArray(input) && (input as Record<string, unknown>).capability === "typestate") {
+        return this.typestateResearch.research(input, resolved);
+      }
       if (input !== null && typeof input === "object" && !Array.isArray(input) && (input as Record<string, unknown>).capability === "missing_check") {
         return this.missingCheckResearch.research(input, resolved);
       }
@@ -240,6 +257,26 @@ function unavailableMissingCheckExecutionPort(): MissingCheckExecutionPort {
   return {
     async execute(request): Promise<import("@autovul/contracts").MissingCheckAnalyzerObservation> {
       return { schema_version: "autovul.missing-check/1", compile_accepted: "not_run", operation: { state: "not_run", locations: [] }, required_check: { state: "not_run", locations: [] }, relation: { state: "not_run", unchecked_witnesses: [], checked_witnesses: [] }, completeness: { vulnerable: { status: "not_run", scope: request.hypothesis.scope, limitations: [] } }, capability_gaps: [{ code: "MCHECK_CODEQL_ADAPTER_UNAVAILABLE", path: "/" }], evidence_refs: [], analyzer: { analyzer_id: "codeql", available: false, evidence_kind: "real_analyzer" } };
+    },
+  };
+}
+
+function unavailableTypestateExecutionPort(): TypestateExecutionPort {
+  return {
+    async execute(request): Promise<import("@autovul/contracts").TypestateAnalyzerObservation> {
+      const events = request.hypothesis.events.map((event) => ({ event_id: event.id, state: "not_run" as const, locations: [] }));
+      const boundary = { status: "not_run" as const, scope: request.hypothesis.analysis_scope, limitations: [] };
+      return {
+        schema_version: "autovul.typestate/1",
+        compile_accepted: "not_run",
+        resource: { state: "not_run", locations: [], identity_evidence: [] },
+        events,
+        traces: [],
+        completeness: { vulnerable: boundary },
+        capability_gaps: [{ code: "TSTATE_CODEQL_ADAPTER_UNAVAILABLE", path: "/" }],
+        evidence_refs: [],
+        analyzer: { analyzer_id: "codeql", available: false, evidence_kind: "real_analyzer" },
+      };
     },
   };
 }

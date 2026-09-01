@@ -9,6 +9,7 @@ import {
   ResearchActionSchema,
   TargetRefSchema,
 } from "./research.js";
+import { TypestateResearchToolInputSchema } from "./typestate.js";
 
 /** The sole host-facing aggregate tool contract. Each branch owns its hypothesis. */
 export const MissingCheckResearchToolInputSchema = Type.Object(
@@ -27,7 +28,7 @@ export const MissingCheckResearchToolInputSchema = Type.Object(
 );
 export type MissingCheckResearchToolInput = Static<typeof MissingCheckResearchToolInputSchema>;
 
-export const AutovulResearchToolInputSchema = Type.Union([FlowResearchToolInputSchema, MissingCheckResearchToolInputSchema]);
+export const AutovulResearchToolInputSchema = Type.Union([FlowResearchToolInputSchema, MissingCheckResearchToolInputSchema, TypestateResearchToolInputSchema]);
 export type AutovulResearchToolInput = Static<typeof AutovulResearchToolInputSchema>;
 
 /** Keeps this file's Flow import intentional and gives docs a single aggregate shape. */

@@ -81,7 +81,7 @@ describe("Pi Extension", () => {
       expect(pi.tools.has("codeql_database")).toBe(true);
       expect(pi.tools.has("codeql_workflow")).toBe(true);
       expect(pi.tools.has("codeql_query")).toBe(true);
-      expect(pi.tools.get("autovul_research")?.description).toContain("Flow or MissingCheck");
+      expect(pi.tools.get("autovul_research")?.description).toContain("Flow, MissingCheck, or Typestate");
       expect(pi.tools.get("autovul_research")?.promptSnippet).toContain("protected operation");
       expect(pi.shutdownHandlers).toHaveLength(1);
 
@@ -177,6 +177,39 @@ describe("Pi Extension", () => {
       }
       expect(pi.statuses.get("autovul")).toContain("AutoVul ✓ missing_check · check_missing · reproduced");
       expect(pi.widgets.get("autovul")?.join("\n")).toContain("research/missing-check/result.json");
+
+      for (const handler of pi.eventHandlers.get("tool_execution_start") ?? []) {
+        await handler({
+          type: "tool_execution_start",
+          toolName: "autovul_research",
+          toolCallId: "tool-typestate",
+          args: { action: "execute", capability: "typestate" },
+        }, context);
+      }
+      for (const handler of pi.eventHandlers.get("tool_result") ?? []) {
+        await handler({
+          type: "tool_result",
+          toolName: "autovul_research",
+          toolCallId: "tool-typestate",
+          input: {},
+          content: [],
+          isError: false,
+          details: {
+            schema_version: "v2.contracts/1",
+            run_id: "run_typestate",
+            operation_status: "completed",
+            capability: "typestate",
+            decision: { capability: "typestate", outcome: "violation_observed" },
+            verification_level: "reproduced",
+            observations: [{ code: "TSTATE_TRACE_VIOLATING_WITNESS" }],
+            revision_hints: [],
+            allowed_next_actions: ["replay", "stop"],
+            artifact_ref: "research/typestate/result.json",
+          },
+        }, context);
+      }
+      expect(pi.statuses.get("autovul")).toContain("AutoVul ✓ typestate · violation_observed · reproduced");
+      expect(pi.widgets.get("autovul")?.join("\n")).toContain("research/typestate/result.json");
 
       for (const handler of pi.eventHandlers.get("tool_execution_start") ?? []) {
         await handler({

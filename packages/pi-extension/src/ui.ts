@@ -34,6 +34,7 @@ export function hideWidget(ctx: ExtensionContext): void {
 export function absorbDetails(state: PiUiState, value: unknown): void {
   const record = asRecord(value);
   if (record === undefined) return;
+  if (absorbTypestateReplay(state, record)) return;
   absorbAggregateResult(state, record);
   absorbValidationResult(state, record);
   const run = asRecord(record.run);
@@ -176,7 +177,7 @@ function terminalStatusText(state: PiUiState): string | undefined {
 }
 
 function absorbAggregateResult(state: PiUiState, record: Record<string, unknown>): void {
-  if (record.capability !== "flow" && record.capability !== "missing_check") return;
+  if (record.capability !== "flow" && record.capability !== "missing_check" && record.capability !== "typestate") return;
   state.capability = record.capability;
   state.phase = "research";
   setOptionalString(state, "runId", record.run_id);
@@ -193,6 +194,21 @@ function absorbAggregateResult(state: PiUiState, record: Record<string, unknown>
   state.diagnostics = Array.isArray(record.observations)
     ? record.observations.map((item) => asRecord(item)?.code).filter((item): item is string => typeof item === "string")
     : [];
+}
+
+function absorbTypestateReplay(state: PiUiState, record: Record<string, unknown>): boolean {
+  if (record.capability !== "typestate"
+    || (record.status !== "match" && record.status !== "environment_blocked" && record.status !== "version_difference" && record.status !== "semantic_mismatch")) return false;
+  state.capability = "typestate";
+  state.phase = "run";
+  state.operationStatus = record.status;
+  const replayDecision = asRecord(record.replay_decision) ?? asRecord(record.recorded_decision);
+  if (typeof replayDecision?.outcome === "string") state.decisionOutcome = replayDecision.outcome;
+  state.diagnostics = Array.isArray(record.observations)
+    ? record.observations.map((item) => asRecord(item)?.code).filter((item): item is string => typeof item === "string")
+    : [];
+  state.status = record.status === "match" ? "completed" : record.status === "environment_blocked" || record.status === "version_difference" ? "blocked" : "failed";
+  return true;
 }
 
 function absorbValidationResult(state: PiUiState, record: Record<string, unknown>): void {

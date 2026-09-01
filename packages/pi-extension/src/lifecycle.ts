@@ -42,7 +42,7 @@ export function registerLifecycle(
     const capability = typeof event.args === "object" && event.args !== null && !Array.isArray(event.args)
       ? (event.args as Record<string, unknown>).capability
       : undefined;
-    if (event.toolName === "autovul_research" && (capability === "flow" || capability === "missing_check")) state.capability = capability;
+    if (event.toolName === "autovul_research" && (capability === "flow" || capability === "missing_check" || capability === "typestate")) state.capability = capability;
     const candidate = readCandidate(event.args);
     if (candidate?.round !== undefined) state.round = candidate.round;
     if (ctx.hasUI) ctx.ui.setWorkingMessage(`AutoVul · ${toolLabel(event.toolName)}…`);

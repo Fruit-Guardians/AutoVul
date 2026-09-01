@@ -5,6 +5,7 @@ import {
   type TypestateHypothesis,
 } from "@autovul/contracts";
 import {
+  Application,
   RunCancellationService,
   RunStatusService,
   TypestateResearchService,
@@ -112,6 +113,25 @@ const route = {
 };
 
 describe("TypestateReplayService", () => {
+  it("routes research and replay through the aggregate Application API", async () => {
+    const artifacts = new MemoryArtifactStore();
+    const codeql = new FakeCodeqlPort();
+    const execution: TypestateExecutionPort = { async execute(): Promise<TypestateAnalyzerObservation> { return observation(); } };
+    const app = new Application({ typestate: execution, codeql, artifacts, clock: new FixedClock(), ids: new FixedIdGenerator("run_tstateapp") });
+    try {
+      const result = await app.research(requestFor("replay-aggregate"));
+      if (!("run_id" in result)) throw new Error("expected aggregate execution result");
+      expect(result).toMatchObject({ capability: "typestate", operation_status: "completed", decision: { outcome: "violation_observed" } });
+      await expect(app.manageRun({ action: "replay", run_id: result.run_id })).resolves.toMatchObject({
+        capability: "typestate",
+        status: "match",
+        replay_decision: { outcome: "violation_observed" },
+      });
+    } finally {
+      await app.close();
+    }
+  });
+
   it("replays through the explicit Typestate route and matches the recorded policy result", async () => {
     const current = { value: observation() };
     const { replay, runId } = await setup(current, "replay-match");
