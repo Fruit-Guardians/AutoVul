@@ -17,6 +17,8 @@ export const RunPhaseSchema = Type.Union([
   /** A Flow capability operation projected onto the shared run lifecycle. */
   Type.Literal("flow_execute"),
   Type.Literal("missing_check_execute"),
+  /** A Typestate capability operation projected onto the shared run lifecycle. */
+  Type.Literal("typestate_execute"),
 ]);
 export type RunPhase = Static<typeof RunPhaseSchema>;
 
