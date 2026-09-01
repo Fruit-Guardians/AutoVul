@@ -13,15 +13,17 @@ import {
   type ResearchOperationRoute,
   type RunId,
   type TargetRef,
+  type TypestateAnalyzerObservation,
   type TypestateCompactObservation,
   type TypestateDecision,
   type TypestateReplayComparison,
 } from "@autovul/contracts";
 
 import type { ArtifactStorePort, CodeqlOperationOptions, CodeqlPort } from "../ports.js";
+import { RunCancellationService } from "../run-cancellation.js";
 import { RunStatusService } from "../status-service.js";
 import { decideTypestate } from "./decision.js";
-import type { TypestateExecutionPort } from "./port.js";
+import type { TypestateEvidenceDigest, TypestateEvidenceSnapshotPort, TypestateExecutionPort } from "./port.js";
 import { TYPESTATE_RESULT_ARTIFACT, readTypestateRunArtifact } from "./service.js";
 
 /** Capability-owned replay policy; the shared runtime only selects this route. */
@@ -30,11 +32,34 @@ export class TypestateReplayService {
     private readonly status: RunStatusService,
     private readonly codeql: CodeqlPort,
     private readonly execution: TypestateExecutionPort,
+    private readonly evidence: TypestateEvidenceSnapshotPort,
     private readonly artifacts: ArtifactStorePort,
+    private readonly cancellations: RunCancellationService,
   ) {}
 
   async replay(runId: RunId, route: ResearchOperationRoute, options: CodeqlOperationOptions): Promise<TypestateReplayComparison> {
+    try {
+      return await this.artifacts.withRunOperation(runId, options, async () => {
+        const operation = this.cancellations.begin(runId, options.signal);
+        try {
+          return await this.replayLocked(runId, route, { ...options, signal: operation.signal });
+        } catch (error: unknown) {
+          return replayFailureComparison(unknownDecision(), TYPESTATE_RESULT_ARTIFACT, error, operation.signal);
+        } finally {
+          operation.release();
+        }
+      });
+    } catch (error: unknown) {
+      return replayFailureComparison(unknownDecision(), TYPESTATE_RESULT_ARTIFACT, error, options.signal);
+    }
+  }
+
+  private async replayLocked(runId: RunId, route: ResearchOperationRoute, options: CodeqlOperationOptions): Promise<TypestateReplayComparison> {
+    assertNotCancelled(options.signal, runId);
     const run = await this.status.get(runId);
+    if (run.status === "cancelled") {
+      return comparison("cancelled", unknownDecision(), [{ code: "TSTATE_REPLAY_CANCELLED", evidence_ref: TYPESTATE_RESULT_ARTIFACT }]);
+    }
     const routeError = validateRoute(route);
     if (routeError !== undefined) return comparison("environment_blocked", unknownDecision(), [{ code: routeError, evidence_ref: TYPESTATE_RESULT_ARTIFACT }]);
 
@@ -60,53 +85,80 @@ export class TypestateReplayService {
     if (artifact.analyzer.version === undefined || artifact.analyzer.adapter_version === undefined) {
       return comparison("version_difference", artifact.decision, [{ code: "TSTATE_REPLAY_ANALYZER_VERSION_UNRECORDED", evidence_ref: route.result_artifact_ref }]);
     }
-    if (artifact.observation === undefined) {
-      return comparison("environment_blocked", artifact.decision, [{ code: "TSTATE_REPLAY_OBSERVATION_UNRECORDED", evidence_ref: route.result_artifact_ref }]);
+    if (artifact.observation === undefined) return comparison("environment_blocked", artifact.decision, [{ code: "TSTATE_REPLAY_OBSERVATION_UNRECORDED", evidence_ref: route.result_artifact_ref }]);
+    if (artifact.analyzer.available === false) return comparison("environment_blocked", artifact.decision, [{ code: "TSTATE_REPLAY_ANALYZER_UNAVAILABLE", evidence_ref: route.result_artifact_ref }]);
+
+    const initialEvidence = await this.evidence.snapshotEvidence({
+      hypothesis: artifact.hypothesis,
+      runId: run.runId,
+      artifactRoot: run.artifactRoot,
+      workspace: "primary",
+    });
+    assertNotCancelled(options.signal, runId);
+
+    await validateTarget(this.codeql, artifact.target.vulnerable, artifact.target_fingerprints.vulnerable, options);
+    if (artifact.target.fixed !== undefined && artifact.target_fingerprints.fixed !== undefined) {
+      await validateTarget(this.codeql, artifact.target.fixed, artifact.target_fingerprints.fixed, options);
     }
-    if (artifact.analyzer.available === false) {
+    assertNotCancelled(options.signal, runId);
+
+    const replayObservation = await this.execution.execute(
+      {
+        hypothesis: artifact.hypothesis,
+        target: artifact.target,
+        analyzer_id: "codeql",
+        mode: artifact.mode,
+        runId: run.runId,
+        artifactRoot: run.artifactRoot,
+        workspace: "replay",
+      },
+      {
+        ...options,
+        timeoutMs: artifact.budget === undefined ? options.timeoutMs : Math.min(options.timeoutMs, artifact.budget.timeout_ms),
+      },
+    );
+    assertNotCancelled(options.signal, runId);
+
+    const finalEvidence = await this.evidence.snapshotEvidence({
+      hypothesis: artifact.hypothesis,
+      runId: run.runId,
+      artifactRoot: run.artifactRoot,
+      workspace: "primary",
+    });
+    assertNotCancelled(options.signal, runId);
+    if (!sameEvidenceDigest(initialEvidence, finalEvidence)) {
+      return comparison(
+        "semantic_mismatch",
+        artifact.decision,
+        [{ code: "TSTATE_REPLAY_EVIDENCE_MUTATED", evidence_ref: route.result_artifact_ref }],
+        decideTypestate(replayObservation, artifact.mode, artifact.hypothesis).decision,
+      );
+    }
+    if (replayObservation.analyzer.available === false) {
       return comparison("environment_blocked", artifact.decision, [{ code: "TSTATE_REPLAY_ANALYZER_UNAVAILABLE", evidence_ref: route.result_artifact_ref }]);
     }
-
-    try {
-      await validateTarget(this.codeql, artifact.target.vulnerable, artifact.target_fingerprints.vulnerable, options);
-      if (artifact.target.fixed !== undefined && artifact.target_fingerprints.fixed !== undefined) {
-        await validateTarget(this.codeql, artifact.target.fixed, artifact.target_fingerprints.fixed, options);
-      }
-
-      const replayObservation = await this.execution.execute(
-        {
-          hypothesis: artifact.hypothesis,
-          target: artifact.target,
-          analyzer_id: "codeql",
-          mode: artifact.mode,
-          runId: run.runId,
-          artifactRoot: run.artifactRoot,
-        },
-        {
-          ...options,
-          timeoutMs: artifact.budget === undefined ? options.timeoutMs : Math.min(options.timeoutMs, artifact.budget.timeout_ms),
-        },
-      );
-      if (replayObservation.analyzer.available === false) {
-        return comparison("environment_blocked", artifact.decision, [{ code: "TSTATE_REPLAY_ANALYZER_UNAVAILABLE", evidence_ref: route.result_artifact_ref }]);
-      }
-      if (replayObservation.analyzer.version !== artifact.analyzer.version || replayObservation.analyzer.adapter_version !== artifact.analyzer.adapter_version) {
-        return comparison("version_difference", artifact.decision, [{ code: "TSTATE_REPLAY_ANALYZER_VERSION_DIFFERENCE", evidence_ref: route.result_artifact_ref }]);
-      }
-
-      const projection = decideTypestate(replayObservation, artifact.mode, artifact.hypothesis);
-      if (canonical(projection.decision) !== canonical(artifact.decision) || projection.verificationLevel !== artifact.verification_level) {
-        return comparison(
-          "semantic_mismatch",
-          artifact.decision,
-          withReplayCode(projection.observations, "TSTATE_REPLAY_SEMANTIC_MISMATCH", route.result_artifact_ref),
-          projection.decision,
-        );
-      }
-      return comparison("match", artifact.decision, projection.observations, projection.decision);
-    } catch (error: unknown) {
-      return comparison("environment_blocked", artifact.decision, [{ code: replayFailureCode(error), evidence_ref: route.result_artifact_ref }]);
+    if (replayObservation.analyzer.version !== artifact.analyzer.version || replayObservation.analyzer.adapter_version !== artifact.analyzer.adapter_version) {
+      return comparison("version_difference", artifact.decision, [{ code: "TSTATE_REPLAY_ANALYZER_VERSION_DIFFERENCE", evidence_ref: route.result_artifact_ref }]);
     }
+
+    const projection = decideTypestate(replayObservation, artifact.mode, artifact.hypothesis);
+    if (canonical(projection.decision) !== canonical(artifact.decision) || projection.verificationLevel !== artifact.verification_level) {
+      return comparison(
+        "semantic_mismatch",
+        artifact.decision,
+        withReplayCode(projection.observations, "TSTATE_REPLAY_SEMANTIC_MISMATCH", route.result_artifact_ref),
+        projection.decision,
+      );
+    }
+    if (!sameTypestateObservation(artifact.observation, replayObservation)) {
+      return comparison(
+        "semantic_mismatch",
+        artifact.decision,
+        withReplayCode(projection.observations, "TSTATE_REPLAY_OBSERVATION_SEMANTIC_MISMATCH", route.result_artifact_ref),
+        projection.decision,
+      );
+    }
+    return comparison("match", artifact.decision, projection.observations, projection.decision);
   }
 }
 
@@ -152,6 +204,16 @@ function comparison(
   }, "Typestate replay comparison");
 }
 
+function replayFailureComparison(
+  recordedDecision: TypestateDecision,
+  evidenceRef: string,
+  error: unknown,
+  signal: AbortSignal | undefined,
+): TypestateReplayComparison {
+  const code = replayFailureCode(error, signal);
+  return comparison(code === "TSTATE_REPLAY_CANCELLED" ? "cancelled" : "environment_blocked", recordedDecision, [{ code, evidence_ref: evidenceRef }]);
+}
+
 function withReplayCode(
   observations: readonly TypestateCompactObservation[],
   code: string,
@@ -177,13 +239,56 @@ function readRecordedDecision(value: unknown): TypestateDecision | undefined {
   return Value.Check(TypestateDecisionSchema, value) ? Value.Parse(TypestateDecisionSchema, value) as TypestateDecision : undefined;
 }
 
-function replayFailureCode(error: unknown): string {
+function replayFailureCode(error: unknown, signal: AbortSignal | undefined): string {
+  if (signal?.aborted) return "TSTATE_REPLAY_CANCELLED";
   const domain = asDomainError(error);
   if (domain.code === "DATABASE_FINGERPRINT_MISMATCH") return "TSTATE_REPLAY_FINGERPRINT_DIFFERENCE";
   if (domain.code === "DATABASE_FINGERPRINT_UNAVAILABLE") return "TSTATE_REPLAY_FINGERPRINT_UNAVAILABLE";
   if (domain.code === "PROCESS_CANCELLED") return "TSTATE_REPLAY_CANCELLED";
   if (domain.code === "PROCESS_TIMEOUT") return "TSTATE_REPLAY_TIMEOUT";
   return "TSTATE_REPLAY_ENVIRONMENT_BLOCKED";
+}
+
+function assertNotCancelled(signal: AbortSignal | undefined, runId: RunId): void {
+  if (!signal?.aborted) return;
+  throw new DomainError("PROCESS_CANCELLED", "process", `Typestate replay for ${runId} was cancelled`, false, { runId });
+}
+
+function sameEvidenceDigest(before: readonly TypestateEvidenceDigest[], after: readonly TypestateEvidenceDigest[]): boolean {
+  return canonical(normalizeEvidenceDigest(before)) === canonical(normalizeEvidenceDigest(after));
+}
+
+function normalizeEvidenceDigest(digests: readonly TypestateEvidenceDigest[]): readonly TypestateEvidenceDigest[] {
+  return [...digests]
+    .map((digest) => ({ evidence_ref: normalizeEvidencePath(digest.evidence_ref), sha256: digest.sha256 }))
+    .sort((left, right) => left.evidence_ref.localeCompare(right.evidence_ref) || left.sha256.localeCompare(right.sha256));
+}
+
+/** Full v1 observation comparison. Arrays retain analyzer order, especially traces. */
+function sameTypestateObservation(recorded: TypestateAnalyzerObservation, replayed: TypestateAnalyzerObservation): boolean {
+  return canonical(typestateObservationSemantics(recorded)) === canonical(typestateObservationSemantics(replayed));
+}
+
+function typestateObservationSemantics(observation: TypestateAnalyzerObservation): unknown {
+  const normalizeTrace = (trace: TypestateAnalyzerObservation["traces"][number]) => ({ ...trace, evidence_ref: normalizeEvidencePath(trace.evidence_ref) });
+  return {
+    schema_version: observation.schema_version,
+    compile_accepted: observation.compile_accepted,
+    resource: observation.resource,
+    events: observation.events,
+    traces: observation.traces.map(normalizeTrace),
+    ...(observation.fixed_resource === undefined ? {} : { fixed_resource: observation.fixed_resource }),
+    ...(observation.fixed_events === undefined ? {} : { fixed_events: observation.fixed_events }),
+    ...(observation.fixed_traces === undefined ? {} : { fixed_traces: observation.fixed_traces.map(normalizeTrace) }),
+    completeness: observation.completeness,
+    capability_gaps: observation.capability_gaps,
+    evidence_refs: observation.evidence_refs.map(normalizeEvidencePath),
+  };
+}
+
+function normalizeEvidencePath(value: string): string {
+  const normalized = value.replaceAll("\\", "/").replace(/^\.\//, "");
+  return normalized.startsWith("typestate-replay/") ? `typestate/${normalized.slice("typestate-replay/".length)}` : normalized;
 }
 
 function canonical(value: unknown): string {

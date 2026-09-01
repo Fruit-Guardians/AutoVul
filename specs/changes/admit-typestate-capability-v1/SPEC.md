@@ -1,7 +1,7 @@
 # Change: Admit Typestate Capability v1
 
 - Change ID: `admit-typestate-capability-v1`
-- Status: Accepted
+- Status: Implemented
 - Owner: AutoVul maintainers
 - Created: 2026-08-29
 - Updated: 2026-09-01
@@ -14,7 +14,7 @@ Some vulnerabilities are determined by the order in which operations affect one 
 
 Modeling these defects as Flow would confuse value propagation with lifecycle semantics. Modeling them as MissingCheck would lose transition order and object identity. Typestate is therefore a candidate parallel Capability, but it must be admitted by a real case and a real Analyzer witness before any production state-machine abstraction is introduced.
 
-This Accepted change SPEC defines the admission evidence, a deliberately narrow single-resource v1 contract candidate, implementation phases, and verification gates. It does not claim that Typestate is implemented or supported.
+This Accepted change SPEC defines the admission evidence, a deliberately narrow single-resource v1 contract, implementation phases, and verification gates. It does not claim that Typestate has completed real Golden verification or is a broadly supported protocol framework.
 
 ## Host boundary
 
@@ -76,8 +76,9 @@ AutoVul MUST NOT infer arbitrary protocols from an entire repository, invent mis
 ## Admission gate — satisfied
 
 The nine admission requirements below are satisfied by the frozen Ghost case
-record. This acceptance authorizes only the narrow implementation phases in
-this SPEC; it does not claim that Typestate is implemented or supported.
+record. This acceptance authorized the narrow implementation phases in this
+SPEC; it does not claim that Typestate has completed real Golden verification
+or broad support.
 
 1. one reproducible vulnerability whose decisive fact is event order for one resource;
 2. why neither Flow nor MissingCheck can represent the case honestly;
@@ -285,8 +286,9 @@ The standalone Typestate request contract has required `action`, `capability`,
 `hypothesis_version`, and `hypothesis`, plus optional `target`, `analyzer_id`,
 `mode`, `budget`, and `idempotency_key`. `action` is `validate | execute`,
 `analyzer_id` is `codeql`, and `mode` is `probe | reproduce | differential`.
-It is a Contracts-only branch in Phase B; host registration remains a later
-phase.
+The schema freeze began as a Contracts-only Phase B branch. It is now routed
+through the existing aggregate Application, Pi, and CLI interfaces; no separate
+Typestate model tool is introduced.
 
 `TypestateRunArtifact` has these required fields:
 
@@ -301,7 +303,9 @@ It may additionally contain `budget`, `idempotency_key`,
 `budget_remaining`. The replay comparison has exactly `schema_version`,
 `capability`, `status`, `recorded_decision`, optional `replay_decision`, and
 `observations`; its status enum is `match | environment_blocked |
-version_difference | semantic_mismatch`.
+version_difference | semantic_mismatch | cancelled`. `cancelled` means the
+replay caller, `autovul_run cancel`, or Application shutdown aborted the active
+replay operation; it is not an environment or semantic conclusion.
 
 ### Validation and revision
 
@@ -348,7 +352,7 @@ version_difference | semantic_mismatch`.
 - `REQ-TSTATE-051`: Typestate MUST use accepted trusted-root, timeout, live cancellation, process cleanup, locking, atomic commit, and recovery behavior.
 - `REQ-TSTATE-052`: A committed artifact MUST record contract version, normalized protocol, target refs and fingerprints, Analyzer provenance, alias/completeness boundaries, observations, Decision Policy version, decision, verification level, budget identity, and replay inputs.
 - `REQ-TSTATE-053`: Critical traces and route metadata MUST be committed atomically before authoritative state references the result.
-- `REQ-TSTATE-054`: Replay MUST revalidate targets, fingerprints, Analyzer version, and trace semantics and distinguish environment block, version difference, and semantic mismatch.
+- `REQ-TSTATE-054`: Replay MUST hold the shared per-run operation lease, bind to live cancellation, revalidate targets, fingerprints, and Analyzer version, and distinguish environment block, version difference, semantic mismatch, and cancellation. It MUST execute into a Typestate-only replay namespace, hash the recorded primary QL/SARIF evidence before and after replay without writing it, and return `semantic_mismatch` if the original evidence changes. Its Typestate-owned semantic comparison MUST compare resource, events, ordered traces, identity evidence, locations, violation steps, completeness, capability gaps, and normalized evidence refs; a replay namespace difference alone MUST NOT mismatch.
 - `REQ-TSTATE-055`: Logs and artifacts MUST sanitize secrets, tokens, user data carried by events, and unrestricted environment values.
 - `REQ-TSTATE-056`: The adapter MUST NOT execute target build, install, migration, network service, or exploit scripts without a separate accepted approval path.
 - `REQ-TSTATE-057`: Existing Flow, CodeQL, and later MissingCheck contracts and artifacts MUST remain unchanged.
@@ -428,6 +432,9 @@ Accepted SPEC. No production code is included in Phase A.
 - Add explicit research and replay branches.
 - Reuse shared idempotency, budgets, cancellation, atomic commit, recovery, and artifact routing.
 - Extend Pi and CLI through `autovul_research` and `autovul_run` only.
+- Replay writes only to `typestate-replay/`, retains the primary `typestate/`
+  QL/SARIF files as immutable evidence, and performs the narrow v1 semantic
+  comparison described by `REQ-TSTATE-054`.
 
 ### Phase E — real verification
 
@@ -474,8 +481,8 @@ Dependency direction remains unchanged. Typestate protocol state MUST never be s
 - Addition is gated and backward compatible.
 - Existing capabilities retain independent decisions and artifacts.
 - The shared research request and operation-route contracts contain the
-  `typestate` discriminator in Phase B; model-facing aggregate tool
-  registration remains a later phase.
+  `typestate` discriminator, and the existing aggregate model tools route it
+  explicitly without a new registry or dedicated model tool.
 - Rollback disables the branch while retaining versioned artifacts for read-only inspection.
 - No support claim is allowed before Verified.
 
@@ -535,15 +542,16 @@ protocol or a different violation form requires a separate change SPEC.
 | 2026-08-29 | Block production implementation before a real case | Required by the accepted architecture baseline. |
 | 2026-08-30 | Accept Typestate as the next research direction, while retaining Draft status | Directional approval does not satisfy the real-case admission gate or the required Verified Flow runtime baseline. |
 | 2026-09-01 | Accept the Ghost CVE-2026-70594 case for narrow Typestate v1 implementation | Real CodeQL evidence demonstrates an ordered identity-backed violating witness, a fixed safe trace, a different-resource counterexample, field-specific revisions, and model-free replay. |
+| 2026-09-01 | Complete the Phase D.1 replay integrity boundary | Replay uses a dedicated namespace, preserves recorded evidence hashes, compares complete Typestate observation semantics, and shares the run lease and cancellation chain. |
 
 ## Delivery gate
 
-Accepted status authorizes the narrow v1 implementation phases below. This
-admission evidence itself did not add production behavior. The current Phase B
-implementation is intentionally limited to the Typestate Contracts and pure
-Core policy authorized by this Accepted SPEC; it does not add an Analyzer
-adapter, shared-runtime route, replay executor, Pi/CLI host exposure, or
-support claim.
+Accepted status authorized the narrow v1 implementation. Phases B through D.1
+are now implemented: the frozen Contracts and pure Core policy, one CodeQL
+adapter, shared-runtime execute/replay routes, aggregate Pi/CLI projection,
+and replay integrity invariants. This remains an implementation claim only;
+the Phase E real Golden, independent replay, host acceptance, and archive gate
+remain required before Verified or Archived status.
 
 Implementation may begin in a later change because the admission gate is
 satisfied, the protocol and Analyzer choices are frozen here, and the Flow and

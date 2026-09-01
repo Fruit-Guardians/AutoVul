@@ -198,7 +198,7 @@ function absorbAggregateResult(state: PiUiState, record: Record<string, unknown>
 
 function absorbTypestateReplay(state: PiUiState, record: Record<string, unknown>): boolean {
   if (record.capability !== "typestate"
-    || (record.status !== "match" && record.status !== "environment_blocked" && record.status !== "version_difference" && record.status !== "semantic_mismatch")) return false;
+    || (record.status !== "match" && record.status !== "environment_blocked" && record.status !== "version_difference" && record.status !== "semantic_mismatch" && record.status !== "cancelled")) return false;
   state.capability = "typestate";
   state.phase = "run";
   state.operationStatus = record.status;
@@ -207,7 +207,7 @@ function absorbTypestateReplay(state: PiUiState, record: Record<string, unknown>
   state.diagnostics = Array.isArray(record.observations)
     ? record.observations.map((item) => asRecord(item)?.code).filter((item): item is string => typeof item === "string")
     : [];
-  state.status = record.status === "match" ? "completed" : record.status === "environment_blocked" || record.status === "version_difference" ? "blocked" : "failed";
+  state.status = record.status === "match" ? "completed" : record.status === "cancelled" ? "cancelled" : record.status === "environment_blocked" || record.status === "version_difference" ? "blocked" : "failed";
   return true;
 }
 

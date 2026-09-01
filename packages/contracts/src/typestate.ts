@@ -449,6 +449,7 @@ export const TypestateReplayComparisonSchema = Type.Object(
       Type.Literal("environment_blocked"),
       Type.Literal("version_difference"),
       Type.Literal("semantic_mismatch"),
+      Type.Literal("cancelled"),
     ]),
     recorded_decision: TypestateDecisionSchema,
     replay_decision: Type.Optional(TypestateDecisionSchema),

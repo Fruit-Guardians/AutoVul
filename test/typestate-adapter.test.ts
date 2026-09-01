@@ -67,14 +67,16 @@ describe("CodeQL Typestate adapter", () => {
       return processResult();
     });
     try {
-      const observation = await new CodeqlTypestateAdapter({ process }).execute({
+      const adapter = new CodeqlTypestateAdapter({ process });
+      const request = {
         hypothesis,
         target: { vulnerable: { kind: "codeql_database", path: "/db/vulnerable" }, fixed: { kind: "codeql_database", path: "/db/fixed" } },
         analyzer_id: "codeql",
         mode: "differential",
         runId: "run_tstate_adapter",
         artifactRoot: root,
-      }, { timeoutMs: 10_000 });
+      } as const;
+      const observation = await adapter.execute(request, { timeoutMs: 10_000 });
       expect(observation.compile_accepted).toBe(true);
       expect(observation.resource.state).toBe("observed");
       expect(observation.events.find((event) => event.event_id === "assign_user")?.state).toBe("observed");
@@ -90,6 +92,13 @@ describe("CodeQL Typestate adapter", () => {
       expect(safeQuery).toContain("isCurrentBindingForProperty(CallExpr identity, CallExpr authenticate, Property property)");
       expect(safeQuery).toContain("identity.getLocation().getEndLine() < declaration.getLocation().getStartLine()");
       expect(safeQuery).toContain("declaration.getLocation().getEndLine() < authenticate.getLocation().getStartLine()");
+
+      const beforeReplay = await adapter.snapshotEvidence({ hypothesis, runId: request.runId, artifactRoot: root, workspace: "primary" });
+      const replay = await adapter.execute({ ...request, workspace: "replay" }, { timeoutMs: 10_000 });
+      const afterReplay = await adapter.snapshotEvidence({ hypothesis, runId: request.runId, artifactRoot: root, workspace: "primary" });
+      expect(afterReplay).toEqual(beforeReplay);
+      expect(replay.evidence_refs).toEqual(expect.arrayContaining(["typestate-replay/tstate-adapter-test/vulnerable/observations.sarif"]));
+      expect(await readFile(join(root, "typestate-replay", hypothesis.hypothesis_id, "observations.ql"), "utf8")).toContain("AutoVul Typestate v1 observation adapter");
     } finally {
       await rm(root, { recursive: true, force: true });
     }

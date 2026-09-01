@@ -1,4 +1,5 @@
-import { join } from "node:path";
+import { createHash } from "node:crypto";
+import { join, relative, sep } from "node:path";
 
 import {
   DomainError,
@@ -18,6 +19,9 @@ import type {
   FileSystemPort,
   ProcessPort,
   ProcessResult,
+  TypestateEvidenceDigest,
+  TypestateEvidenceSnapshotPort,
+  TypestateEvidenceSnapshotRequest,
   TypestateExecutionPort,
   TypestateExecutionRequest,
 } from "@autovul/core";
@@ -38,7 +42,7 @@ const COMPLETENESS_LIMITATIONS = [
 ] as const;
 
 /** The single narrow CodeQL adapter for Typestate v1. */
-export class CodeqlTypestateAdapter implements TypestateExecutionPort {
+export class CodeqlTypestateAdapter implements TypestateExecutionPort, TypestateEvidenceSnapshotPort {
   private readonly executable: string;
   private readonly cwd: string | undefined;
   private readonly process: ProcessPort;
@@ -62,7 +66,8 @@ export class CodeqlTypestateAdapter implements TypestateExecutionPort {
       return unavailableObservation(request.hypothesis, { code: "TSTATE_TRACE_PLAN_UNSUPPORTED", path: "/transitions" });
     }
 
-    const root = join(request.artifactRoot, "typestate", request.hypothesis.hypothesis_id);
+    const root = typestateWorkspaceRoot(request.artifactRoot, request.hypothesis.hypothesis_id, request.workspace);
+    const evidenceNamespace = typestateWorkspaceNamespace(request.workspace);
     await this.filesystem.ensureDirectory(root);
     const queries = renderQueries(request.hypothesis, plan);
     await this.filesystem.writeTextAtomic(join(root, "observations.ql"), queries.observations);
@@ -82,9 +87,9 @@ export class CodeqlTypestateAdapter implements TypestateExecutionPort {
       if (!successful(compile)) throw processFailure(compile, `${queryName}:compile`);
     }
 
-    const vulnerable = await this.observeSide(root, request.hypothesis, request.target.vulnerable.path, "vulnerable", plan, request.mode === "probe" ? false : true, options);
+    const vulnerable = await this.observeSide(root, evidenceNamespace, request.hypothesis, request.target.vulnerable.path, "vulnerable", plan, request.mode === "probe" ? false : true, options);
     const fixed = request.mode === "differential" && request.target.fixed !== undefined
-      ? await this.observeSide(root, request.hypothesis, request.target.fixed.path, "fixed", plan, true, options)
+      ? await this.observeSide(root, evidenceNamespace, request.hypothesis, request.target.fixed.path, "fixed", plan, true, options)
       : undefined;
     const evidenceRefs = [...vulnerable.evidenceRefs, ...(fixed?.evidenceRefs ?? [])];
     return {
@@ -104,8 +109,22 @@ export class CodeqlTypestateAdapter implements TypestateExecutionPort {
     };
   }
 
+  async snapshotEvidence(request: TypestateEvidenceSnapshotRequest): Promise<readonly TypestateEvidenceDigest[]> {
+    const root = typestateWorkspaceRoot(request.artifactRoot, request.hypothesis.hypothesis_id, request.workspace);
+    if (!await this.filesystem.exists(root)) return [];
+    const files = await listEvidenceFiles(this.filesystem, root);
+    return Promise.all(files
+      .filter((path) => path.endsWith(".ql") || path.endsWith(".sarif"))
+      .sort()
+      .map(async (path) => ({
+        evidence_ref: relative(request.artifactRoot, path).split(sep).join("/"),
+        sha256: createHash("sha256").update(await this.filesystem.readText(path), "utf8").digest("hex"),
+      })));
+  }
+
   private async observeSide(
     root: string,
+    evidenceNamespace: "typestate" | "typestate-replay",
     hypothesis: TypestateHypothesis,
     database: string,
     side: "vulnerable" | "fixed",
@@ -113,7 +132,7 @@ export class CodeqlTypestateAdapter implements TypestateExecutionPort {
     includeTraces: boolean,
     options: CodeqlOperationOptions,
   ): Promise<SideObservation> {
-    const prefix = `typestate/${hypothesis.hypothesis_id}/${side}`;
+    const prefix = `${evidenceNamespace}/${hypothesis.hypothesis_id}/${side}`;
     const observationsPath = `${prefix}/observations.sarif`;
     const observations = await this.analyze(root, database, side, "observations", observationsPath, options);
     const resourceLocations = observations.results
@@ -184,6 +203,22 @@ interface SarifResult { readonly message: string; readonly locations: readonly T
 interface TracePlan { readonly violation: readonly PlannedEvent[]; readonly safe: readonly PlannedEvent[]; }
 interface PlannedEvent { readonly eventId: string; readonly fromState: string; readonly toState: string; }
 interface UnsupportedHypothesis { readonly code: string; readonly path: string; }
+
+function typestateWorkspaceRoot(artifactRoot: string, hypothesisId: string, workspace: "primary" | "replay" | undefined): string {
+  return join(artifactRoot, typestateWorkspaceNamespace(workspace), hypothesisId);
+}
+
+function typestateWorkspaceNamespace(workspace: "primary" | "replay" | undefined): "typestate" | "typestate-replay" {
+  return workspace === "replay" ? "typestate-replay" : "typestate";
+}
+
+async function listEvidenceFiles(filesystem: FileSystemPort, directory: string): Promise<readonly string[]> {
+  const entries = await filesystem.listDirectory(directory);
+  const nested = await Promise.all(entries.map(async (entry) => entry.isDirectory
+    ? listEvidenceFiles(filesystem, join(directory, entry.name))
+    : [join(directory, entry.name)]));
+  return nested.flat();
+}
 
 function unsupportedHypothesis(hypothesis: TypestateHypothesis): UnsupportedHypothesis | undefined {
   if (hypothesis.language !== "javascript") return { code: "TSTATE_LANGUAGE_UNSUPPORTED", path: "/language" };

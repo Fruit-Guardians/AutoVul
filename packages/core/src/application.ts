@@ -22,7 +22,7 @@ import { MissingCheckReplayService } from "./missing-check/replay.js";
 import { ResearchRunService, type RunManagementResult } from "./research-run.js";
 import { RunCancellationService } from "./run-cancellation.js";
 import { TypestateResearchService, type TypestateResearchResult } from "./typestate/service.js";
-import type { TypestateExecutionPort } from "./typestate/port.js";
+import type { TypestateEvidenceSnapshotPort, TypestateExecutionPort } from "./typestate/port.js";
 import { TypestateReplayService } from "./typestate/replay.js";
 
 export interface ApplicationApi {
@@ -52,7 +52,7 @@ export interface ApplicationDependencies {
   readonly drafts?: QueryDraftExecutionPort;
   readonly flow?: FlowExecutionPort;
   readonly missingCheck?: MissingCheckExecutionPort;
-  readonly typestate?: TypestateExecutionPort;
+  readonly typestate?: TypestateExecutionPort & TypestateEvidenceSnapshotPort;
   readonly defaultTimeoutMs?: number;
 }
 
@@ -95,7 +95,7 @@ export class Application implements ApplicationApi {
       dependencies.artifacts,
       new FlowReplayService(status, dependencies.codeql, flow, dependencies.artifacts),
       new MissingCheckReplayService(status, dependencies.codeql, missingCheck, dependencies.artifacts),
-      new TypestateReplayService(status, dependencies.codeql, typestate, dependencies.artifacts),
+      new TypestateReplayService(status, dependencies.codeql, typestate, typestate, dependencies.artifacts, this.cancellations),
       this.cancellations,
     );
   }
@@ -261,7 +261,7 @@ function unavailableMissingCheckExecutionPort(): MissingCheckExecutionPort {
   };
 }
 
-function unavailableTypestateExecutionPort(): TypestateExecutionPort {
+function unavailableTypestateExecutionPort(): TypestateExecutionPort & TypestateEvidenceSnapshotPort {
   return {
     async execute(request): Promise<import("@autovul/contracts").TypestateAnalyzerObservation> {
       const events = request.hypothesis.events.map((event) => ({ event_id: event.id, state: "not_run" as const, locations: [] }));
@@ -277,6 +277,9 @@ function unavailableTypestateExecutionPort(): TypestateExecutionPort {
         evidence_refs: [],
         analyzer: { analyzer_id: "codeql", available: false, evidence_kind: "real_analyzer" },
       };
+    },
+    async snapshotEvidence(): Promise<readonly import("./typestate/port.js").TypestateEvidenceDigest[]> {
+      return [];
     },
   };
 }
