@@ -1,5 +1,6 @@
 import { Type, type Static } from "typebox";
 
+import { ChangeObservationServiceRequestSchema } from "./change-observation.js";
 import { FlowExpectationSchema, FlowResearchToolInputSchema } from "./flow.js";
 import { MissingCheckHypothesisSchema } from "./missing-check.js";
 import {
@@ -28,7 +29,12 @@ export const MissingCheckResearchToolInputSchema = Type.Object(
 );
 export type MissingCheckResearchToolInput = Static<typeof MissingCheckResearchToolInputSchema>;
 
-export const AutovulResearchToolInputSchema = Type.Union([FlowResearchToolInputSchema, MissingCheckResearchToolInputSchema, TypestateResearchToolInputSchema]);
+export const AutovulResearchToolInputSchema = Type.Union([
+  FlowResearchToolInputSchema,
+  MissingCheckResearchToolInputSchema,
+  TypestateResearchToolInputSchema,
+  ChangeObservationServiceRequestSchema,
+]);
 export type AutovulResearchToolInput = Static<typeof AutovulResearchToolInputSchema>;
 
 /** Keeps this file's Flow import intentional and gives docs a single aggregate shape. */

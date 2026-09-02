@@ -2,7 +2,7 @@ import {
   asDomainError,
   DomainError,
   type MissingCheckExecutionResult,
-  type ResearchOperationRoute,
+  type CapabilityResearchOperationRoute,
   type RunId,
 } from "@autovul/contracts";
 import type { ArtifactStorePort, CodeqlOperationOptions, CodeqlPort } from "../ports.js";
@@ -15,7 +15,7 @@ import { compactMissingCheckResult, MISSING_CHECK_RESULT_ARTIFACT, readMissingCh
 export class MissingCheckReplayService {
   constructor(private readonly status: RunStatusService, private readonly codeql: CodeqlPort, private readonly execution: MissingCheckExecutionPort, private readonly artifacts: ArtifactStorePort) {}
 
-  async replay(runId: RunId, route: ResearchOperationRoute, options: CodeqlOperationOptions): Promise<MissingCheckExecutionResult> {
+  async replay(runId: RunId, route: CapabilityResearchOperationRoute, options: CodeqlOperationOptions): Promise<MissingCheckExecutionResult> {
     const run = await this.status.get(runId);
     const raw = await this.artifacts.readArtifact(run.runId, route.result_artifact_ref);
     if (raw === undefined) return this.blocked(run.runId, "MCHECK_REPLAY_ARTIFACT_MISSING", ["stop"]);

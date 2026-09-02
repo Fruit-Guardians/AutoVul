@@ -356,7 +356,7 @@ export class FlowResearchService {
       // accept it only when both halves of the committed bundle validate.
       const committedRoute = await readResearchOperationRoute(this.artifacts, runId).catch(() => undefined);
       const committedResult = await this.readCommitted(runId);
-      if (committedRoute?.capability === "flow" && committedRoute.result_artifact_ref === FLOW_RESULT_ARTIFACT && committedResult !== undefined) return;
+      if (committedRoute?.route_kind === "capability" && committedRoute.capability === "flow" && committedRoute.result_artifact_ref === FLOW_RESULT_ARTIFACT && committedResult !== undefined) return;
       throw error;
     }
   }

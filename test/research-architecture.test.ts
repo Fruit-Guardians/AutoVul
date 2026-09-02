@@ -149,10 +149,40 @@ describe("research capability architecture", () => {
     const route = JSON.parse(await artifacts.readArtifact((result as ResearchExecutionResult).run_id, "research/operation.json") ?? "null");
     expect(route).toEqual({
       schema_version: "v2.contracts/1",
+      route_kind: "capability",
       capability: "flow",
       hypothesis_version: "autovul.flow/1",
       result_artifact_ref: "research/flow/result.json",
     });
+    await app.close();
+  });
+
+  it("projects a historical capability route without rewriting its artifact", async () => {
+    const flow = new ScriptedFlowPort(() => observation());
+    const { app, artifacts } = application(flow);
+    const result = await app.research({
+      action: "execute",
+      capability: "flow",
+      hypothesis_version: "autovul.flow/1",
+      hypothesis: model,
+      analyzer_id: "codeql",
+      mode: "probe",
+      target: { vulnerable: { kind: "codeql_database", path: "/isolated/db" } },
+      budget: { timeout_ms: 5_000 },
+      idempotency_key: "legacy-route-projection",
+    });
+    if (!("run_id" in result)) throw new Error("expected execution result");
+    const historical = JSON.stringify({
+      schema_version: "v2.contracts/1",
+      capability: "flow",
+      hypothesis_version: "autovul.flow/1",
+      result_artifact_ref: "research/flow/result.json",
+    });
+    await artifacts.writeArtifact(result.run_id, "research/operation.json", historical);
+
+    const replayed = await app.manageRun({ action: "replay", run_id: result.run_id });
+    expect(replayed).toMatchObject({ capability: "flow", operation_status: "completed" });
+    expect(await artifacts.readArtifact(result.run_id, "research/operation.json")).toBe(historical);
     await app.close();
   });
 

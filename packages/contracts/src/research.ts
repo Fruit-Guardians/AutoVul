@@ -1,5 +1,10 @@
 import { Type, type Static } from "typebox";
 
+import {
+  CHANGE_OBSERVATION_SERVICE,
+  CHANGE_OBSERVATION_SERVICE_VERSION,
+  ChangeObservationServiceRequestSchema,
+} from "./change-observation.js";
 import { RunIdSchema } from "./schemas.js";
 
 /** Versioned routing identities. Domain schemas remain capability-owned. */
@@ -62,7 +67,8 @@ export type OperationBudget = Static<typeof OperationBudgetSchema>;
  * Minimal routing envelope. Capability domain fields belong in the selected
  * Hypothesis schema, not here.
  */
-export const ResearchRequestSchema = Type.Object(
+/** Capability-only routing shape retained for compatibility and explicit unioning. */
+export const CapabilityResearchRequestSchema = Type.Object(
   {
     action: ResearchActionSchema,
     capability: ResearchCapabilitySchema,
@@ -71,6 +77,13 @@ export const ResearchRequestSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+export type CapabilityResearchRequest = Static<typeof CapabilityResearchRequestSchema>;
+
+/** Aggregate routing is a closed Capability-or-Analyzer-Service union. */
+export const ResearchRequestSchema = Type.Union([
+  CapabilityResearchRequestSchema,
+  ChangeObservationServiceRequestSchema,
+]);
 export type ResearchRequest = Static<typeof ResearchRequestSchema>;
 
 /** Target identity is shared execution metadata, not Flow domain semantics. */
@@ -99,7 +112,39 @@ export type AutovulRunToolInput = Static<typeof AutovulRunToolInputSchema>;
  * explicit Capability branch from this route, then reads that Capability's
  * own artifact.
  */
-export const ResearchOperationRouteSchema = Type.Object(
+export const CapabilityResearchOperationRouteSchema = Type.Object(
+  {
+    schema_version: Type.Literal("v2.contracts/1"),
+    route_kind: Type.Literal("capability"),
+    capability: ResearchCapabilitySchema,
+    hypothesis_version: ResearchHypothesisVersionSchema,
+    result_artifact_ref: Type.String({ minLength: 1 }),
+  },
+  { additionalProperties: false },
+);
+export type CapabilityResearchOperationRoute = Static<typeof CapabilityResearchOperationRouteSchema>;
+
+export const AnalyzerServiceResearchOperationRouteSchema = Type.Object(
+  {
+    schema_version: Type.Literal("v2.contracts/1"),
+    route_kind: Type.Literal("analyzer_service"),
+    service: Type.Literal(CHANGE_OBSERVATION_SERVICE),
+    service_version: Type.Literal(CHANGE_OBSERVATION_SERVICE_VERSION),
+    result_artifact_ref: Type.String({ minLength: 1 }),
+  },
+  { additionalProperties: false },
+);
+export type AnalyzerServiceResearchOperationRoute = Static<typeof AnalyzerServiceResearchOperationRouteSchema>;
+
+/** Newly persisted routes are a closed static union, never artifact-name inferred. */
+export const ResearchOperationRouteSchema = Type.Union([
+  CapabilityResearchOperationRouteSchema,
+  AnalyzerServiceResearchOperationRouteSchema,
+]);
+export type ResearchOperationRoute = Static<typeof ResearchOperationRouteSchema>;
+
+/** Read-only schema for artifacts committed before route_kind was introduced. */
+export const LegacyCapabilityResearchOperationRouteSchema = Type.Object(
   {
     schema_version: Type.Literal("v2.contracts/1"),
     capability: ResearchCapabilitySchema,
@@ -108,4 +153,4 @@ export const ResearchOperationRouteSchema = Type.Object(
   },
   { additionalProperties: false },
 );
-export type ResearchOperationRoute = Static<typeof ResearchOperationRouteSchema>;
+export type LegacyCapabilityResearchOperationRoute = Static<typeof LegacyCapabilityResearchOperationRouteSchema>;

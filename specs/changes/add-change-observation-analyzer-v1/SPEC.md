@@ -187,6 +187,17 @@ construct a hypothesis, or decide a verification result.
   needed to resolve the requested commits MUST yield `SHALLOW_HISTORY` or
   `REVISION_OBJECT_MISSING` as applicable; the service MUST NOT fetch, deepen,
   or otherwise alter the repository.
+- `REQ-CHANGEOBS-019`: Service diagnostics MUST use only
+  `CHANGE_OBSERVATION_INVALID_REQUEST`,
+  `CHANGE_OBSERVATION_REPOSITORY_UNTRUSTED`,
+  `CHANGE_OBSERVATION_REPOSITORY_INVALID`, `REVISION_OBJECT_MISSING`,
+  `SHALLOW_HISTORY`, `CHANGE_OBSERVATION_PATH_FILTER_INVALID`,
+  `CHANGE_OBSERVATION_GIT_FAILED`, `CHANGE_OBSERVATION_TIMEOUT`,
+  `CHANGE_OBSERVATION_CANCELLED`, `CHANGE_OBSERVATION_ARTIFACT_MISSING`,
+  `CHANGE_OBSERVATION_ARTIFACT_INVALID`,
+  `CHANGE_OBSERVATION_ROUTE_UNSUPPORTED`, or
+  `CHANGE_OBSERVATION_APPLICATION_CLOSING`. Every diagnostic MUST contain its
+  code, retryability, and only the optional bounded path/count fields.
 
 ### ChangeObservation.v1 output
 

@@ -124,6 +124,7 @@ async function setup(current: { value: TypestateAnalyzerObservation }, idempoten
 
 const route = {
   schema_version: "v2.contracts/1" as const,
+  route_kind: "capability" as const,
   capability: "typestate" as const,
   hypothesis_version: "autovul.typestate/1" as const,
   result_artifact_ref: "research/typestate/result.json",

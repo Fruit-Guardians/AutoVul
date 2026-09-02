@@ -10,7 +10,7 @@ import {
   TypestateReplayComparisonSchema,
   asDomainError,
   parseSchema,
-  type ResearchOperationRoute,
+  type CapabilityResearchOperationRoute,
   type RunId,
   type TargetRef,
   type TypestateAnalyzerObservation,
@@ -37,7 +37,7 @@ export class TypestateReplayService {
     private readonly cancellations: RunCancellationService,
   ) {}
 
-  async replay(runId: RunId, route: ResearchOperationRoute, options: CodeqlOperationOptions): Promise<TypestateReplayComparison> {
+  async replay(runId: RunId, route: CapabilityResearchOperationRoute, options: CodeqlOperationOptions): Promise<TypestateReplayComparison> {
     try {
       return await this.artifacts.withRunOperation(runId, options, async () => {
         const operation = this.cancellations.begin(runId, options.signal);
@@ -54,7 +54,7 @@ export class TypestateReplayService {
     }
   }
 
-  private async replayLocked(runId: RunId, route: ResearchOperationRoute, options: CodeqlOperationOptions): Promise<TypestateReplayComparison> {
+  private async replayLocked(runId: RunId, route: CapabilityResearchOperationRoute, options: CodeqlOperationOptions): Promise<TypestateReplayComparison> {
     assertNotCancelled(options.signal, runId);
     const run = await this.status.get(runId);
     if (run.status === "cancelled") {
@@ -162,7 +162,7 @@ export class TypestateReplayService {
   }
 }
 
-function validateRoute(route: ResearchOperationRoute): string | undefined {
+function validateRoute(route: CapabilityResearchOperationRoute): string | undefined {
   if (route.capability !== "typestate") return "TSTATE_REPLAY_ROUTE_UNSUPPORTED";
   if (route.hypothesis_version !== TYPESTATE_HYPOTHESIS_VERSION) return "TSTATE_REPLAY_HYPOTHESIS_VERSION_DIFFERENCE";
   if (route.result_artifact_ref !== TYPESTATE_RESULT_ARTIFACT) return "TSTATE_REPLAY_ROUTE_ARTIFACT_MISMATCH";

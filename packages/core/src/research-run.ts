@@ -49,9 +49,9 @@ export class ResearchRunService {
       );
     }
     const route = await readResearchOperationRoute(this.artifacts, request.run_id).catch(() => undefined);
-    if (route?.capability === "flow") return this.flowReplay.replay(request.run_id, route, options);
-    if (route?.capability === "missing_check") return this.missingCheckReplay.replay(request.run_id, route, options);
-    if (route?.capability === "typestate") return this.typestateReplay.replay(request.run_id, route, options);
+    if (route?.route_kind === "capability" && route.capability === "flow") return this.flowReplay.replay(request.run_id, route, options);
+    if (route?.route_kind === "capability" && route.capability === "missing_check") return this.missingCheckReplay.replay(request.run_id, route, options);
+    if (route?.route_kind === "capability" && route.capability === "typestate") return this.typestateReplay.replay(request.run_id, route, options);
     // Explicit routing, not a generic capability registry.
     return this.flowReplay.blocked(request.run_id, route === undefined ? "RESEARCH_REPLAY_ROUTE_MISSING" : "RESEARCH_REPLAY_ROUTE_UNSUPPORTED", ["stop"]);
   }

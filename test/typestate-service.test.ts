@@ -133,7 +133,7 @@ describe("TypestateResearchService", () => {
       decision_policy_version: "autovul.typestate.decision/1",
       observation: { analyzer: { adapter_version: "autovul.codeql-typestate/1" } },
     });
-    expect(JSON.parse(await artifacts.readArtifact(runId, "research/operation.json") ?? "null")).toEqual({ schema_version: "v2.contracts/1", capability: "typestate", hypothesis_version: "autovul.typestate/1", result_artifact_ref: "research/typestate/result.json" });
+    expect(JSON.parse(await artifacts.readArtifact(runId, "research/operation.json") ?? "null")).toEqual({ schema_version: "v2.contracts/1", route_kind: "capability", capability: "typestate", hypothesis_version: "autovul.typestate/1", result_artifact_ref: "research/typestate/result.json" });
     expect(artifacts.manifests.get(runId)?.phase).toBe("typestate_execute");
     expect(artifacts.manifests.get(runId)?.status).toBe("completed");
   });

@@ -1,7 +1,7 @@
 import {
   asDomainError,
   DomainError,
-  type ResearchOperationRoute,
+  type CapabilityResearchOperationRoute,
   type ResearchExecutionResult,
   type RunId,
 } from "@autovul/contracts";
@@ -21,7 +21,7 @@ export class FlowReplayService {
     private readonly artifacts: ArtifactStorePort,
   ) {}
 
-  async replay(runId: RunId, route: ResearchOperationRoute, options: CodeqlOperationOptions): Promise<ResearchExecutionResult> {
+  async replay(runId: RunId, route: CapabilityResearchOperationRoute, options: CodeqlOperationOptions): Promise<ResearchExecutionResult> {
     const run = await this.status.get(runId);
     const artifactRef = route.result_artifact_ref;
     const raw = await this.artifacts.readArtifact(run.runId, artifactRef);

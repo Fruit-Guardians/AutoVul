@@ -283,7 +283,7 @@ export class TypestateResearchService {
       // If promotion won before interruption, accept only a complete route/result pair.
       const committedRoute = await readResearchOperationRoute(this.artifacts, runId).catch(() => undefined);
       const committedResult = await this.readCommitted(runId);
-      if (committedRoute?.capability === "typestate" && committedRoute.result_artifact_ref === TYPESTATE_RESULT_ARTIFACT && committedResult !== undefined) return;
+      if (committedRoute?.route_kind === "capability" && committedRoute.capability === "typestate" && committedRoute.result_artifact_ref === TYPESTATE_RESULT_ARTIFACT && committedResult !== undefined) return;
       throw error;
     }
   }
