@@ -28,6 +28,8 @@ export interface ProcessOptions {
   readonly signal?: AbortSignal;
   readonly timeoutMs: number;
   readonly maxOutputBytes: number;
+  /** Defaults to true. Only a bounded parser source stream may opt out in memory. */
+  readonly redactOutput?: boolean;
 }
 
 export interface ProcessResult {

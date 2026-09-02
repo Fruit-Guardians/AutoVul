@@ -65,8 +65,10 @@ export class NodeProcessPort implements ProcessPort {
     try {
       const [exitCode, signal] = await waitForClose(child);
       settled = true;
-      const stdoutText = limitOutput(sanitizeOutput(Buffer.concat(stdout.chunks).toString("utf8")), options.maxOutputBytes);
-      const stderrText = limitOutput(sanitizeOutput(Buffer.concat(stderr.chunks).toString("utf8")), options.maxOutputBytes);
+      const stdoutValue = Buffer.concat(stdout.chunks).toString("utf8");
+      const stderrValue = Buffer.concat(stderr.chunks).toString("utf8");
+      const stdoutText = limitOutput(options.redactOutput === false ? stdoutValue : sanitizeOutput(stdoutValue), options.maxOutputBytes);
+      const stderrText = limitOutput(sanitizeOutput(stderrValue), options.maxOutputBytes);
       return {
         exitCode,
         signal,

@@ -324,6 +324,7 @@ export class GitChangeObservationAdapter implements ChangeObservationPort {
       ["diff", "--no-ext-diff", "--no-textconv", "--unified=0", invocation.request.input.base_revision, invocation.request.input.head_revision, "--", path],
       "hunks",
       invocation.request.resolvedBudget.max_diff_bytes,
+      false,
     );
   }
 
@@ -333,7 +334,7 @@ export class GitChangeObservationAdapter implements ChangeObservationPort {
     path: string,
     gaps: ChangeObservationGap[],
   ): Promise<string | undefined> {
-    const result = await this.requireGit(invocation, ["show", `${revision}:${path}`], "source", invocation.request.resolvedBudget.max_diff_bytes);
+    const result = await this.requireGit(invocation, ["show", `${revision}:${path}`], "source", invocation.request.resolvedBudget.max_diff_bytes, false);
     if (result.stdoutTruncated || result.stderrTruncated) {
       gaps.push({ code: "DIFF_TRUNCATED", path, count: 1 });
       return undefined;
@@ -350,14 +351,15 @@ export class GitChangeObservationAdapter implements ChangeObservationPort {
     args: readonly string[],
     stage: string,
     maxOutputBytes: number,
+    redactOutput = true,
   ): Promise<ProcessResult> {
-    const result = await this.git(invocation, args, maxOutputBytes);
+    const result = await this.git(invocation, args, maxOutputBytes, redactOutput);
     if (successful(result)) return result;
     throwIfInterrupted(result, invocation.signal, stage);
     throw new DomainError("CHANGE_OBSERVATION_GIT_FAILED", "process", "Change Observation Git command failed", true, { stage });
   }
 
-  private git(invocation: GitInvocation, args: readonly string[], maxOutputBytes: number): Promise<ProcessResult> {
+  private git(invocation: GitInvocation, args: readonly string[], maxOutputBytes: number, redactOutput = true): Promise<ProcessResult> {
     return this.process.execute(
       {
         executable: this.executable,
@@ -370,6 +372,7 @@ export class GitChangeObservationAdapter implements ChangeObservationPort {
         ...(invocation.signal === undefined ? {} : { signal: invocation.signal }),
         timeoutMs: invocation.request.resolvedBudget.timeout_ms,
         maxOutputBytes,
+        redactOutput,
       },
     );
   }

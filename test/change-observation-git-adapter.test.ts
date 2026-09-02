@@ -114,6 +114,8 @@ describe("GitChangeObservationAdapter", () => {
     expect(rendered).toContain("--no-ext-diff");
     expect(rendered).toContain("--no-textconv");
     expect(rendered).not.toMatch(/\b(checkout|reset|clean|switch|merge|rebase|fetch|pull|clone|submodule|install|test)\b/);
+    expect(process.calls.filter(({ command }) => command.args.includes("show") || command.args.includes("--unified=0")).every(({ options }) => options.redactOutput === false)).toBe(true);
+    expect(process.calls.filter(({ command }) => !command.args.includes("show") && !command.args.includes("--unified=0")).every(({ options }) => options.redactOutput !== false)).toBe(true);
   });
 
   it("rejects an out-of-root repository before starting Git", async () => {
