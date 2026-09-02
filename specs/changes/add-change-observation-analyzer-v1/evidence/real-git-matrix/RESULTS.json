@@ -1,0 +1,117 @@
+{
+  "schema_version": "autovul.change-observation-evidence/1",
+  "service": "change_observation",
+  "service_version": "autovul.change-observation/1",
+  "execution_boundary": {
+    "source": "local_git_object_database",
+    "repository_setup": "The frozen objects were made available before this gate. The Analyzer performed no fetch, clone, checkout, reset, build, install, test, or target-code execution.",
+    "git_version": "git version 2.54.0",
+    "parser_version": "typescript@5.9.3",
+    "command_profile_version": "autovul.git-change-observation/1"
+  },
+  "cases": [
+    {
+      "name": "OpenClaw authorization patch",
+      "host_consumer": "MissingCheck hypothesis revision only",
+      "revision_identity": {
+        "object_format": "sha1",
+        "base_oid": "75b4c059b8405dfbd50884b773346a9946fabd20",
+        "head_oid": "80b1fa17bfc3f6a668492f0326ea52f48bb89776",
+        "base_tree_oid": "3e2d978b670fdaa899d5f00ccbe8454f3d1eb172",
+        "head_tree_oid": "fa252970894149eb59e9228bd613812696d6153c"
+      },
+      "path_filter": "extensions/msteams/src/monitor-handler.ts",
+      "run_id": "run_cbc7cf5f836e6ab8",
+      "operation_status": "completed",
+      "completeness": "complete",
+      "structural_summary": {
+        "changed_files": 1,
+        "normalized_hunks": 10,
+        "symbols": 5,
+        "direct_call_events": 6,
+        "required_event": {
+          "event_kind": "direct_call_added",
+          "selector": "isSigninInvokeAuthorized",
+          "location": {
+            "path": "extensions/msteams/src/monitor-handler.ts",
+            "start_line": 527,
+            "end_line": 527
+          }
+        }
+      },
+      "analysis_gaps": [],
+      "request_fingerprint": "fbbde74dfca4d96003a45e4f48099e26788d3b6b2d1c59e59602b25d237785df",
+      "observation_fingerprint": "5c6ff40c6aedae655d5ac2d635ebe2b526acc1217b1a92472282e91bad936639",
+      "result_artifact_sha256": "594330b7dd25a390afbb9583df4f1a2f2177debb702546486ef80e84efcf367f",
+      "absent_result_fields": [
+        "capability",
+        "hypothesis",
+        "decision",
+        "verification_level",
+        "security_conclusion"
+      ]
+    },
+    {
+      "name": "Ghost admin session-fixation repair",
+      "host_consumer": "Typestate hypothesis revision only",
+      "revision_identity": {
+        "object_format": "sha1",
+        "base_oid": "a8bea3a4ceec4c852b880f4885119453c3d8588e",
+        "head_oid": "6b1c85c30dd0bacb4d5ffe64fc675ac9342d800c",
+        "base_tree_oid": "a687218e6b18a16c0cc23d20f346999a3ba005ec",
+        "head_tree_oid": "afba5233abbd55ea741841bf0db6dd57c8f12b47"
+      },
+      "path_filter": "ghost/core/core/server/services/auth/session/session-service.js",
+      "run_id": "run_09ec5e3e0392f39f",
+      "operation_status": "completed",
+      "completeness": "complete",
+      "structural_summary": {
+        "changed_files": 1,
+        "normalized_hunks": 1,
+        "symbols": 3,
+        "direct_call_events": 3,
+        "required_event": {
+          "event_kind": "direct_call_added",
+          "selector": "req.session.regenerate",
+          "location": {
+            "path": "ghost/core/core/server/services/auth/session/session-service.js",
+            "start_line": 300,
+            "end_line": 306
+          }
+        }
+      },
+      "analysis_gaps": [],
+      "request_fingerprint": "05c1bac0f91946d661e1ede179935ca7ee2ab79ac2f47b4b42c5ad92488f49cb",
+      "observation_fingerprint": "ed38096f57cdb832a8a13a01b19ad6869623a85493728995b20bef06f6c77da4",
+      "result_artifact_sha256": "3b37fe6a70b32c6810b1b48847ec7aead10eed7a29579ed529de7289de6f6183",
+      "absent_result_fields": [
+        "capability",
+        "hypothesis",
+        "decision",
+        "verification_level",
+        "security_conclusion"
+      ]
+    }
+  ],
+  "fresh_process_replay": {
+    "execution": "A separate Node process ran test/change-observation-real.mjs with AUTOVUL_CHANGEOBS_MODE=replay against a copied, relocated runs root and no model or host session.",
+    "results": [
+      {
+        "run_id": "run_cbc7cf5f836e6ab8",
+        "status": "match",
+        "recorded_observation_fingerprint": "5c6ff40c6aedae655d5ac2d635ebe2b526acc1217b1a92472282e91bad936639",
+        "replay_observation_fingerprint": "5c6ff40c6aedae655d5ac2d635ebe2b526acc1217b1a92472282e91bad936639",
+        "result_artifact_sha256_before": "594330b7dd25a390afbb9583df4f1a2f2177debb702546486ef80e84efcf367f",
+        "result_artifact_sha256_after": "594330b7dd25a390afbb9583df4f1a2f2177debb702546486ef80e84efcf367f"
+      },
+      {
+        "run_id": "run_09ec5e3e0392f39f",
+        "status": "match",
+        "recorded_observation_fingerprint": "ed38096f57cdb832a8a13a01b19ad6869623a85493728995b20bef06f6c77da4",
+        "replay_observation_fingerprint": "ed38096f57cdb832a8a13a01b19ad6869623a85493728995b20bef06f6c77da4",
+        "result_artifact_sha256_before": "3b37fe6a70b32c6810b1b48847ec7aead10eed7a29579ed529de7289de6f6183",
+        "result_artifact_sha256_after": "3b37fe6a70b32c6810b1b48847ec7aead10eed7a29579ed529de7289de6f6183"
+      }
+    ]
+  }
+}

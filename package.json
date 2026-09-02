@@ -29,6 +29,7 @@
     "test:typestate-adapter-real": "npm run build && node test/typestate-adapter-real.mjs",
     "test:typestate-golden-real": "npm run build && node test/typestate-golden-real.mjs",
     "test:typestate-pi-e2e": "npm run build && node test/typestate-pi-rpc-real.mjs",
+    "test:change-observation-real": "npm run build && node test/change-observation-real.mjs",
     "test:m4-golden-real": "npm run build && node test/m4-golden-real.mjs",
     "test:m4-pi-e2e": "npm run build && node test/m4-pi-rpc-real.mjs",
     "test:l0-lsp:snapshot": "npm run build && node test/l0-lsp-snapshot.mjs",
