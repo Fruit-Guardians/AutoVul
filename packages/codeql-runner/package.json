@@ -25,6 +25,7 @@
   "dependencies": {
     "@autovul/contracts": "0.1.0",
     "@autovul/core": "0.1.0",
+    "typescript": "5.9.3",
     "vscode-jsonrpc": "8.2.0",
     "vscode-languageserver-protocol": "3.17.5"
   }

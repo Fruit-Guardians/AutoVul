@@ -45,6 +45,10 @@ export const DomainErrorCodeSchema = Type.Union([
   Type.Literal("INTENT_INVALID"),
   Type.Literal("PROBE_FAILED"),
   Type.Literal("CAPABILITY_MISMATCH"),
+  Type.Literal("CHANGE_OBSERVATION_REPOSITORY_UNTRUSTED"),
+  Type.Literal("CHANGE_OBSERVATION_REPOSITORY_INVALID"),
+  Type.Literal("REVISION_OBJECT_MISSING"),
+  Type.Literal("CHANGE_OBSERVATION_GIT_FAILED"),
 ]);
 export type DomainErrorCode = Static<typeof DomainErrorCodeSchema>;
 

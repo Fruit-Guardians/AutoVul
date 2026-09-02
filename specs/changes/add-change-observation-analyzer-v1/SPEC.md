@@ -555,9 +555,10 @@ verification level.
 
 ## Open questions
 
-- None block Phase A. The exact JavaScript/TypeScript parser package/version is
-  implementation provenance to be frozen by the Phase C adapter and recorded in
-  every artifact; adding a language requires a separate accepted change SPEC.
+- None. Phase C freezes the JavaScript/TypeScript structural parser as the
+  runtime dependency `typescript@5.9.3`; its exact version is recorded in every
+  observation provenance. Adding a language or parser requires a separate
+  accepted change SPEC.
 
 ## Decision log
 
@@ -566,6 +567,7 @@ verification level.
 | 2026-09-02 | Name the service Change Observation Analyzer v1 | “Delta” is a role-classification term, not a vulnerability paradigm or public Capability. |
 | 2026-09-02 | Use object-addressed local Git input only | Full immutable OIDs, no working-tree reads, and no network operation give a bounded replay boundary. |
 | 2026-09-02 | Support JS/TS structural facts only in v1 | OpenClaw and Ghost provide two real consumers without prematurely creating a universal language/parser framework. |
+| 2026-09-02 | Freeze the structural parser at `typescript@5.9.3` | The adapter needs deterministic JS/TS syntax facts and records the exact pinned parser version in provenance. |
 | 2026-09-02 | Keep service routing under the two aggregate tools | The service requires lifecycle/replay access but does not justify a third model tool or an Analyzer registry. |
 | 2026-09-02 | Accept this implementation SPEC | The user explicitly authorized contract-first implementation after the Delta classification was archived. |
 
