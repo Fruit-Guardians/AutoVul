@@ -159,9 +159,10 @@ construct a hypothesis, or decide a verification result.
   `..` path components, glob syntax, or a trailing slash. The normalized unique
   filters are sorted by UTF-8 byte order before fingerprinting.
 - `REQ-CHANGEOBS-014`: `budget`, when omitted, MUST resolve to the fixed
-  defaults in the contract table. A supplied numeric budget MUST be an integer
-  within the corresponding inclusive range; values above a maximum MUST be
-  rejected rather than clamped.
+  defaults in the contract table. The request's `budget` is a strict partial
+  override whose present numeric fields MUST be integers within the corresponding
+  inclusive range; the persisted `resolved_budget` contains every field. Values
+  above a maximum MUST be rejected rather than clamped.
 - `REQ-CHANGEOBS-015`: The service MUST use this closed `ChangeObservationBudget`
   schema and resolved defaults:
 

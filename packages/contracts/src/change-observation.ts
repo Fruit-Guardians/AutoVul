@@ -67,6 +67,10 @@ export const ChangeObservationBudgetSchema = Type.Object(
 );
 export type ChangeObservationBudget = Static<typeof ChangeObservationBudgetSchema>;
 
+/** Callers may supply only the dimensions they intend to lower; Core resolves every default. */
+export const ChangeObservationBudgetOverrideSchema = Type.Partial(ChangeObservationBudgetSchema);
+export type ChangeObservationBudgetOverride = Static<typeof ChangeObservationBudgetOverrideSchema>;
+
 export const ChangeObservationInputSchema = Type.Object(
   {
     repository: ChangeObservationRepositorySchema,
@@ -77,7 +81,7 @@ export const ChangeObservationInputSchema = Type.Object(
       maxItems: CHANGE_OBSERVATION_LIMITS.maxPathFilterCount,
       uniqueItems: true,
     })),
-    budget: Type.Optional(ChangeObservationBudgetSchema),
+    budget: Type.Optional(ChangeObservationBudgetOverrideSchema),
   },
   { additionalProperties: false },
 );

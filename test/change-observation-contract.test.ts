@@ -135,6 +135,10 @@ describe("Change Observation Analyzer v1 contracts", () => {
         },
       },
     })).toBe(true);
+    expect(Value.Check(ChangeObservationServiceRequestSchema, {
+      ...request(),
+      input: { ...request().input, budget: { max_hunks: 1 } },
+    })).toBe(true);
     expect(Value.Check(ChangeObservationServiceRequestSchema, { ...request(), input: { ...request().input, base_revision: baseOid.toUpperCase() } })).toBe(false);
     expect(Value.Check(ChangeObservationServiceRequestSchema, { ...request(), input: { ...request().input, head_revision: "80b1" } })).toBe(false);
     expect(Value.Check(ChangeObservationServiceRequestSchema, { ...request(), input: { ...request().input, path_filters: ["src/auth", "src/auth"] } })).toBe(false);

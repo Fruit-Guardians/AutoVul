@@ -32,6 +32,13 @@ export { TypestateReplayService } from "./typestate/replay.js";
 export { projectLegacyVerificationToFlow } from "./flow/legacy-projection.js";
 export { ResearchRunService, type RunManagementResult } from "./research-run.js";
 export { RunCancellationService } from "./run-cancellation.js";
+export {
+  normalizeChangeObservation,
+  resolveChangeObservationInput,
+  toChangeObservationPortRequest,
+  type ResolvedChangeObservationInput,
+} from "./change-observation/normalize.js";
+export { sameRequestedRevision, type ChangeObservationPort, type ChangeObservationPortObservation, type ChangeObservationPortRequest } from "./change-observation/port.js";
 export type { FlowExecutionPort, FlowExecutionRequest } from "./flow/port.js";
 export type { MissingCheckExecutionPort, MissingCheckExecutionRequest } from "./missing-check/port.js";
 export type {
