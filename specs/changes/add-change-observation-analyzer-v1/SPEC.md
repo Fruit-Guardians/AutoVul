@@ -1,7 +1,7 @@
 # Change: Add Change Observation Analyzer v1
 
 - Change ID: `add-change-observation-analyzer-v1`
-- Status: Implemented
+- Status: Archived
 - Owner: AutoVul maintainers
 - Created: 2026-09-02
 - Updated: 2026-09-02
@@ -570,29 +570,21 @@ verification level.
 | 2026-09-02 | Freeze the structural parser at `typescript@5.9.3` | The adapter needs deterministic JS/TS syntax facts and records the exact pinned parser version in provenance. |
 | 2026-09-02 | Keep service routing under the two aggregate tools | The service requires lifecycle/replay access but does not justify a third model tool or an Analyzer registry. |
 | 2026-09-02 | Accept this implementation SPEC | The user explicitly authorized contract-first implementation after the Delta classification was archived. |
+| 2026-09-02 | Verify the real OpenClaw and Ghost matrix | Both immutable revision pairs completed through the real Git/parser adapter, then matched from a fresh process after the runs root was relocated. |
+| 2026-09-02 | Archive Change Observation Analyzer v1 | Stable service behavior is merged into root `SPEC.md`; this change retains the detailed contract and verification evidence. |
 
 ## Delivery gate
 
-`Implemented` records that the narrow Phases A–D code path is complete. It
-does not authorize a fourth Capability, a generic Git/analyzer framework,
-Variant work, or a support claim before the real OpenClaw/Ghost and independent
-replay gates are verified.
+The Accepted status authorized only the narrow Phases A–D implementation. The
+real OpenClaw/Ghost and independent relocated-replay gates then advanced this
+change through `Verified` to `Archived`. Neither status authorizes a fourth
+Capability, a generic Git/analyzer framework, Variant work, or a security
+verdict from a change observation.
 
 ## Verification record
 
-Complete the requirement-by-requirement mapping before changing the status to
-Verified.
-
-- Implemented local gates: contracts, pure Core normalization, fixed read-only
-  Git/TypeScript adapter, runtime/replay lifecycle, Application, Pi, and CLI
-  focused tests pass. The adapter test includes a real temporary Git repository
-  and proves an untracked worktree file is not observed.
-- Implemented replay gates: fake-port tests cover matching, revision/request/
-  observation-fingerprint and version differences, semantic mismatch, original
-  artifact hash preservation, caller/run/Application cancellation, and
-  serialized replay writes under `change-observation-replay/`.
-- Skipped or blocked checks: the real OpenClaw/Ghost matrix, fresh-process
-  relocated-artifact replay, full test gate, and host terminal acceptance remain
-  Phase E work and are not claimed as passed.
-- Remaining limitations: the Analyzer Service is implemented but not Verified,
-  Archived, or supported until the real-case evidence is recorded.
+The final per-requirement mapping, real Git/parser matrix, relocated fresh-
+process replay, artifact hashes, and command gates are recorded in
+[`VERIFICATION.md`](./VERIFICATION.md). Root [`SPEC.md`](../../../SPEC.md)
+§§2.1, 3.2, 4, and 5.4 are the normative stable-behavior source; this change
+preserves the detailed v1 boundary and historical evidence.

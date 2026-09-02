@@ -1,7 +1,7 @@
 # AutoVul V2 Product Specification
 
 - Status: Accepted baseline
-- Version: 1.6
+- Version: 1.7
 - Last updated: 2026-09-02
 
 ## 1. Purpose
@@ -21,6 +21,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-SCOPE-005`: The system MUST support verified MissingCheck v1 research for the frozen JavaScript direct-call/dominance case family through the aggregate research/run APIs, subject to its declared single-file named-entry completeness boundary and recorded limitations.
 - `REQ-SCOPE-006`: The system MUST support verified Flow v1 research for the accepted Python, JavaScript, Java and C/C++ language families through the aggregate research/run APIs, with real Source/Sink probes, vulnerable/fixed differential analysis and model-free replay.
 - `REQ-SCOPE-007`: The system MUST support verified Typestate v1 research for one JavaScript local-binding resource, a bounded finite event/state protocol, one identity-backed prohibited transition, and a declared single-file named-function completeness boundary through the aggregate research/run APIs.
+- `REQ-SCOPE-008`: The system MUST support the verified Change Observation Analyzer v1 service through the same aggregate research/run APIs. It MUST return bounded, deterministic facts about two immutable local Git revisions without becoming a Research Capability or emitting a vulnerability verdict.
 
 ### 2.2 Extensible product direction
 
@@ -59,6 +60,9 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-ARCH-021`: Delta is classified as an `analyzer_service`, not a fourth Research Capability. Its bounded code-change observations MUST NOT interpret vulnerability meaning, select a Capability, or decide whether a target pair is differential.
 - `REQ-ARCH-022`: Vulnerable/fixed comparison remains the owning Capability's shared `differential` evidence mode and Capability-specific fixed-side policy. An Analyzer Service MUST NOT emit `vulnerable`, `fixed`, `reproduced`, or `differential` conclusions.
 - `REQ-ARCH-023`: A later Analyzer Service MUST use an explicitly specified static Application and replay route under the existing two aggregate host entries. It MUST NOT add a third model-facing tool, a `capability: delta` literal, an Analyzer registry, or a universal observation/comparison framework.
+- `REQ-ARCH-024`: Change Observation Analyzer v1 MUST be the static service branch `service: "change_observation"`, version `autovul.change-observation/1`. It MUST accept only a trusted local Git repository, full immutable base/head OIDs, optional literal repository-relative filters, and fixed bounded budgets.
+- `REQ-ARCH-025`: Change Observation Analyzer v1 MUST use only a fixed read-only local Git object and JavaScript/TypeScript parser profile. It MUST NOT read worktree/index state, fetch, clone, checkout, reset, execute target code, build, install, test, or interpret security meaning.
+- `REQ-ARCH-026`: Change Observation Analyzer v1 MUST use the shared run identity, timeout, cancellation, lease, atomic artifact, and Application-close mechanics. Its service-specific replay MUST preserve the original evidence digest, write only below `change-observation-replay/`, and compare normalized service semantics without a universal observation framework.
 
 ## 4. Workflow and contract requirements
 
@@ -74,6 +78,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-WORKFLOW-010`: `Application.close()` MUST atomically stop admission, compose application shutdown with caller cancellation, cancel all live in-process operations, and wait for admitted work and owned resources to settle.
 - `REQ-WORKFLOW-011`: Application shutdown MUST be idempotent. Calls admitted after shutdown begins MUST fail with a structured state error and MUST NOT invoke an Analyzer or mutate persisted evidence.
 - `REQ-WORKFLOW-012`: An Analyzer Service request MUST remain a service-discriminated request, separate from the Capability request's `capability`, `hypothesis_version`, `hypothesis`, `decision`, and `verification_level` fields. Its execution, cancellation, status and replay MAY reuse the shared runtime only for lifecycle and artifact mechanics.
+- `REQ-WORKFLOW-013`: A Change Observation Analyzer compact result MUST contain only service identity, operation status, optional bounded observation, structured diagnostics, allowed actions, and run-relative artifact/replay references. It MUST NOT contain a Capability, hypothesis, decision, revision hint, verification level, or security conclusion.
 
 ## 5. CodeQL verification requirements
 
@@ -126,6 +131,15 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-TSTATE-ROOT-008`: Typestate MUST remain reachable only through aggregate `autovul_research` and `autovul_run`; Pi and CLI MUST use the same Application API and compact result/replay contracts without a Typestate-specific model tool.
 - `REQ-TSTATE-ROOT-009`: The verified Typestate Golden MUST retain an identity-sensitive vulnerable/fixed differential, safe pre-rekey and different-identity negatives, wrong-resource and wrong-event revisions, an incomplete-scope Core policy check, a fresh-process model-free replay from a relocated runs root with freshly rebuilt databases, evidence immutability, and fingerprint/version/policy/trace mutation checks. The accepted Ghost case is evidence for this narrow boundary, not a global selector definition.
 
+### 5.4 Change Observation Analyzer v1
+
+- `REQ-CHANGEOBS-ROOT-001`: Change Observation Analyzer v1 MUST use the versioned `autovul.change-observation/1` contract and remain an Analyzer Service, not a fourth Research Capability. It MUST have no Hypothesis, Decision Policy, capability decision, revision policy, verification level, or automatic Capability selection.
+- `REQ-CHANGEOBS-ROOT-002`: A completed observation MUST bind exact base/head commit and tree identities, normalized literal scope, resolved bounded budget, changed-file status, normalized hunk digests, bounded JavaScript/TypeScript declaration/direct-call/event facts, structured analysis gaps, sanitized provenance, and deterministic request/observation fingerprints. It MUST return gaps rather than inventing facts for binary, unavailable, unsupported, truncated, or parser-failed scope.
+- `REQ-CHANGEOBS-ROOT-003`: The service MUST derive observations only from explicit immutable objects in a trusted local repository. It MUST use argument-vector commands with external diff/text conversion disabled, canonicalize paths before access, and persist structural facts and digests rather than raw diffs, local canonical paths, tool stderr, environment data, commit messages, or author data.
+- `REQ-CHANGEOBS-ROOT-004`: The service MUST remain reachable only through `autovul_research` and `autovul_run`; Pi and CLI MUST use the shared Application API. Its persisted route MUST be the explicit `analyzer_service` route and stay readable beside the existing capability route without a registry or dynamic dispatch.
+- `REQ-CHANGEOBS-ROOT-005`: Change Observation replay MUST run without a model or host session, revalidate immutable revision identity, resolved request, parser/Git/service versions, and normalized structural semantics, and distinguish revision/request/version/semantic/evidence differences from cancellation or blocked environments. It MUST serialize one run's replay and prove the original observation artifact hash is unchanged before and after replay, including from a relocated runs root.
+- `REQ-CHANGEOBS-ROOT-006`: The verified real matrix MUST cover independent JavaScript and TypeScript patch cases that can inform Typestate and MissingCheck host work respectively, while neither service result contains a capability, hypothesis, decision, verification level, or security conclusion. Those cases are verification evidence only and do not define global security selectors.
+
 ## 6. Evidence and result levels
 
 - `REQ-EVIDENCE-001`: Model output MUST be treated as a hypothesis rather than evidence.
@@ -169,7 +183,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-INTEGRATION-005`: Pi is the currently implemented native host integration. DeepSeek Harness and MCP are product directions, not implemented support claims until their own accepted change SPEC and verification gates pass.
 - `REQ-INTEGRATION-006`: The target model-facing research interface MUST contain only `autovul_research` and `autovul_run`. Compatibility `codeql_*` tools MAY remain available but MUST NOT be presented as a third primary research interface.
 - `REQ-INTEGRATION-007`: Pi and CLI MUST route those aggregate entries through the same Application API and remain thin registration, conversion, cancellation and presentation layers.
-- `REQ-INTEGRATION-008`: Pi MUST tell the host to select Flow for source-to-sink value propagation, MissingCheck for a protected operation reachable without its required check, and Typestate for one resource's ordered lifecycle transition. Its aggregate result UI MUST preserve the selected Capability, operation status, decision, verification level, observations, revision hints and artifact reference without recasting one Capability as another.
+- `REQ-INTEGRATION-008`: Pi MUST tell the host to select Flow for source-to-sink value propagation, MissingCheck for a protected operation reachable without its required check, Typestate for one resource's ordered lifecycle transition, and Change Observation only for bounded immutable revision facts that the host may interpret before choosing a Capability. Its aggregate result UI MUST preserve the selected Capability or service branch without recasting one as another.
 
 ## 10. Compatibility and current limitations
 
@@ -177,7 +191,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-COMPAT-002`: Current accepted platform behavior is the tested POSIX/macOS path. Windows support MUST NOT be claimed until process-tree cleanup, paths and CI gates are implemented and verified.
 - `REQ-COMPAT-003`: Current database operations are inspection and validation. Automatic database creation or execution of target build scripts MUST NOT be claimed as implemented.
 - `REQ-COMPAT-004`: The Python V1 runtime is outside this isolated TypeScript workspace and MUST NOT be silently imported as a V2 dependency.
-- `REQ-COMPAT-005`: Flow v1, MissingCheck v1, and Typestate v1 are the currently verified Research Capabilities. Delta is archived as the `analyzer_service` classification and has no implemented or supported public service until its own accepted implementation and real-evidence gates pass; it is not a Capability. Variant remains Draft and unsupported pending its independent classification evidence.
+- `REQ-COMPAT-005`: Flow v1, MissingCheck v1, and Typestate v1 are the currently verified Research Capabilities. Delta remains archived as the `analyzer_service` classification, and its verified implementation is Change Observation Analyzer v1; neither is a Capability. Variant remains Draft and unsupported pending its independent classification evidence.
 
 ## 11. Baseline acceptance gates
 
