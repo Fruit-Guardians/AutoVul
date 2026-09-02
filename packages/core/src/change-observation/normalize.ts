@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import { Type } from "typebox";
 import {
   CHANGE_OBSERVATION_LIMITS,
@@ -19,6 +17,7 @@ import {
   type ChangeObservationPortObservation,
   type ChangeObservationPortRequest,
 } from "./port.js";
+import { compareUtf8, sha256Utf8 } from "./sha256.js";
 
 const ChangeObservationPortObservationSchema = Type.Object(
   {
@@ -322,10 +321,6 @@ function compareTuple(left: readonly string[], right: readonly string[]): number
   return 0;
 }
 
-function compareUtf8(left: string, right: string): number {
-  return Buffer.compare(Buffer.from(left, "utf8"), Buffer.from(right, "utf8"));
-}
-
 function numericKey(value: number): string {
   return value.toString().padStart(10, "0");
 }
@@ -336,7 +331,7 @@ function locationKey(location: { readonly path: string; readonly start_line: num
 }
 
 function sha256(value: string): string {
-  return createHash("sha256").update(value, "utf8").digest("hex");
+  return sha256Utf8(value);
 }
 
 function canonicalJson(value: unknown): string {

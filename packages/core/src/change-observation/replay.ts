@@ -1,5 +1,3 @@
-import { createHash } from "node:crypto";
-
 import {
   CHANGE_OBSERVATION_SERVICE,
   CHANGE_OBSERVATION_SERVICE_VERSION,
@@ -22,6 +20,7 @@ import { RunStatusService } from "../status-service.js";
 import { normalizeChangeObservation, resolveChangeObservationInput, toChangeObservationPortRequest } from "./normalize.js";
 import type { ChangeObservationPort } from "./port.js";
 import { CHANGE_OBSERVATION_RESULT_ARTIFACT, readChangeObservationRunArtifact } from "./service.js";
+import { sha256Utf8 } from "./sha256.js";
 
 const REPLAY_ROOT = "research/change-observation-replay";
 
@@ -210,7 +209,7 @@ function assertNotCancelled(signal: AbortSignal | undefined, runId: RunId): void
 }
 
 function digest(value: string): string {
-  return createHash("sha256").update(value, "utf8").digest("hex");
+  return sha256Utf8(value);
 }
 
 function canonical(value: unknown): string {
