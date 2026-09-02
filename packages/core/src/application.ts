@@ -11,7 +11,7 @@ import type {
 import { DoctorService } from "./doctor-service.js";
 import { RunStatusService } from "./status-service.js";
 import { WorkflowController } from "./workflow-controller.js";
-import { DomainError, type DatabaseResult, type DoctorResult, type ProbeEvidence, type QueryDraftReport, type QueryPackManifest, type QueryVerification, type QueryWorkflowStatus, type RunManifest } from "@autovul/contracts";
+import { DomainError, type ChangeObservationExecutionResult, type DatabaseResult, type DoctorResult, type ProbeEvidence, type QueryDraftReport, type QueryPackManifest, type QueryVerification, type QueryWorkflowStatus, type RunManifest } from "@autovul/contracts";
 import { QueryWorkflowService } from "./query-workflow.js";
 import type { FlowExecutionPort } from "./flow/port.js";
 import { FlowReplayService } from "./flow/replay.js";
@@ -24,6 +24,9 @@ import { RunCancellationService } from "./run-cancellation.js";
 import { TypestateResearchService, type TypestateResearchResult } from "./typestate/service.js";
 import type { TypestateEvidenceSnapshotPort, TypestateExecutionPort } from "./typestate/port.js";
 import { TypestateReplayService } from "./typestate/replay.js";
+import { ChangeObservationResearchService } from "./change-observation/service.js";
+import { ChangeObservationReplayService } from "./change-observation/replay.js";
+import type { ChangeObservationPort } from "./change-observation/port.js";
 
 export interface ApplicationApi {
   doctor(options?: Partial<CodeqlOperationOptions>): Promise<DoctorResult>;
@@ -37,7 +40,7 @@ export interface ApplicationApi {
   queryProbe(runId: unknown, intent: unknown, options?: Partial<CodeqlOperationOptions>): Promise<ProbeEvidence>;
   queryDraft(runId: unknown, candidate: unknown, options?: Partial<CodeqlOperationOptions>): Promise<QueryDraftReport>;
   workflowFinalize(runId: unknown, options?: Partial<CodeqlOperationOptions>): Promise<QueryPackManifest>;
-  research(input: unknown, options?: Partial<CodeqlOperationOptions>): Promise<ResearchResult | MissingCheckResearchResult | TypestateResearchResult>;
+  research(input: unknown, options?: Partial<CodeqlOperationOptions>): Promise<ResearchResult | MissingCheckResearchResult | TypestateResearchResult | ChangeObservationExecutionResult>;
   manageRun(input: unknown, options?: Partial<CodeqlOperationOptions>): Promise<RunManagementResult>;
   close(): Promise<void>;
 }
@@ -53,6 +56,7 @@ export interface ApplicationDependencies {
   readonly flow?: FlowExecutionPort;
   readonly missingCheck?: MissingCheckExecutionPort;
   readonly typestate?: TypestateExecutionPort & TypestateEvidenceSnapshotPort;
+  readonly changeObservation?: ChangeObservationPort;
   readonly defaultTimeoutMs?: number;
 }
 
@@ -62,6 +66,7 @@ export class Application implements ApplicationApi {
   private readonly flowResearch: FlowResearchService;
   private readonly missingCheckResearch: MissingCheckResearchService;
   private readonly typestateResearch: TypestateResearchService;
+  private readonly changeObservationResearch: ChangeObservationResearchService;
   private readonly researchRuns: ResearchRunService;
   private readonly cancellations: RunCancellationService;
   private readonly defaultTimeoutMs: number;
@@ -86,16 +91,19 @@ export class Application implements ApplicationApi {
     const flow = dependencies.flow ?? unavailableFlowExecutionPort();
     const missingCheck = dependencies.missingCheck ?? unavailableMissingCheckExecutionPort();
     const typestate = dependencies.typestate ?? unavailableTypestateExecutionPort();
+    const changeObservation = dependencies.changeObservation ?? unavailableChangeObservationPort();
     this.cancellations = new RunCancellationService();
     this.flowResearch = new FlowResearchService(status, dependencies.codeql, flow, dependencies.artifacts, this.cancellations);
     this.missingCheckResearch = new MissingCheckResearchService(status, dependencies.codeql, missingCheck, dependencies.artifacts, this.cancellations);
     this.typestateResearch = new TypestateResearchService(status, dependencies.codeql, typestate, dependencies.artifacts, this.cancellations);
+    this.changeObservationResearch = new ChangeObservationResearchService(status, changeObservation, dependencies.artifacts, this.cancellations);
     this.researchRuns = new ResearchRunService(
       status,
       dependencies.artifacts,
       new FlowReplayService(status, dependencies.codeql, flow, dependencies.artifacts),
       new MissingCheckReplayService(status, dependencies.codeql, missingCheck, dependencies.artifacts),
       new TypestateReplayService(status, dependencies.codeql, typestate, typestate, dependencies.artifacts, this.cancellations),
+      new ChangeObservationReplayService(status, changeObservation, dependencies.artifacts, this.cancellations),
       this.cancellations,
     );
   }
@@ -144,8 +152,11 @@ export class Application implements ApplicationApi {
     return this.admitWithOptions(options, (resolved) => this.queryWorkflow.finalize(runId, resolved));
   }
 
-  research(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<ResearchResult | MissingCheckResearchResult | TypestateResearchResult> {
-    return this.admitWithOptions<ResearchResult | MissingCheckResearchResult | TypestateResearchResult>(options, (resolved) => {
+  research(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<ResearchResult | MissingCheckResearchResult | TypestateResearchResult | ChangeObservationExecutionResult> {
+    return this.admitWithOptions<ResearchResult | MissingCheckResearchResult | TypestateResearchResult | ChangeObservationExecutionResult>(options, (resolved) => {
+      if (input !== null && typeof input === "object" && !Array.isArray(input) && "service" in (input as Record<string, unknown>)) {
+        return this.changeObservationResearch.research(input, resolved);
+      }
       if (input !== null && typeof input === "object" && !Array.isArray(input) && (input as Record<string, unknown>).capability === "typestate") {
         return this.typestateResearch.research(input, resolved);
       }
@@ -280,6 +291,14 @@ function unavailableTypestateExecutionPort(): TypestateExecutionPort & Typestate
     },
     async snapshotEvidence(): Promise<readonly import("./typestate/port.js").TypestateEvidenceDigest[]> {
       return [];
+    },
+  };
+}
+
+function unavailableChangeObservationPort(): ChangeObservationPort {
+  return {
+    async observe(): Promise<never> {
+      throw new DomainError("CHANGE_OBSERVATION_GIT_FAILED", "process", "The Change Observation Git adapter is not configured", false);
     },
   };
 }

@@ -82,7 +82,9 @@ describe("Pi Extension", () => {
       expect(pi.tools.has("codeql_workflow")).toBe(true);
       expect(pi.tools.has("codeql_query")).toBe(true);
       expect(pi.tools.get("autovul_research")?.description).toContain("Flow, MissingCheck, or Typestate");
+      expect(pi.tools.get("autovul_research")?.description).toContain("Change Observation Analyzer");
       expect(pi.tools.get("autovul_research")?.promptSnippet).toContain("protected operation");
+      expect(pi.tools.get("autovul_research")?.promptSnippet).toContain("change_observation");
       expect(pi.shutdownHandlers).toHaveLength(1);
 
       const notifications: string[] = [];

@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { execFile as execFileCallback } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { promisify } from "node:util";
 
 import { runCli } from "@autovul/cli";
+
+const execFile = promisify(execFileCallback);
 
 interface Envelope {
   readonly ok: boolean;
@@ -127,4 +131,59 @@ describe("V2 CLI", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("routes Change Observation through the existing research and run commands", async () => {
+    const root = await mkdtemp(join(tmpdir(), "autovul-cli-change-observation-"));
+    try {
+      await git(root, ["init", "--initial-branch=main"]);
+      await git(root, ["config", "user.email", "cli-test@example.invalid"]);
+      await git(root, ["config", "user.name", "CLI Test"]);
+      await writeFile(join(root, "session.ts"), "session.save(user);\n", "utf8");
+      await git(root, ["add", "session.ts"]);
+      await git(root, ["commit", "-m", "base"]);
+      const base = await gitOutput(root, ["rev-parse", "HEAD"]);
+      await writeFile(join(root, "session.ts"), "session.regenerate();\nsession.save(user, true);\n", "utf8");
+      await git(root, ["add", "session.ts"]);
+      await git(root, ["commit", "-m", "head"]);
+      const head = await gitOutput(root, ["rev-parse", "HEAD"]);
+      const requestPath = join(root, "change-observation-request.json");
+      await writeFile(requestPath, JSON.stringify({
+        service: "change_observation",
+        service_version: "autovul.change-observation/1",
+        input: {
+          repository: { kind: "trusted_local_git_repository", path: root },
+          base_revision: base,
+          head_revision: head,
+          path_filters: ["session.ts"],
+        },
+      }), "utf8");
+      const output = ioBuffer();
+      expect(await runCli(["research", "execute", "--request", requestPath, "--json", "--runs-dir", join(root, "runs"), "--workspace-root", root], {
+        stdout: (value) => output.stdout.push(value),
+        stderr: (value) => output.stderr.push(value),
+      })).toBe(0);
+      const executed = JSON.parse(output.stdout.join("")) as { readonly result?: { readonly run_id?: string; readonly service?: string; readonly operation_status?: string } };
+      expect(executed.result).toMatchObject({ service: "change_observation", operation_status: "completed" });
+      const runId = executed.result?.run_id;
+      expect(runId).toMatch(/^run_/);
+
+      const replayOutput = ioBuffer();
+      expect(await runCli(["run", "replay", runId ?? "", "--json", "--runs-dir", join(root, "runs"), "--workspace-root", root], {
+        stdout: (value) => replayOutput.stdout.push(value),
+        stderr: (value) => replayOutput.stderr.push(value),
+      })).toBe(0);
+      expect(JSON.parse(replayOutput.stdout.join(""))).toMatchObject({ result: { service: "change_observation", status: "match" } });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
+
+async function git(repository: string, args: readonly string[]): Promise<void> {
+  await execFile("git", [...args], { cwd: repository, env: { ...process.env, GIT_CONFIG_NOSYSTEM: "1", GIT_TERMINAL_PROMPT: "0" } });
+}
+
+async function gitOutput(repository: string, args: readonly string[]): Promise<string> {
+  const result = await execFile("git", [...args], { cwd: repository, env: { ...process.env, GIT_CONFIG_NOSYSTEM: "1", GIT_TERMINAL_PROMPT: "0" } });
+  return result.stdout.trim();
+}

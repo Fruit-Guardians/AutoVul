@@ -259,7 +259,7 @@ async function execute(parsed: ParsedCli, application: ApplicationApi): Promise<
     }
     return verifyRelocatedPack(packPath, parsed, application);
   }
-  throw new DomainError("INVALID_INPUT", "input", "Usage: doctor | database inspect <path> | status <run-id> | research validate --request <file> | research execute --request <file> | run status <run-id> | run cancel <run-id> | run replay <run-id> | workflow start --spec <file> | query probe <run-id> --intent <file> | query draft <run-id> --candidate <file> | query verify <run-id> --candidate <file> | query-pack verify <pack-dir> --vulnerable-db <path> [--fixed-db <path>] | workflow status <run-id> | workflow finalize <run-id> [--output <dir>]", false);
+  throw new DomainError("INVALID_INPUT", "input", "Usage: doctor | database inspect <path> | status <run-id> | research validate --request <file> | research execute --request <file> (including a change_observation service request) | run status <run-id> | run cancel <run-id> | run replay <run-id> | workflow start --spec <file> | query probe <run-id> --intent <file> | query draft <run-id> --candidate <file> | query verify <run-id> --candidate <file> | query-pack verify <pack-dir> --vulnerable-db <path> [--fixed-db <path>] | workflow status <run-id> | workflow finalize <run-id> [--output <dir>]", false);
 }
 
 async function verifyRelocatedPack(packPath: string, parsed: ParsedCli, application: ApplicationApi): Promise<unknown> {

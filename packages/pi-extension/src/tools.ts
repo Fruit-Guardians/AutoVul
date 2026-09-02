@@ -24,8 +24,8 @@ export function registerTools(pi: ExtensionAPI, application: ApplicationApi): vo
   pi.registerTool({
     name: "autovul_research",
     label: "AutoVul research",
-    description: "Validate or execute a versioned Flow, MissingCheck, or Typestate hypothesis through the shared deterministic runtime.",
-    promptSnippet: "Choose Flow for value propagation; MissingCheck for a protected operation missing its guard; or Typestate for one resource's ordered lifecycle transitions.",
+    description: "Validate or execute a versioned Flow, MissingCheck, or Typestate hypothesis, or execute the static Change Observation Analyzer service through the shared deterministic runtime.",
+    promptSnippet: "Choose Flow for value propagation; MissingCheck for a protected operation missing its guard; Typestate for one resource's ordered lifecycle transitions; or change_observation for read-only immutable Git facts without a vulnerability verdict.",
     parameters: AutovulResearchToolInputSchema,
     execute: async (_toolCallId: string, rawParams: unknown, signal: AbortSignal | undefined, _onUpdate: unknown, _ctx: ExtensionContext): Promise<AgentToolResult<ToolDetails>> => {
       try {

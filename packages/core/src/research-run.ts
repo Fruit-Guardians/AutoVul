@@ -6,6 +6,8 @@ import {
   type AutovulRunToolInput,
   type ResearchExecutionResult,
   type MissingCheckExecutionResult,
+  type ChangeObservationExecutionResult,
+  type ChangeObservationReplayComparison,
   type TypestateReplayComparison,
   type RunManifest,
 } from "@autovul/contracts";
@@ -17,8 +19,9 @@ import { RunCancellationService } from "./run-cancellation.js";
 import { FlowReplayService } from "./flow/replay.js";
 import { MissingCheckReplayService } from "./missing-check/replay.js";
 import { TypestateReplayService } from "./typestate/replay.js";
+import { ChangeObservationReplayService } from "./change-observation/replay.js";
 
-export type RunManagementResult = RunManifest | ResearchExecutionResult | MissingCheckExecutionResult | TypestateReplayComparison;
+export type RunManagementResult = RunManifest | ResearchExecutionResult | MissingCheckExecutionResult | TypestateReplayComparison | ChangeObservationExecutionResult | ChangeObservationReplayComparison;
 
 /**
  * Shared run management owns status, cancellation and route lookup only.
@@ -32,6 +35,7 @@ export class ResearchRunService {
     private readonly flowReplay: FlowReplayService,
     private readonly missingCheckReplay: MissingCheckReplayService,
     private readonly typestateReplay: TypestateReplayService,
+    private readonly changeObservationReplay: ChangeObservationReplayService,
     private readonly cancellations: RunCancellationService,
   ) {}
 
@@ -52,6 +56,7 @@ export class ResearchRunService {
     if (route?.route_kind === "capability" && route.capability === "flow") return this.flowReplay.replay(request.run_id, route, options);
     if (route?.route_kind === "capability" && route.capability === "missing_check") return this.missingCheckReplay.replay(request.run_id, route, options);
     if (route?.route_kind === "capability" && route.capability === "typestate") return this.typestateReplay.replay(request.run_id, route, options);
+    if (route?.route_kind === "analyzer_service" && route.service === "change_observation") return this.changeObservationReplay.replay(request.run_id, route, options);
     // Explicit routing, not a generic capability registry.
     return this.flowReplay.blocked(request.run_id, route === undefined ? "RESEARCH_REPLAY_ROUTE_MISSING" : "RESEARCH_REPLAY_ROUTE_UNSUPPORTED", ["stop"]);
   }

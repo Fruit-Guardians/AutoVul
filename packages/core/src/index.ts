@@ -39,6 +39,13 @@ export {
   type ResolvedChangeObservationInput,
 } from "./change-observation/normalize.js";
 export { sameRequestedRevision, type ChangeObservationPort, type ChangeObservationPortObservation, type ChangeObservationPortRequest } from "./change-observation/port.js";
+export {
+  ChangeObservationResearchService,
+  CHANGE_OBSERVATION_RESULT_ARTIFACT,
+  changeObservationRunIdForInput,
+  readChangeObservationRunArtifact,
+} from "./change-observation/service.js";
+export { ChangeObservationReplayService } from "./change-observation/replay.js";
 export type { FlowExecutionPort, FlowExecutionRequest } from "./flow/port.js";
 export type { MissingCheckExecutionPort, MissingCheckExecutionRequest } from "./missing-check/port.js";
 export type {

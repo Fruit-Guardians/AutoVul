@@ -15,6 +15,7 @@ import { CodeqlLspDraftRunner } from "./lsp/draft-runner.js";
 import { CodeqlFlowAdapter } from "./flow-adapter.js";
 import { CodeqlMissingCheckAdapter } from "./missing-check-adapter.js";
 import { CodeqlTypestateAdapter } from "./typestate-adapter.js";
+import { GitChangeObservationAdapter } from "./change-observation-git-adapter.js";
 
 export interface LocalApplicationOptions {
   readonly cwd?: string;
@@ -26,6 +27,7 @@ export interface LocalApplicationOptions {
 
 export function createLocalApplication(options: LocalApplicationOptions = {}): ApplicationApi {
   const cwd = resolve(options.cwd ?? process.cwd());
+  const trustedWorkspaceRoot = resolve(options.workspaceRoot ?? cwd);
   const filesystem = new NodeFileSystemPort();
   const runsDir = resolve(options.runsDir ?? `${cwd}/runs`);
   const executable = options.codeqlPath ?? process.env.CODEQL_PATH ?? "codeql";
@@ -45,6 +47,7 @@ export function createLocalApplication(options: LocalApplicationOptions = {}): A
     flow: new CodeqlFlowAdapter(queries, queries),
     missingCheck: new CodeqlMissingCheckAdapter({ executable, cwd, filesystem }),
     typestate: new CodeqlTypestateAdapter({ executable, cwd, filesystem }),
+    changeObservation: new GitChangeObservationAdapter({ trustedRoots: [trustedWorkspaceRoot], filesystem }),
     drafts,
     artifacts: new LocalArtifactStore(runsDir, filesystem),
     clock: new SystemClock(),

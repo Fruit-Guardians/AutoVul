@@ -1,7 +1,7 @@
 # Change: Add Change Observation Analyzer v1
 
 - Change ID: `add-change-observation-analyzer-v1`
-- Status: Accepted
+- Status: Implemented
 - Owner: AutoVul maintainers
 - Created: 2026-09-02
 - Updated: 2026-09-02
@@ -573,19 +573,26 @@ verification level.
 
 ## Delivery gate
 
-`Accepted` authorizes only the narrow Phases A–E described here. It does not
-authorize a fourth Capability, a generic Git/analyzer framework, Variant work,
-or a support claim before the real OpenClaw/Ghost and independent replay gates
-are verified. Phase A begins with contracts; no production implementation is
-implied by the archived classification alone.
+`Implemented` records that the narrow Phases A–D code path is complete. It
+does not authorize a fourth Capability, a generic Git/analyzer framework,
+Variant work, or a support claim before the real OpenClaw/Ghost and independent
+replay gates are verified.
 
 ## Verification record
 
-Complete this section before changing the status to Verified.
+Complete the requirement-by-requirement mapping before changing the status to
+Verified.
 
-- Commands and results: not run; implementation has not begun.
-- Requirement-to-evidence mapping: pending Phases A–E.
-- Skipped or blocked checks: all implementation, real Git/parser, runtime, and
-  replay gates are pending.
-- Remaining limitations: the Analyzer Service is Accepted for implementation
-  but is not implemented, verified, archived, or supported.
+- Implemented local gates: contracts, pure Core normalization, fixed read-only
+  Git/TypeScript adapter, runtime/replay lifecycle, Application, Pi, and CLI
+  focused tests pass. The adapter test includes a real temporary Git repository
+  and proves an untracked worktree file is not observed.
+- Implemented replay gates: fake-port tests cover matching, revision/request/
+  observation-fingerprint and version differences, semantic mismatch, original
+  artifact hash preservation, caller/run/Application cancellation, and
+  serialized replay writes under `change-observation-replay/`.
+- Skipped or blocked checks: the real OpenClaw/Ghost matrix, fresh-process
+  relocated-artifact replay, full test gate, and host terminal acceptance remain
+  Phase E work and are not claimed as passed.
+- Remaining limitations: the Analyzer Service is implemented but not Verified,
+  Archived, or supported until the real-case evidence is recorded.
