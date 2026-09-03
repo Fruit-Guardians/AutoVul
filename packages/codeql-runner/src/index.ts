@@ -5,6 +5,7 @@ export { CodeqlQueryRunner, type QueryRunnerOptions } from "./query-runner.js";
 export { summarizeSarif } from "./query-sarif.js";
 export { CodeqlFlowAdapter } from "./flow-adapter.js";
 export { CodeqlMissingCheckAdapter } from "./missing-check-adapter.js";
+export { JavascriptCfgMissingCheckAdapter } from "./javascript-cfg-adapter.js";
 export { CodeqlTypestateAdapter, CODEQL_TYPESTATE_ADAPTER_VERSION } from "./typestate-adapter.js";
 export { GitChangeObservationAdapter, type GitChangeObservationAdapterOptions } from "./change-observation-git-adapter.js";
 export { NodeFileSystemPort, makeTemporaryRoot } from "./node-filesystem.js";

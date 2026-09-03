@@ -19,7 +19,7 @@ export const MissingCheckResearchToolInputSchema = Type.Object(
     hypothesis_version: Type.Literal(MISSING_CHECK_HYPOTHESIS_VERSION),
     hypothesis: Type.Unknown(),
     target: Type.Optional(Type.Object({ vulnerable: TargetRefSchema, fixed: Type.Optional(TargetRefSchema) }, { additionalProperties: false })),
-    analyzer_id: Type.Optional(Type.Literal("codeql")),
+    analyzer_id: Type.Optional(Type.Union([Type.Literal("codeql"), Type.Literal("javascript_cfg")])),
     mode: Type.Optional(EvidenceOperationModeSchema),
     budget: Type.Optional(OperationBudgetSchema),
     idempotency_key: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),

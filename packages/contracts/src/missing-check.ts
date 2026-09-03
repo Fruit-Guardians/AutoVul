@@ -132,9 +132,9 @@ const MissingCheckCapabilityGapSchema = Type.Object(
 );
 export type MissingCheckCapabilityGap = Static<typeof MissingCheckCapabilityGapSchema>;
 
-const MissingCheckAnalyzerProvenanceSchema = Type.Object(
+export const MissingCheckAnalyzerProvenanceSchema = Type.Object(
   {
-    analyzer_id: Type.Literal("codeql"),
+    analyzer_id: Type.Union([Type.Literal("codeql"), Type.Literal("javascript_cfg")]),
     available: Type.Boolean(),
     evidence_kind: Type.Union([Type.Literal("real_analyzer"), Type.Literal("test_double")]),
     version: Type.Optional(Type.String({ minLength: 1 })),
@@ -254,8 +254,8 @@ export const MissingCheckRunArtifactSchema = Type.Object(
     idempotency_key: Type.Optional(Type.String({ minLength: 1 })), analyzer: MissingCheckAnalyzerProvenanceSchema,
     target_fingerprints: Type.Optional(Type.Object(
       {
-        vulnerable: Type.String({ pattern: "^[a-f0-9]{16}$" }),
-        fixed: Type.Optional(Type.String({ pattern: "^[a-f0-9]{16}$" })),
+        vulnerable: Type.String({ pattern: "^[a-f0-9]{16,64}$" }),
+        fixed: Type.Optional(Type.String({ pattern: "^[a-f0-9]{16,64}$" })),
       },
       { additionalProperties: false },
     )),

@@ -309,6 +309,7 @@ export {
   MissingCheckRelationObservationSchema,
   MissingCheckCompletenessStatusSchema,
   MissingCheckCompletenessBoundarySchema,
+  MissingCheckAnalyzerProvenanceSchema,
   MissingCheckAnalyzerObservationSchema,
   MissingCheckDecisionSchema,
   MissingCheckRevisionHintSchema,

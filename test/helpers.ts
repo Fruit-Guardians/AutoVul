@@ -22,8 +22,10 @@ export class MemoryArtifactStore implements ArtifactStorePort {
   readonly staged = new Map<string, { targetRelativePath: string; files: Map<string, string> }>();
   private readonly caseLocks = new Set<string>();
 
+  constructor(private readonly rootDir?: string) {}
+
   artifactRoot(runId: RunId): string {
-    return `/isolated/runs/${runId}`;
+    return this.rootDir !== undefined ? `${this.rootDir}/${runId}` : `/isolated/runs/${runId}`;
   }
 
   async findManifest(runId: RunId): Promise<RunManifest | undefined> {

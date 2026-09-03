@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 
 import {
   Application,
+  CompositeMissingCheckExecutionPort,
   RandomIdGenerator,
   SystemClock,
   type ApplicationApi,
@@ -14,6 +15,7 @@ import { CodeqlQueryRunner } from "./query-runner.js";
 import { CodeqlLspDraftRunner } from "./lsp/draft-runner.js";
 import { CodeqlFlowAdapter } from "./flow-adapter.js";
 import { CodeqlMissingCheckAdapter } from "./missing-check-adapter.js";
+import { JavascriptCfgMissingCheckAdapter } from "./javascript-cfg-adapter.js";
 import { CodeqlTypestateAdapter } from "./typestate-adapter.js";
 import { GitChangeObservationAdapter } from "./change-observation-git-adapter.js";
 
@@ -45,7 +47,10 @@ export function createLocalApplication(options: LocalApplicationOptions = {}): A
     queries,
     probes: queries,
     flow: new CodeqlFlowAdapter(queries, queries),
-    missingCheck: new CodeqlMissingCheckAdapter({ executable, cwd, filesystem }),
+    missingCheck: new CompositeMissingCheckExecutionPort({
+      codeql: new CodeqlMissingCheckAdapter({ executable, cwd, filesystem }),
+      javascript_cfg: new JavascriptCfgMissingCheckAdapter({ filesystem }),
+    }),
     typestate: new CodeqlTypestateAdapter({ executable, cwd, filesystem }),
     changeObservation: new GitChangeObservationAdapter({ trustedRoots: [trustedWorkspaceRoot], filesystem }),
     drafts,

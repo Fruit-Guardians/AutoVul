@@ -56,13 +56,14 @@ export class MissingCheckReplayService {
     }
     if (artifact.target_fingerprints === undefined) return this.blocked(run.runId, "MCHECK_REPLAY_FINGERPRINT_UNRECORDED", ["stop"]);
     try {
-      await validateTarget(this.codeql, artifact.target.vulnerable, artifact.target_fingerprints.vulnerable, options);
+      await validateTarget(this.codeql, this.execution, artifact.target.vulnerable, artifact.target_fingerprints.vulnerable, options);
       if (artifact.target.fixed !== undefined && artifact.target_fingerprints.fixed !== undefined) {
-        await validateTarget(this.codeql, artifact.target.fixed, artifact.target_fingerprints.fixed, options);
+        await validateTarget(this.codeql, this.execution, artifact.target.fixed, artifact.target_fingerprints.fixed, options);
       } else if (artifact.target.fixed !== undefined || artifact.target_fingerprints.fixed !== undefined) {
         return this.blocked(run.runId, "MCHECK_REPLAY_FINGERPRINT_UNRECORDED", ["stop"]);
       }
-      const observation = await this.execution.execute({ hypothesis: artifact.hypothesis, target: artifact.target, analyzer_id: "codeql", mode: artifact.mode, runId: run.runId, artifactRoot: run.artifactRoot }, { ...options, timeoutMs: artifact.budget === undefined ? options.timeoutMs : Math.min(options.timeoutMs, artifact.budget.timeout_ms) });
+      const analyzerId = (artifact.analyzer.analyzer_id as "codeql" | "javascript_cfg") ?? "codeql";
+      const observation = await this.execution.execute({ hypothesis: artifact.hypothesis, target: artifact.target, analyzer_id: analyzerId, mode: artifact.mode, runId: run.runId, artifactRoot: run.artifactRoot }, { ...options, timeoutMs: artifact.budget === undefined ? options.timeoutMs : Math.min(options.timeoutMs, artifact.budget.timeout_ms) });
       if (!observation.analyzer.available) return this.blocked(run.runId, "MCHECK_REPLAY_ENVIRONMENT_BLOCKED", ["replay", "stop"]);
       if (artifact.analyzer.version === undefined || artifact.analyzer.adapter_version === undefined) {
         return this.versionDifference(run.runId, route.result_artifact_ref, "MCHECK_REPLAY_ANALYZER_VERSION_UNRECORDED");
@@ -92,12 +93,25 @@ export class MissingCheckReplayService {
   }
 }
 
-async function validateTarget(codeql: CodeqlPort, target: import("@autovul/contracts").TargetRef, recordedFingerprint: string, options: CodeqlOperationOptions): Promise<void> {
-  const manifest = await codeql.validateDatabase(target.path, options);
-  if (manifest.portableFingerprint === undefined) {
-    throw new DomainError("DATABASE_FINGERPRINT_UNAVAILABLE", "database", `Replay database fingerprint is unavailable for ${target.path}`, false, { path: target.path });
-  }
-  if (manifest.portableFingerprint !== recordedFingerprint || (target.expected_fingerprint !== undefined && manifest.portableFingerprint !== target.expected_fingerprint)) {
-    throw new DomainError("DATABASE_FINGERPRINT_MISMATCH", "database", `Replay database fingerprint differs for ${target.path}`, false, { path: target.path, recorded: recordedFingerprint, observed: manifest.portableFingerprint });
+async function validateTarget(
+  codeql: CodeqlPort,
+  execution: MissingCheckExecutionPort,
+  target: import("@autovul/contracts").TargetRef,
+  recordedFingerprint: string,
+  options: CodeqlOperationOptions,
+): Promise<void> {
+  const observed = target.kind === "codeql_database"
+    ? await (async () => {
+        const manifest = await codeql.validateDatabase(target.path, options);
+        if (manifest.portableFingerprint === undefined) {
+          throw new DomainError("DATABASE_FINGERPRINT_UNAVAILABLE", "database", `Replay database fingerprint is unavailable for ${target.path}`, false, { path: target.path });
+        }
+        return manifest.portableFingerprint;
+      })()
+    : execution.validateTarget !== undefined
+      ? await execution.validateTarget(target, options)
+      : target.expected_fingerprint ?? recordedFingerprint;
+  if (observed !== recordedFingerprint || (target.expected_fingerprint !== undefined && observed !== target.expected_fingerprint)) {
+    throw new DomainError("DATABASE_FINGERPRINT_MISMATCH", "database", `Replay target fingerprint differs for ${target.path}`, false, { path: target.path, recorded: recordedFingerprint, observed });
   }
 }

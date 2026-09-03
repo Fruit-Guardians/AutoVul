@@ -109,13 +109,13 @@ Application.research()
 
 ## Contracts and artifacts
 
-- [`packages/contracts/src/research.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/contracts/src/research.ts):
+- `packages/contracts/src/research.ts`:
   - Replace open `CapabilityResearchRequestSchema` with closed union of Flow, MissingCheck, and Typestate request schemas.
-- [`packages/contracts/src/flow.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/contracts/src/flow.ts):
+- `packages/contracts/src/flow.ts`:
   - Add `evidence_kind` to `FlowAnalyzerProvenanceSchema`.
-- [`packages/core/src/flow/decision.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/flow/decision.ts):
+- `packages/core/src/flow/decision.ts`:
   - Restrict verification level to `generated` if `evidence_kind !== "real_analyzer"`.
-- [`packages/core/src/flow/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/flow/replay.ts) and [`packages/core/src/missing-check/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/missing-check/replay.ts):
+- `packages/core/src/flow/replay.ts` and `packages/core/src/missing-check/replay.ts`:
   - Add `withRunOperation`, `RunCancellationService`, route checks, policy version checks, and evidence snapshot checks.
 
 ## Acceptance criteria
@@ -132,20 +132,20 @@ Application.research()
 
 | Requirement ID | Implementation Location | Test Verification |
 | --- | --- | --- |
-| `REQ-HARDEN-PAIR-001` | [`packages/contracts/src/research.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/contracts/src/research.ts) | `test/capability-execution-harden.test.ts` ("accepts valid capability and hypothesis_version pairings") |
-| `REQ-HARDEN-PAIR-002` | [`packages/contracts/src/research.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/contracts/src/research.ts) | `test/capability-execution-harden.test.ts` ("rejects mismatched capability and hypothesis_version pairings") |
-| `REQ-HARDEN-DISPATCH-001` | [`packages/core/src/application.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/application.ts) | `test/capability-execution-harden.test.ts` ("explicitly rejects unknown capability with DomainError(INVALID_INPUT)") |
-| `REQ-HARDEN-DISPATCH-002` | [`packages/core/src/application.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/application.ts) | `test/capability-execution-harden.test.ts` ("rejects non-object input with DomainError(INVALID_INPUT)"), `test/research-architecture.test.ts` |
-| `REQ-HARDEN-FLOW-EVID-001` | [`packages/contracts/src/flow.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/contracts/src/flow.ts) | `test/capability-execution-harden.test.ts` |
-| `REQ-HARDEN-FLOW-EVID-002` | [`packages/core/src/flow/decision.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/flow/decision.ts) | `test/flow-decision.test.ts` ("caps verification level at generated when evidence_kind is test_double") |
-| `REQ-HARDEN-FLOW-EVID-003` | [`packages/codeql-runner/src/flow-adapter.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/codeql-runner/src/flow-adapter.ts) | `test/m2-workflow.test.ts` |
-| `REQ-HARDEN-REPLAY-BASE-001` | [`packages/core/src/flow/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/flow/replay.ts), [`packages/core/src/missing-check/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/missing-check/replay.ts) | `test/capability-execution-harden.test.ts`, `test/research-architecture.test.ts` |
-| `REQ-HARDEN-REPLAY-BASE-002` | [`packages/core/src/flow/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/flow/replay.ts), [`packages/core/src/missing-check/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/missing-check/replay.ts) | `test/capability-execution-harden.test.ts` ("blocks Flow/MissingCheck replay when route capability does not match") |
-| `REQ-HARDEN-REPLAY-BASE-003` | [`packages/core/src/flow/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/flow/replay.ts), [`packages/core/src/missing-check/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/missing-check/replay.ts) | `test/research-architecture.test.ts` ("downgrades replay when the Analyzer or adapter version differs") |
-| `REQ-HARDEN-REPLAY-BASE-004` | [`packages/core/src/flow/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/flow/replay.ts), [`packages/core/src/missing-check/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/missing-check/replay.ts) | `test/capability-execution-harden.test.ts` ("reports policy version difference when Flow replay finds mismatched policy version") |
-| `REQ-HARDEN-REPLAY-BASE-005` | [`packages/core/src/flow/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/flow/replay.ts), [`packages/core/src/missing-check/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/missing-check/replay.ts) | `test/research-architecture.test.ts` ("blocks replay before Analyzer execution when the target fingerprint changes") |
-| `REQ-HARDEN-REPLAY-BASE-006` | [`packages/core/src/flow/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/flow/replay.ts), [`packages/core/src/missing-check/replay.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/missing-check/replay.ts) | `test/research-architecture.test.ts` ("blocks replay when committed Flow evidence is corrupted") |
-| `REQ-HARDEN-COMPAT-001` | [`packages/core/src/research-operation.ts`](file:///Users/zhangboxiang/Progarm/PureAutoCodeql/v2/packages/core/src/research-operation.ts) | `test/research-architecture.test.ts` ("projects a historical capability route without rewriting its artifact") |
+| `REQ-HARDEN-PAIR-001` | `packages/contracts/src/research.ts` | `test/capability-execution-harden.test.ts` ("accepts valid capability and hypothesis_version pairings") |
+| `REQ-HARDEN-PAIR-002` | `packages/contracts/src/research.ts` | `test/capability-execution-harden.test.ts` ("rejects mismatched capability and hypothesis_version pairings") |
+| `REQ-HARDEN-DISPATCH-001` | `packages/core/src/application.ts` | `test/capability-execution-harden.test.ts` ("explicitly rejects unknown capability with DomainError(INVALID_INPUT)") |
+| `REQ-HARDEN-DISPATCH-002` | `packages/core/src/application.ts` | `test/capability-execution-harden.test.ts` ("rejects non-object input with DomainError(INVALID_INPUT)"), `test/research-architecture.test.ts` |
+| `REQ-HARDEN-FLOW-EVID-001` | `packages/contracts/src/flow.ts` | `test/capability-execution-harden.test.ts` |
+| `REQ-HARDEN-FLOW-EVID-002` | `packages/core/src/flow/decision.ts` | `test/flow-decision.test.ts` ("caps verification level at generated when evidence_kind is test_double") |
+| `REQ-HARDEN-FLOW-EVID-003` | `packages/codeql-runner/src/flow-adapter.ts` | `test/m2-workflow.test.ts` |
+| `REQ-HARDEN-REPLAY-BASE-001` | `packages/core/src/flow/replay.ts`, `packages/core/src/missing-check/replay.ts` | `test/capability-execution-harden.test.ts`, `test/research-architecture.test.ts` |
+| `REQ-HARDEN-REPLAY-BASE-002` | `packages/core/src/flow/replay.ts`, `packages/core/src/missing-check/replay.ts` | `test/capability-execution-harden.test.ts` ("blocks Flow/MissingCheck replay when route capability does not match") |
+| `REQ-HARDEN-REPLAY-BASE-003` | `packages/core/src/flow/replay.ts`, `packages/core/src/missing-check/replay.ts` | `test/research-architecture.test.ts` ("downgrades replay when the Analyzer or adapter version differs") |
+| `REQ-HARDEN-REPLAY-BASE-004` | `packages/core/src/flow/replay.ts`, `packages/core/src/missing-check/replay.ts` | `test/capability-execution-harden.test.ts` ("reports policy version difference when Flow replay finds mismatched policy version") |
+| `REQ-HARDEN-REPLAY-BASE-005` | `packages/core/src/flow/replay.ts`, `packages/core/src/missing-check/replay.ts` | `test/research-architecture.test.ts` ("blocks replay before Analyzer execution when the target fingerprint changes") |
+| `REQ-HARDEN-REPLAY-BASE-006` | `packages/core/src/flow/replay.ts`, `packages/core/src/missing-check/replay.ts` | `test/research-architecture.test.ts` ("blocks replay when committed Flow evidence is corrupted") |
+| `REQ-HARDEN-COMPAT-001` | `packages/core/src/research-operation.ts` | `test/research-architecture.test.ts` ("projects a historical capability route without rewriting its artifact") |
 
 ## Validation plan
 

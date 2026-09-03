@@ -118,9 +118,9 @@ export type ResearchRequest = Static<typeof ResearchRequestSchema>;
 /** Target identity is shared execution metadata, not Flow domain semantics. */
 export const TargetRefSchema = Type.Object(
   {
-    kind: Type.Literal("codeql_database"),
+    kind: Type.Union([Type.Literal("codeql_database"), Type.Literal("source_directory")]),
     path: Type.String({ minLength: 1 }),
-    expected_fingerprint: Type.Optional(Type.String({ pattern: "^[a-f0-9]{16}$" })),
+    expected_fingerprint: Type.Optional(Type.String({ pattern: "^[a-f0-9]{16,64}$" })),
   },
   { additionalProperties: false },
 );

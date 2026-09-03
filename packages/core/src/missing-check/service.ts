@@ -22,6 +22,7 @@ import {
   type OperationBudget,
   type OperationStatus,
   type RunId,
+  type TargetRef,
   type VerificationLevel,
 } from "@autovul/contracts";
 
@@ -117,10 +118,11 @@ export class MissingCheckResearchService {
   private async runAnalyzer(runId: RunId, hypothesis: MissingCheckHypothesis, request: MissingCheckResearchToolInput, options: CodeqlOperationOptions, artifactRoot: string): Promise<MissingCheckExecutionResult> {
     const target = request.target!;
     try {
-      const vulnerableFingerprint = await validateTargetFingerprint(this.codeql, target.vulnerable, options);
-      const fixedFingerprint = target.fixed === undefined ? undefined : await validateTargetFingerprint(this.codeql, target.fixed, options);
+      const vulnerableFingerprint = await resolveTargetFingerprint(this.codeql, this.execution, target.vulnerable, options);
+      const fixedFingerprint = target.fixed === undefined ? undefined : await resolveTargetFingerprint(this.codeql, this.execution, target.fixed, options);
       const targetFingerprints = { vulnerable: vulnerableFingerprint, ...(fixedFingerprint === undefined ? {} : { fixed: fixedFingerprint }) };
-      const observation = await this.execution.execute({ hypothesis, target, analyzer_id: "codeql", mode: request.mode!, runId, artifactRoot }, { ...options, timeoutMs: Math.min(options.timeoutMs, request.budget!.timeout_ms) });
+      const analyzerId = request.analyzer_id ?? "codeql";
+      const observation = await this.execution.execute({ hypothesis, target, analyzer_id: analyzerId, mode: request.mode!, runId, artifactRoot }, { ...options, timeoutMs: Math.min(options.timeoutMs, request.budget!.timeout_ms) });
       if (options.signal?.aborted) throw new DomainError("PROCESS_CANCELLED", "process", `MissingCheck execution for ${runId} was cancelled`, false, { runId });
       if (!observation.analyzer.available) return this.commitFailure(runId, hypothesis, request, "MCHECK_ANALYZER_UNAVAILABLE", "blocked", observation, targetFingerprints);
       if (observation.analyzer.evidence_kind === "real_analyzer" && (observation.analyzer.version === undefined || observation.analyzer.adapter_version === undefined)) {
@@ -206,8 +208,34 @@ function executionIssues(request: MissingCheckResearchToolInput): MissingCheckVa
   if (request.mode === undefined) issues.push({ code: "MCHECK_MODE_REQUIRED", path: "/mode", allowed_values: ["probe", "reproduce", "differential"] });
   if (request.target === undefined) issues.push({ code: "MCHECK_TARGET_REQUIRED", path: "/target", expected_kind: "object" });
   if (request.mode === "differential" && request.target?.fixed === undefined) issues.push({ code: "MCHECK_FIXED_TARGET_REQUIRED", path: "/target/fixed" });
-  if (request.analyzer_id !== "codeql") issues.push({ code: "MCHECK_ANALYZER_REQUIRED", path: "/analyzer_id", allowed_values: ["codeql"] });
+  if (request.analyzer_id !== undefined && request.analyzer_id !== "codeql" && request.analyzer_id !== "javascript_cfg") {
+    issues.push({ code: "MCHECK_ANALYZER_REQUIRED", path: "/analyzer_id", allowed_values: ["codeql", "javascript_cfg"] });
+  }
   if (request.budget === undefined) issues.push({ code: "MCHECK_BUDGET_REQUIRED", path: "/budget", expected_kind: "object" });
   if (request.idempotency_key === undefined) issues.push({ code: "MCHECK_IDEMPOTENCY_KEY_REQUIRED", path: "/idempotency_key" });
   return issues;
+}
+
+async function resolveTargetFingerprint(
+  codeql: CodeqlPort,
+  execution: MissingCheckExecutionPort,
+  target: TargetRef,
+  options: CodeqlOperationOptions,
+): Promise<string> {
+  if (target.kind === "codeql_database") {
+    return validateTargetFingerprint(codeql, target, options);
+  }
+  if (execution.validateTarget !== undefined) {
+    return execution.validateTarget(target, options);
+  }
+  if (target.expected_fingerprint !== undefined) {
+    return target.expected_fingerprint;
+  }
+  throw new DomainError(
+    "DATABASE_FINGERPRINT_UNAVAILABLE",
+    "database",
+    `Target fingerprint unavailable for ${target.path}`,
+    false,
+    { path: target.path },
+  );
 }
