@@ -7,6 +7,7 @@ const packageRoots = {
   core: "packages/core",
   "codeql-runner": "packages/codeql-runner",
   "pi-extension": "packages/pi-extension",
+  "deepseek-harness": "packages/deepseek-harness",
   cli: "packages/cli",
 };
 
@@ -14,6 +15,7 @@ const forbiddenImports = {
   contracts: ["@autovul/", "@earendil-works/pi-", "node:"],
   core: ["@earendil-works/pi-", "node:"],
   "codeql-runner": ["@earendil-works/pi-"],
+  "deepseek-harness": ["@earendil-works/pi-"],
   cli: ["@earendil-works/pi-"],
 };
 
@@ -26,6 +28,11 @@ const allowedInternal = {
     "@autovul/core",
     "@autovul/codeql-runner",
     "@earendil-works/pi-coding-agent",
+  ],
+  "deepseek-harness": [
+    "@autovul/contracts",
+    "@autovul/core",
+    "@autovul/codeql-runner",
   ],
   cli: ["@autovul/contracts", "@autovul/core", "@autovul/codeql-runner"],
 };

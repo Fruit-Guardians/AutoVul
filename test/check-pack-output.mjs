@@ -5,6 +5,7 @@ const packages = [
   "@autovul/core",
   "@autovul/codeql-runner",
   "@autovul/pi-extension",
+  "@autovul/deepseek-harness",
   "@autovul/cli",
 ];
 const result = spawnSync("npm", ["pack", "--dry-run", "--json", ...packages.flatMap((name) => ["--workspace", name])], {

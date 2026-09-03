@@ -9,6 +9,7 @@
     "packages/core",
     "packages/codeql-runner",
     "packages/pi-extension",
+    "packages/deepseek-harness",
     "packages/cli"
   ],
   "scripts": {

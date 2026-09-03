@@ -11,6 +11,7 @@ const productionRoots = [
   "packages/core/src",
   "packages/codeql-runner/src",
   "packages/pi-extension/src",
+  "packages/deepseek-harness/src",
   "packages/cli/src",
 ];
 const oversized = [];
