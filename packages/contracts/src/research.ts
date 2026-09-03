@@ -67,16 +67,45 @@ export type OperationBudget = Static<typeof OperationBudgetSchema>;
  * Minimal routing envelope. Capability domain fields belong in the selected
  * Hypothesis schema, not here.
  */
-/** Capability-only routing shape retained for compatibility and explicit unioning. */
-export const CapabilityResearchRequestSchema = Type.Object(
+export const FlowCapabilityResearchRequestSchema = Type.Object(
   {
     action: ResearchActionSchema,
-    capability: ResearchCapabilitySchema,
-    hypothesis_version: ResearchHypothesisVersionSchema,
+    capability: Type.Literal("flow"),
+    hypothesis_version: Type.Literal(FLOW_HYPOTHESIS_VERSION),
     hypothesis: Type.Unknown(),
   },
   { additionalProperties: false },
 );
+export type FlowCapabilityResearchRequest = Static<typeof FlowCapabilityResearchRequestSchema>;
+
+export const MissingCheckCapabilityResearchRequestSchema = Type.Object(
+  {
+    action: ResearchActionSchema,
+    capability: Type.Literal("missing_check"),
+    hypothesis_version: Type.Literal(MISSING_CHECK_HYPOTHESIS_VERSION),
+    hypothesis: Type.Unknown(),
+  },
+  { additionalProperties: false },
+);
+export type MissingCheckCapabilityResearchRequest = Static<typeof MissingCheckCapabilityResearchRequestSchema>;
+
+export const TypestateCapabilityResearchRequestSchema = Type.Object(
+  {
+    action: ResearchActionSchema,
+    capability: Type.Literal("typestate"),
+    hypothesis_version: Type.Literal(TYPESTATE_HYPOTHESIS_VERSION),
+    hypothesis: Type.Unknown(),
+  },
+  { additionalProperties: false },
+);
+export type TypestateCapabilityResearchRequest = Static<typeof TypestateCapabilityResearchRequestSchema>;
+
+/** Capability-only routing shape is a closed discriminated union pairing capability and hypothesis_version. */
+export const CapabilityResearchRequestSchema = Type.Union([
+  FlowCapabilityResearchRequestSchema,
+  MissingCheckCapabilityResearchRequestSchema,
+  TypestateCapabilityResearchRequestSchema,
+]);
 export type CapabilityResearchRequest = Static<typeof CapabilityResearchRequestSchema>;
 
 /** Aggregate routing is a closed Capability-or-Analyzer-Service union. */
@@ -106,22 +135,53 @@ export const AutovulRunToolInputSchema = Type.Object(
 );
 export type AutovulRunToolInput = Static<typeof AutovulRunToolInputSchema>;
 
+export const FlowCapabilityResearchOperationRouteSchema = Type.Object(
+  {
+    schema_version: Type.Literal("v2.contracts/1"),
+    route_kind: Type.Literal("capability"),
+    capability: Type.Literal("flow"),
+    hypothesis_version: Type.Literal(FLOW_HYPOTHESIS_VERSION),
+    result_artifact_ref: Type.String({ minLength: 1 }),
+  },
+  { additionalProperties: false },
+);
+export type FlowCapabilityResearchOperationRoute = Static<typeof FlowCapabilityResearchOperationRouteSchema>;
+
+export const MissingCheckCapabilityResearchOperationRouteSchema = Type.Object(
+  {
+    schema_version: Type.Literal("v2.contracts/1"),
+    route_kind: Type.Literal("capability"),
+    capability: Type.Literal("missing_check"),
+    hypothesis_version: Type.Literal(MISSING_CHECK_HYPOTHESIS_VERSION),
+    result_artifact_ref: Type.String({ minLength: 1 }),
+  },
+  { additionalProperties: false },
+);
+export type MissingCheckCapabilityResearchOperationRoute = Static<typeof MissingCheckCapabilityResearchOperationRouteSchema>;
+
+export const TypestateCapabilityResearchOperationRouteSchema = Type.Object(
+  {
+    schema_version: Type.Literal("v2.contracts/1"),
+    route_kind: Type.Literal("capability"),
+    capability: Type.Literal("typestate"),
+    hypothesis_version: Type.Literal(TYPESTATE_HYPOTHESIS_VERSION),
+    result_artifact_ref: Type.String({ minLength: 1 }),
+  },
+  { additionalProperties: false },
+);
+export type TypestateCapabilityResearchOperationRoute = Static<typeof TypestateCapabilityResearchOperationRouteSchema>;
+
 /**
  * Shared, persisted routing record for a deterministic research operation.
  * It deliberately records no Capability domain fields: replay selects the
  * explicit Capability branch from this route, then reads that Capability's
  * own artifact.
  */
-export const CapabilityResearchOperationRouteSchema = Type.Object(
-  {
-    schema_version: Type.Literal("v2.contracts/1"),
-    route_kind: Type.Literal("capability"),
-    capability: ResearchCapabilitySchema,
-    hypothesis_version: ResearchHypothesisVersionSchema,
-    result_artifact_ref: Type.String({ minLength: 1 }),
-  },
-  { additionalProperties: false },
-);
+export const CapabilityResearchOperationRouteSchema = Type.Union([
+  FlowCapabilityResearchOperationRouteSchema,
+  MissingCheckCapabilityResearchOperationRouteSchema,
+  TypestateCapabilityResearchOperationRouteSchema,
+]);
 export type CapabilityResearchOperationRoute = Static<typeof CapabilityResearchOperationRouteSchema>;
 
 export const AnalyzerServiceResearchOperationRouteSchema = Type.Object(

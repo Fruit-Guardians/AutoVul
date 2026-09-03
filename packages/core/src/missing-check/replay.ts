@@ -1,11 +1,14 @@
 import {
   asDomainError,
   DomainError,
+  MISSING_CHECK_DECISION_POLICY_VERSION,
+  MISSING_CHECK_HYPOTHESIS_VERSION,
   type MissingCheckExecutionResult,
   type CapabilityResearchOperationRoute,
   type RunId,
 } from "@autovul/contracts";
 import type { ArtifactStorePort, CodeqlOperationOptions, CodeqlPort } from "../ports.js";
+import type { RunCancellationService } from "../run-cancellation.js";
 import { RunStatusService } from "../status-service.js";
 import { decideMissingCheck } from "./decision.js";
 import type { MissingCheckExecutionPort } from "./port.js";
@@ -13,14 +16,44 @@ import { compactMissingCheckResult, MISSING_CHECK_RESULT_ARTIFACT, readMissingCh
 
 /** Capability-owned replay policy. The shared run service only selects it. */
 export class MissingCheckReplayService {
-  constructor(private readonly status: RunStatusService, private readonly codeql: CodeqlPort, private readonly execution: MissingCheckExecutionPort, private readonly artifacts: ArtifactStorePort) {}
+  constructor(
+    private readonly status: RunStatusService,
+    private readonly codeql: CodeqlPort,
+    private readonly execution: MissingCheckExecutionPort,
+    private readonly artifacts: ArtifactStorePort,
+    private readonly cancellations?: RunCancellationService,
+  ) {}
 
   async replay(runId: RunId, route: CapabilityResearchOperationRoute, options: CodeqlOperationOptions): Promise<MissingCheckExecutionResult> {
+    return await this.artifacts.withRunOperation(runId, options, async () => {
+      const operation = this.cancellations?.begin(runId, options.signal);
+      const replayOptions: CodeqlOperationOptions = operation?.signal === undefined
+        ? options
+        : { ...options, signal: operation.signal };
+      try {
+        return await this.replayLocked(runId, route, replayOptions);
+      } finally {
+        operation?.release();
+      }
+    });
+  }
+
+  private async replayLocked(runId: RunId, route: CapabilityResearchOperationRoute, options: CodeqlOperationOptions): Promise<MissingCheckExecutionResult> {
     const run = await this.status.get(runId);
+    if (route.route_kind !== "capability" || route.capability !== "missing_check" || route.hypothesis_version !== MISSING_CHECK_HYPOTHESIS_VERSION) {
+      return this.blocked(run.runId, "MCHECK_REPLAY_ROUTE_MISMATCH", ["stop"]);
+    }
     const raw = await this.artifacts.readArtifact(run.runId, route.result_artifact_ref);
     if (raw === undefined) return this.blocked(run.runId, "MCHECK_REPLAY_ARTIFACT_MISSING", ["stop"]);
     const artifact = readMissingCheckRunArtifact(raw);
     if (artifact === undefined) return this.blocked(run.runId, "MCHECK_REPLAY_ARTIFACT_INVALID", ["stop"]);
+    if (artifact.decision_policy_version !== MISSING_CHECK_DECISION_POLICY_VERSION) {
+      return this.versionDifference(
+        run.runId,
+        route.result_artifact_ref,
+        artifact.decision_policy_version === undefined ? "MCHECK_REPLAY_POLICY_VERSION_UNRECORDED" : "MCHECK_REPLAY_POLICY_VERSION_DIFFERENCE",
+      );
+    }
     if (artifact.target_fingerprints === undefined) return this.blocked(run.runId, "MCHECK_REPLAY_FINGERPRINT_UNRECORDED", ["stop"]);
     try {
       await validateTarget(this.codeql, artifact.target.vulnerable, artifact.target_fingerprints.vulnerable, options);

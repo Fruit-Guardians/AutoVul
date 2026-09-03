@@ -185,10 +185,11 @@ const FlowCapabilityGapSchema = Type.Object(
 );
 export type FlowCapabilityGap = Static<typeof FlowCapabilityGapSchema>;
 
-const FlowAnalyzerProvenanceSchema = Type.Object(
+export const FlowAnalyzerProvenanceSchema = Type.Object(
   {
     analyzer_id: Type.Literal("codeql"),
     available: Type.Boolean(),
+    evidence_kind: Type.Union([Type.Literal("real_analyzer"), Type.Literal("test_double")]),
     version: Type.Optional(Type.String({ minLength: 1 })),
     adapter_version: Type.Optional(Type.String({ minLength: 1 })),
   },
@@ -288,6 +289,7 @@ export const FlowRunArtifactSchema = Type.Object(
       {
         analyzer_id: Type.Literal("codeql"),
         available: Type.Optional(Type.Boolean()),
+        evidence_kind: Type.Optional(Type.Union([Type.Literal("real_analyzer"), Type.Literal("test_double")])),
         version: Type.Optional(Type.String({ minLength: 1 })),
         adapter_version: Type.Optional(Type.String({ minLength: 1 })),
       },

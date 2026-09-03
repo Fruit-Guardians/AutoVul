@@ -16,7 +16,7 @@ function observation(overrides: Partial<FlowAnalyzerObservation> = {}): FlowAnal
     schema_version: "autovul.flow/1", compile_accepted: true,
     source: { state: "observed", locations: [] }, sink: { state: "observed", locations: [] },
     path: { state: "not_observed", path_count: 0 }, capability_gaps: [], evidence_refs: ["flow.json"],
-    analyzer: { analyzer_id: "codeql", available: true }, ...overrides,
+    analyzer: { analyzer_id: "codeql", available: true, evidence_kind: "real_analyzer" }, ...overrides,
   };
 }
 
@@ -83,5 +83,18 @@ describe("Flow v1 deterministic policy", () => {
     expect(projection.model.barriers).toEqual([{ endpoint: { kind: "call", name: "escape" } }]);
     expect(projection.model).not.toHaveProperty("cwe");
     expect(projection.context).toMatchObject({ cwe: "CWE-78", message: "unsafe", rationale: "legacy context" });
+  });
+
+  it("caps verification level at generated when evidence_kind is test_double", () => {
+    const result = decideFlow(
+      observation({
+        path: { state: "observed", path_count: 1 },
+        analyzer: { analyzer_id: "codeql", available: true, evidence_kind: "test_double" },
+      }),
+      "reproduce",
+      { vulnerable: { min_paths: 1, max_paths: 1 } },
+    );
+    expect(result.decision.outcome).toBe("connected");
+    expect(result.verificationLevel).toBe("generated");
   });
 });

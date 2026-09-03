@@ -1,6 +1,8 @@
 import {
   asDomainError,
   DomainError,
+  FLOW_DECISION_POLICY_VERSION,
+  FLOW_HYPOTHESIS_VERSION,
   type CapabilityResearchOperationRoute,
   type ResearchExecutionResult,
   type RunId,
@@ -10,6 +12,7 @@ import { decideFlow } from "./decision.js";
 import type { FlowExecutionPort } from "./port.js";
 import { FLOW_RESULT_ARTIFACT, compactFlowResult, readFlowRunArtifact } from "./service.js";
 import type { ArtifactStorePort, CodeqlOperationOptions, CodeqlPort } from "../ports.js";
+import type { RunCancellationService } from "../run-cancellation.js";
 import { RunStatusService } from "../status-service.js";
 
 /** Flow-owned replay policy; the shared runtime only routes to this service. */
@@ -19,15 +22,40 @@ export class FlowReplayService {
     private readonly codeql: CodeqlPort,
     private readonly execution: FlowExecutionPort,
     private readonly artifacts: ArtifactStorePort,
+    private readonly cancellations?: RunCancellationService,
   ) {}
 
   async replay(runId: RunId, route: CapabilityResearchOperationRoute, options: CodeqlOperationOptions): Promise<ResearchExecutionResult> {
+    return await this.artifacts.withRunOperation(runId, options, async () => {
+      const operation = this.cancellations?.begin(runId, options.signal);
+      const replayOptions: CodeqlOperationOptions = operation?.signal === undefined
+        ? options
+        : { ...options, signal: operation.signal };
+      try {
+        return await this.replayLocked(runId, route, replayOptions);
+      } finally {
+        operation?.release();
+      }
+    });
+  }
+
+  private async replayLocked(runId: RunId, route: CapabilityResearchOperationRoute, options: CodeqlOperationOptions): Promise<ResearchExecutionResult> {
     const run = await this.status.get(runId);
+    if (route.route_kind !== "capability" || route.capability !== "flow" || route.hypothesis_version !== FLOW_HYPOTHESIS_VERSION) {
+      return this.blocked(run.runId, "FLOW_REPLAY_ROUTE_MISMATCH", ["stop"]);
+    }
     const artifactRef = route.result_artifact_ref;
     const raw = await this.artifacts.readArtifact(run.runId, artifactRef);
     if (raw === undefined) return this.blocked(run.runId, "FLOW_REPLAY_ARTIFACT_MISSING", ["stop"]);
     const artifact = readFlowRunArtifact(raw);
     if (artifact === undefined) return this.blocked(run.runId, "FLOW_REPLAY_ARTIFACT_INVALID", ["stop"]);
+    if (artifact.decision_policy_version !== FLOW_DECISION_POLICY_VERSION) {
+      return this.versionDifference(
+        run.runId,
+        artifactRef,
+        artifact.decision_policy_version === undefined ? "FLOW_REPLAY_POLICY_VERSION_UNRECORDED" : "FLOW_REPLAY_POLICY_VERSION_DIFFERENCE",
+      );
+    }
     if (artifact.target_fingerprints === undefined) return this.blocked(run.runId, "FLOW_REPLAY_FINGERPRINT_UNRECORDED", ["stop"]);
     if (artifact.analyzer.version === undefined || artifact.analyzer.adapter_version === undefined) {
       return this.versionDifference(run.runId, artifactRef, "FLOW_REPLAY_ANALYZER_VERSION_UNRECORDED");

@@ -100,8 +100,8 @@ export class Application implements ApplicationApi {
     this.researchRuns = new ResearchRunService(
       status,
       dependencies.artifacts,
-      new FlowReplayService(status, dependencies.codeql, flow, dependencies.artifacts),
-      new MissingCheckReplayService(status, dependencies.codeql, missingCheck, dependencies.artifacts),
+      new FlowReplayService(status, dependencies.codeql, flow, dependencies.artifacts, this.cancellations),
+      new MissingCheckReplayService(status, dependencies.codeql, missingCheck, dependencies.artifacts, this.cancellations),
       new TypestateReplayService(status, dependencies.codeql, typestate, typestate, dependencies.artifacts, this.cancellations),
       new ChangeObservationReplayService(status, changeObservation, dependencies.artifacts, this.cancellations),
       this.cancellations,
@@ -154,16 +154,31 @@ export class Application implements ApplicationApi {
 
   research(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<ResearchResult | MissingCheckResearchResult | TypestateResearchResult | ChangeObservationExecutionResult> {
     return this.admitWithOptions<ResearchResult | MissingCheckResearchResult | TypestateResearchResult | ChangeObservationExecutionResult>(options, (resolved) => {
-      if (input !== null && typeof input === "object" && !Array.isArray(input) && "service" in (input as Record<string, unknown>)) {
-        return this.changeObservationResearch.research(input, resolved);
+      if (input !== null && typeof input === "object" && !Array.isArray(input)) {
+        const record = input as Record<string, unknown>;
+        if ("service" in record) {
+          if (record.service === "change_observation") {
+            return this.changeObservationResearch.research(input, resolved);
+          }
+          throw new DomainError("INVALID_INPUT", "input", `Unsupported analyzer service: ${String(record.service)}`, false);
+        }
+        if (record.capability === "typestate") {
+          return this.typestateResearch.research(input, resolved);
+        }
+        if (record.capability === "missing_check") {
+          return this.missingCheckResearch.research(input, resolved);
+        }
+        if (record.capability === "flow") {
+          return this.flowResearch.research(input, resolved);
+        }
+        throw new DomainError(
+          "INVALID_INPUT",
+          "input",
+          record.capability === undefined ? "Missing research capability or service" : `Unsupported research capability: ${String(record.capability)}`,
+          false,
+        );
       }
-      if (input !== null && typeof input === "object" && !Array.isArray(input) && (input as Record<string, unknown>).capability === "typestate") {
-        return this.typestateResearch.research(input, resolved);
-      }
-      if (input !== null && typeof input === "object" && !Array.isArray(input) && (input as Record<string, unknown>).capability === "missing_check") {
-        return this.missingCheckResearch.research(input, resolved);
-      }
-      return this.flowResearch.research(input, resolved);
+      throw new DomainError("INVALID_INPUT", "input", "Research request must be an object", false);
     });
   }
 
@@ -259,7 +274,7 @@ function composeSignals(caller: AbortSignal | undefined, shutdown: AbortSignal):
 function unavailableFlowExecutionPort(): FlowExecutionPort {
   return {
     async execute(): Promise<import("@autovul/contracts").FlowAnalyzerObservation> {
-      return { schema_version: "autovul.flow/1", compile_accepted: "not_run", source: { state: "not_run", locations: [] }, sink: { state: "not_run", locations: [] }, path: { state: "not_run", path_count: 0 }, capability_gaps: [{ code: "FLOW_CODEQL_ADAPTER_UNAVAILABLE", path: "/" }], evidence_refs: [], analyzer: { analyzer_id: "codeql", available: false } };
+      return { schema_version: "autovul.flow/1", compile_accepted: "not_run", source: { state: "not_run", locations: [] }, sink: { state: "not_run", locations: [] }, path: { state: "not_run", path_count: 0 }, capability_gaps: [{ code: "FLOW_CODEQL_ADAPTER_UNAVAILABLE", path: "/" }], evidence_refs: [], analyzer: { analyzer_id: "codeql", available: false, evidence_kind: "test_double" } };
     },
   };
 }

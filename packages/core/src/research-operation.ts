@@ -4,9 +4,11 @@ import {
   parseSchema,
   ResearchOperationRouteSchema,
   type AnalyzerServiceResearchOperationRoute,
-  type CapabilityResearchOperationRoute,
+  type FlowCapabilityResearchOperationRoute,
+  type MissingCheckCapabilityResearchOperationRoute,
   type ResearchOperationRoute,
   type RunId,
+  type TypestateCapabilityResearchOperationRoute,
 } from "@autovul/contracts";
 
 import type { ArtifactStorePort } from "./ports.js";
@@ -15,7 +17,9 @@ import type { ArtifactStorePort } from "./ports.js";
 const RESEARCH_OPERATION_ARTIFACT = "research/operation.json";
 
 type ResearchOperationRouteWrite =
-  | Omit<CapabilityResearchOperationRoute, "schema_version" | "route_kind">
+  | Omit<FlowCapabilityResearchOperationRoute, "schema_version" | "route_kind">
+  | Omit<MissingCheckCapabilityResearchOperationRoute, "schema_version" | "route_kind">
+  | Omit<TypestateCapabilityResearchOperationRoute, "schema_version" | "route_kind">
   | Omit<AnalyzerServiceResearchOperationRoute, "schema_version" | "route_kind">;
 
 export function serializeResearchOperationRoute(
@@ -23,7 +27,11 @@ export function serializeResearchOperationRoute(
 ): string {
   const persisted: ResearchOperationRoute = "service" in route
     ? { schema_version: CONTRACTS_VERSION, route_kind: "analyzer_service", ...route }
-    : { schema_version: CONTRACTS_VERSION, route_kind: "capability", ...route };
+    : route.capability === "flow"
+      ? { schema_version: CONTRACTS_VERSION, route_kind: "capability", capability: "flow", hypothesis_version: route.hypothesis_version, result_artifact_ref: route.result_artifact_ref }
+      : route.capability === "missing_check"
+        ? { schema_version: CONTRACTS_VERSION, route_kind: "capability", capability: "missing_check", hypothesis_version: route.hypothesis_version, result_artifact_ref: route.result_artifact_ref }
+        : { schema_version: CONTRACTS_VERSION, route_kind: "capability", capability: "typestate", hypothesis_version: route.hypothesis_version, result_artifact_ref: route.result_artifact_ref };
   return JSON.stringify(parseSchema(
     ResearchOperationRouteSchema,
     persisted,
@@ -46,6 +54,11 @@ export async function readResearchOperationRoute(
       parsed,
       "legacy research operation route",
     );
-    return { ...legacy, route_kind: "capability" };
+    const persistedLegacy: ResearchOperationRoute = legacy.capability === "flow"
+      ? { schema_version: CONTRACTS_VERSION, route_kind: "capability", capability: "flow", hypothesis_version: legacy.hypothesis_version as "autovul.flow/1", result_artifact_ref: legacy.result_artifact_ref }
+      : legacy.capability === "missing_check"
+        ? { schema_version: CONTRACTS_VERSION, route_kind: "capability", capability: "missing_check", hypothesis_version: legacy.hypothesis_version as "autovul.missing-check/1", result_artifact_ref: legacy.result_artifact_ref }
+        : { schema_version: CONTRACTS_VERSION, route_kind: "capability", capability: "typestate", hypothesis_version: legacy.hypothesis_version as "autovul.typestate/1", result_artifact_ref: legacy.result_artifact_ref };
+    return parseSchema(ResearchOperationRouteSchema, persistedLegacy, "legacy research operation route");
   }
 }

@@ -74,6 +74,7 @@ export function decideFlow(
     decision = { ...decision, fixed_outcome: fixedOutcome, fixed_policy_satisfied: fixedPolicySatisfied };
     if (verificationLevel === "reproduced" && fixedPolicySatisfied) verificationLevel = "differential";
   }
+  if (observation.analyzer.evidence_kind === "test_double") verificationLevel = "generated";
   const nextActions = outcome === "connected" ? ["replay", "stop"] as const : ["revise", "execute", "stop"] as const;
   return projection(decision, verificationLevel, observations, revisionHints, nextActions);
 }

@@ -27,8 +27,25 @@ function observation(overrides: Partial<FlowAnalyzerObservation> = {}): FlowAnal
     path: { state: "not_observed", path_count: 0 },
     capability_gaps: [],
     evidence_refs: ["flow.json"],
-    analyzer: { analyzer_id: "codeql", available: true, version: "CodeQL CLI version 2.26.1", adapter_version: "autovul.codeql-flow/1" },
+    analyzer: {
+      analyzer_id: "codeql",
+      available: true,
+      evidence_kind: "real_analyzer",
+      version: "CodeQL CLI version 2.26.1",
+      adapter_version: "autovul.codeql-flow/1",
+      ...(overrides.analyzer ?? {}),
+    },
     ...overrides,
+    ...(overrides.analyzer === undefined ? {} : {
+      analyzer: {
+        analyzer_id: "codeql",
+        available: true,
+        evidence_kind: "real_analyzer",
+        version: "CodeQL CLI version 2.26.1",
+        adapter_version: "autovul.codeql-flow/1",
+        ...overrides.analyzer,
+      },
+    }),
   };
 }
 
@@ -186,19 +203,15 @@ describe("research capability architecture", () => {
     await app.close();
   });
 
-  it("rejects a second Capability without creating a run", async () => {
+  it("rejects an unsupported Capability without creating a run", async () => {
     const flow = new ScriptedFlowPort(() => observation());
     const { app, artifacts } = application(flow);
-    const result = await app.research({
+    await expect(app.research({
       action: "validate",
       capability: "missingcheck",
       hypothesis_version: "autovul.flow/1",
       hypothesis: model,
-    });
-    expect(result).toMatchObject({
-      valid: false,
-      issues: [{ code: "FLOW_RESEARCH_CAPABILITY_INVALID", path: "/capability", allowed_values: ["flow"] }],
-    });
+    })).rejects.toThrowError(DomainError);
     expect(artifacts.manifests.size).toBe(0);
     await app.close();
   });
@@ -351,7 +364,7 @@ describe("research capability architecture", () => {
       path: { state: "not_observed", path_count: 0 },
       capability_gaps: [],
       evidence_refs: [],
-      analyzer: { analyzer_id: "codeql", available: true, version: "CodeQL CLI version 2.26.1", adapter_version: "autovul.codeql-flow/1" },
+      analyzer: { analyzer_id: "codeql", available: true, evidence_kind: "real_analyzer", version: "CodeQL CLI version 2.26.1", adapter_version: "autovul.codeql-flow/1" },
       unexpected: true,
     }) as unknown as FlowAnalyzerObservation);
     const { app, artifacts } = application(malformed);

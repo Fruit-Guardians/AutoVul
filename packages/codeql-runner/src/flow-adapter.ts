@@ -45,7 +45,7 @@ export class CodeqlFlowAdapter implements FlowExecutionPort {
         path: { state: "not_run", path_count: 0 },
         capability_gaps: [],
         evidence_refs: ["probes/" + request.model.model_id],
-        analyzer: { analyzer_id: "codeql", available: true, adapter_version: CODEQL_FLOW_ADAPTER_VERSION, ...(probe.codeql_cli_version === undefined ? {} : { version: probe.codeql_cli_version }) },
+        analyzer: { analyzer_id: "codeql", available: true, evidence_kind: "real_analyzer", adapter_version: CODEQL_FLOW_ADAPTER_VERSION, ...(probe.codeql_cli_version === undefined ? {} : { version: probe.codeql_cli_version }) },
       };
     }
     const candidate = {
@@ -59,13 +59,13 @@ export class CodeqlFlowAdapter implements FlowExecutionPort {
       source,
       sink,
       path: toPath(result.vulnerable), ...(request.target.fixed === undefined ? {} : { fixed_path: toPath(result.fixed) }), capability_gaps: [],
-      evidence_refs: ["probes/" + request.model.model_id, "candidates/" + request.model.model_id + "/vulnerable.sarif"], analyzer: { analyzer_id: "codeql", available: true, adapter_version: CODEQL_FLOW_ADAPTER_VERSION, ...(analyzerVersion === undefined ? {} : { version: analyzerVersion }) },
+      evidence_refs: ["probes/" + request.model.model_id, "candidates/" + request.model.model_id + "/vulnerable.sarif"], analyzer: { analyzer_id: "codeql", available: true, evidence_kind: "real_analyzer", adapter_version: CODEQL_FLOW_ADAPTER_VERSION, ...(analyzerVersion === undefined ? {} : { version: analyzerVersion }) },
     };
   }
 }
 
 function unavailableObservation(code: string, path: string): FlowAnalyzerObservation {
-  return { schema_version: "autovul.flow/1", compile_accepted: "not_run", source: { state: "not_run", locations: [] }, sink: { state: "not_run", locations: [] }, path: { state: "not_run", path_count: 0 }, capability_gaps: [{ code, path }], evidence_refs: [], analyzer: { analyzer_id: "codeql", available: true, adapter_version: CODEQL_FLOW_ADAPTER_VERSION } };
+  return { schema_version: "autovul.flow/1", compile_accepted: "not_run", source: { state: "not_run", locations: [] }, sink: { state: "not_run", locations: [] }, path: { state: "not_run", path_count: 0 }, capability_gaps: [{ code, path }], evidence_refs: [], analyzer: { analyzer_id: "codeql", available: true, evidence_kind: "real_analyzer", adapter_version: CODEQL_FLOW_ADAPTER_VERSION } };
 }
 
 function toLocations(locations: readonly { file: string; start_line: number; end_line?: number }[]): FlowLocationRef[] {

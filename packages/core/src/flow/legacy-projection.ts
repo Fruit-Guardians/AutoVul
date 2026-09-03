@@ -36,7 +36,7 @@ export function projectLegacyVerificationToFlow(
     ...(spec.fixed_database === undefined ? {} : { fixed_path: pathObservation(verification.fixed) }),
     capability_gaps: [],
     evidence_refs: [`candidates/${candidate.candidate_id}/verification.json`],
-    analyzer: { analyzer_id: "codeql", available: true, ...(verification.codeql_cli_version === undefined ? {} : { version: verification.codeql_cli_version }) },
+    analyzer: { analyzer_id: "codeql", available: true, evidence_kind: "real_analyzer", ...(verification.codeql_cli_version === undefined ? {} : { version: verification.codeql_cli_version }) },
   };
   const mode = spec.fixed_database === undefined ? "reproduce" : "differential";
   const expectation = {
