@@ -1,13 +1,11 @@
 import {
   asDomainError,
-  CONTRACTS_VERSION,
   DomainError,
   parseSchema,
   QueryDraftReportSchema,
   QueryVerificationSchema,
   RunIdSchema,
   type QueryCandidate,
-  type QueryWorkflowState,
   type QueryDraftReport,
   type QueryVerification,
 } from "@autovul/contracts";
@@ -19,7 +17,8 @@ import { prepareCandidate } from "./candidate-preparation.js";
 import { compactCaseSummary } from "./case-ledger.js";
 import { assertCandidateSemanticKinds, assertCandidateSemanticLocations } from "./endpoint-policy.js";
 import type { CodeqlWorkflowContext } from "./context.js";
-import { boundedOperationOptions, isTerminalWorkflowStatus } from "./status.js";
+import { boundedOperationOptions } from "./status.js";
+import { isTerminalRunStatus } from "../state.js";
 import { evaluateVerification } from "./verification-policy.js";
 import { projectLegacyVerificationToFlow } from "../flow/legacy-projection.js";
 
@@ -69,7 +68,7 @@ export async function verifyQuery(
       }
 
       const run = await context.repository.getRun(runId);
-      if (isTerminalWorkflowStatus(run.status)) {
+      if (isTerminalRunStatus(run.status)) {
         throw new DomainError("INVALID_STATE_TRANSITION", "state", `Cannot verify a candidate in ${run.status} run`, false, { runId, status: run.status });
       }
       if (run.status === "checkpointed" || run.status === "created") await context.repository.startRun(runId, "query_verify");

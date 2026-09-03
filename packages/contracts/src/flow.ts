@@ -10,11 +10,9 @@ import {
   OperationStatusSchema,
   ResearchActionSchema,
   TargetRefSchema,
-  type TargetRef,
 } from "./research.js";
 import { RunIdSchema, VerificationLevelSchema } from "./schemas.js";
 
-export { FLOW_HYPOTHESIS_VERSION } from "./research.js";
 export const FLOW_DECISION_POLICY_VERSION = "autovul.flow.decision/1" as const;
 
 export const FlowRevisionHintActionSchema = Type.Union([
@@ -27,21 +25,21 @@ export const FlowRevisionHintActionSchema = Type.Union([
 ]);
 export type FlowRevisionHintAction = Static<typeof FlowRevisionHintActionSchema>;
 
-export const FlowOutcomeSchema = Type.Union([
+const FlowOutcomeSchema = Type.Union([
   Type.Literal("connected"),
   Type.Literal("no_path"),
   Type.Literal("unknown"),
 ]);
 export type FlowOutcome = Static<typeof FlowOutcomeSchema>;
 
-export const ObservationRunStateSchema = Type.Union([
+const ObservationRunStateSchema = Type.Union([
   Type.Literal("observed"),
   Type.Literal("not_found"),
   Type.Literal("not_run"),
 ]);
 export type ObservationRunState = Static<typeof ObservationRunStateSchema>;
 
-export const PathObservationStateSchema = Type.Union([
+const PathObservationStateSchema = Type.Union([
   Type.Literal("observed"),
   Type.Literal("not_observed"),
   Type.Literal("not_run"),
@@ -127,9 +125,6 @@ export const FlowValidationResultSchema = Type.Object(
 );
 export type FlowValidationResult = Static<typeof FlowValidationResultSchema>;
 
-export { TargetRefSchema } from "./research.js";
-export type { TargetRef } from "./research.js";
-
 const PathCountExpectationSchema = Type.Object(
   {
     min_paths: Type.Integer({ minimum: 0, maximum: 10_000 }),
@@ -153,7 +148,7 @@ export const FlowExpectationSchema = Type.Object(
 );
 export type FlowExpectation = Static<typeof FlowExpectationSchema>;
 
-export const FlowLocationRefSchema = Type.Object(
+const FlowLocationRefSchema = Type.Object(
   {
     file: Type.String({ minLength: 1 }),
     start_line: Type.Integer({ minimum: 1 }),
@@ -163,7 +158,7 @@ export const FlowLocationRefSchema = Type.Object(
 );
 export type FlowLocationRef = Static<typeof FlowLocationRefSchema>;
 
-export const EndpointObservationSchema = Type.Object(
+const EndpointObservationSchema = Type.Object(
   {
     state: ObservationRunStateSchema,
     locations: Type.Array(FlowLocationRefSchema, { maxItems: 16 }),
@@ -172,7 +167,7 @@ export const EndpointObservationSchema = Type.Object(
 );
 export type EndpointObservation = Static<typeof EndpointObservationSchema>;
 
-export const PathObservationSchema = Type.Object(
+const PathObservationSchema = Type.Object(
   {
     state: PathObservationStateSchema,
     path_count: Type.Integer({ minimum: 0, maximum: 10_000 }),
@@ -181,7 +176,7 @@ export const PathObservationSchema = Type.Object(
 );
 export type PathObservation = Static<typeof PathObservationSchema>;
 
-export const FlowCapabilityGapSchema = Type.Object(
+const FlowCapabilityGapSchema = Type.Object(
   {
     code: Type.String({ minLength: 1 }),
     path: Type.String({ minLength: 1 }),
@@ -190,7 +185,7 @@ export const FlowCapabilityGapSchema = Type.Object(
 );
 export type FlowCapabilityGap = Static<typeof FlowCapabilityGapSchema>;
 
-export const FlowAnalyzerProvenanceSchema = Type.Object(
+const FlowAnalyzerProvenanceSchema = Type.Object(
   {
     analyzer_id: Type.Literal("codeql"),
     available: Type.Boolean(),
@@ -201,7 +196,7 @@ export const FlowAnalyzerProvenanceSchema = Type.Object(
 );
 export type FlowAnalyzerProvenance = Static<typeof FlowAnalyzerProvenanceSchema>;
 
-export const CompileAcceptanceSchema = Type.Union([Type.Boolean(), Type.Literal("not_run")]);
+const CompileAcceptanceSchema = Type.Union([Type.Boolean(), Type.Literal("not_run")]);
 export type CompileAcceptance = Static<typeof CompileAcceptanceSchema>;
 
 export const FlowAnalyzerObservationSchema = Type.Object(

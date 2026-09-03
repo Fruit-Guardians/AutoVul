@@ -28,7 +28,7 @@ import type {
 
 import { NodeFileSystemPort } from "./node-filesystem.js";
 import { NodeProcessPort } from "./node-process.js";
-import { sanitizeOutput } from "./output.js";
+import { codeqlProcessFailure, firstSanitizedLine, processSucceeded } from "./process-result.js";
 
 const MAX_OUTPUT = 256 * 1024;
 export const CODEQL_TYPESTATE_ADAPTER_VERSION = "autovul.codeql-typestate/1";
@@ -76,15 +76,15 @@ export class CodeqlTypestateAdapter implements TypestateExecutionPort, Typestate
     await this.filesystem.writeTextAtomic(join(root, "qlpack.yml"), "name: autovul/typestate\nversion: 0.0.0\ndependencies:\n  codeql/javascript-all: \"*\"\n");
 
     const version = await this.run(["version"], root, options);
-    if (!successful(version)) throw processFailure(version, "version");
-    const cliVersion = firstLine(version.stdout || version.stderr);
+    if (!processSucceeded(version)) throw codeqlProcessFailure(version, "version", "Typestate");
+    const cliVersion = firstSanitizedLine(version.stdout || version.stderr);
     if (cliVersion === undefined) {
       throw new DomainError("CODEQL_RESOLVE_FAILED", "environment", "Typestate CodeQL CLI returned no version", false);
     }
 
     for (const queryName of ["observations", "violation", "safe"] as const) {
       const compile = await this.run(["query", "compile", "--check-only", "--format=json", join(root, `${queryName}.ql`), "--threads=1"], root, options);
-      if (!successful(compile)) throw processFailure(compile, `${queryName}:compile`);
+      if (!processSucceeded(compile)) throw codeqlProcessFailure(compile, `${queryName}:compile`, "Typestate");
     }
 
     const vulnerable = await this.observeSide(root, evidenceNamespace, request.hypothesis, request.target.vulnerable.path, "vulnerable", plan, request.mode === "probe" ? false : true, options);
@@ -176,7 +176,7 @@ export class CodeqlTypestateAdapter implements TypestateExecutionPort, Typestate
     const output = join(root, side, `${queryName}.sarif`);
     await this.filesystem.ensureDirectory(join(root, side));
     const result = await this.run(["database", "analyze", database, join(root, `${queryName}.ql`), "--rerun", "--format=sarif-latest", `--output=${output}`, "--threads=1"], root, options);
-    if (!successful(result)) throw processFailure(result, `${side}:${queryName}`);
+    if (!processSucceeded(result)) throw codeqlProcessFailure(result, `${side}:${queryName}`, "Typestate");
     try {
       return { results: readSarifResults(JSON.parse(await this.filesystem.readText(output)) as unknown), evidenceRef };
     } catch (error: unknown) {
@@ -354,30 +354,14 @@ function selectorPredicate(name: string, selector: TypestateEventSelector): stri
 }
 
 function receiverExpression(base: string, receiver: string): string {
-  const parts = receiver.split(".");
-  let expression = `${base}.getBase()`;
-  for (let index = parts.length - 1; index >= 0; index -= 1) {
-    const part = parts[index];
-    if (part === undefined) continue;
-    if (index === 0) expression += `.(VarAccess).getName() = ${qlString(part)}`;
-    else expression += `.(PropAccess).getPropertyName() = ${qlString(part)} and ${base}.getBase()`;
-  }
-  if (parts.length <= 1) return expression;
-  const clauses: string[] = [];
-  let current = `${base}.getBase()`;
-  for (let index = parts.length - 1; index >= 0; index -= 1) {
-    const part = parts[index];
-    if (part === undefined) continue;
-    if (index === 0) clauses.push(`${current}.(VarAccess).getName() = ${qlString(part)}`);
-    else {
-      clauses.push(`${current}.(PropAccess).getPropertyName() = ${qlString(part)}`);
-      current += ".(PropAccess).getBase()";
-    }
-  }
-  return clauses.join(" and ");
+  return receiverChain(`${base}.getBase()`, receiver);
 }
 
 function receiverValueExpression(base: string, receiver: string): string {
+  return receiverChain(base, receiver);
+}
+
+function receiverChain(base: string, receiver: string): string {
   const parts = receiver.split(".");
   const clauses: string[] = [];
   let current = base;
@@ -503,13 +487,4 @@ function toLocation(value: unknown): TypestateLocationRef[] {
   const endLine = (region as Record<string, unknown>).endLine;
   if (typeof file !== "string" || file.length === 0 || typeof startLine !== "number" || !Number.isInteger(startLine) || startLine < 1) return [];
   return [{ file, start_line: startLine, ...(typeof endLine === "number" && Number.isInteger(endLine) && endLine >= startLine ? { end_line: endLine } : {}) }];
-}
-
-function successful(result: ProcessResult): boolean { return result.exitCode === 0 && result.signal === null && !result.cancelled && !result.timedOut; }
-function firstLine(value: string): string | undefined { const line = sanitizeOutput(value).split(/\r?\n/)[0]?.trim(); return line === "" || line === undefined ? undefined : line; }
-function processFailure(result: ProcessResult, stage: string): DomainError {
-  if (result.cancelled) return new DomainError("PROCESS_CANCELLED", "process", `Typestate CodeQL ${stage} was cancelled`, false);
-  if (result.timedOut) return new DomainError("PROCESS_TIMEOUT", "process", `Typestate CodeQL ${stage} timed out`, true);
-  if (/not found|enoent/i.test(`${result.stderr}\n${result.stdout}`)) return new DomainError("CODEQL_CLI_NOT_FOUND", "environment", "CodeQL CLI was not found", false);
-  return new DomainError("PROCESS_CRASHED", "process", `Typestate CodeQL ${stage} failed`, true);
 }

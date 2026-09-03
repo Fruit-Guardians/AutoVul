@@ -151,7 +151,7 @@ export function evaluateVerification(
   });
 }
 
-export function notRunFixedObservation(): ExecutionResult["fixed"] {
+function notRunFixedObservation(): ExecutionResult["fixed"] {
   return {
     database: "fixed",
     status: "not_run",

@@ -22,7 +22,6 @@ import {
   withTimeout,
 } from "../process-lifecycle.js";
 import {
-  CompletionRequest,
   ConfigurationRequest,
   DidChangeConfigurationNotification,
   DidChangeTextDocumentNotification,
@@ -39,19 +38,12 @@ import {
   WorkspaceFoldersRequest,
   WorkDoneProgressCreateRequest,
   type ConfigurationParams,
-  type Diagnostic,
   type InitializeParams,
   type InitializeResult,
   type PublishDiagnosticsParams,
   type WorkspaceFolder,
 } from "vscode-languageserver-protocol";
-import {
-  readL0Document,
-  severityName,
-  summarizeCapabilities,
-  summarizeHover,
-  toDiagnosticObservation,
-} from "./protocol-helpers.js";
+import { summarizeCapabilities, toDiagnosticObservation } from "./protocol-helpers.js";
 import { requestCompletion, requestDefinition, requestHover } from "./protocol-requests.js";
 import type {
   CodeqlLspProtocolSpikeOptions,
@@ -61,8 +53,6 @@ import type {
   L0DocumentObservation,
   L0ProtocolDocument,
   L0ProtocolSnapshot,
-  L0RequestObservation,
-  L0SymbolLocation,
   L0TimelineEvent,
   L0VisibleFilesMode,
   L0WorkspaceFolder,

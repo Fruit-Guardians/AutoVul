@@ -7,12 +7,6 @@ import {
   QueryPackManifestSchema,
   VulnerabilitySpecSchema,
   stableDigest,
-  type DatabaseResult,
-  type DoctorResult,
-  type QueryPackManifest,
-  type QueryVerification,
-  type QueryWorkflowStatus,
-  type RunManifest,
 } from "@autovul/contracts";
 import { createLocalApplication, readAutovulEnv, type LocalApplicationOptions } from "@autovul/codeql-runner";
 import type { ApplicationApi } from "@autovul/core";

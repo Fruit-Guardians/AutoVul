@@ -3,7 +3,6 @@ import {
   parseSchema,
   QueryCandidateInputSchema,
   QueryCandidateSchema,
-  TaintQueryCandidateSchema,
   type QueryCandidate,
   type QueryCandidateInput,
   type VulnerabilitySpec,

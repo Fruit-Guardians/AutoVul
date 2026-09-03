@@ -26,3 +26,10 @@ export function assertTransition(from: RunStatus, to: RunStatus): void {
 export function phaseOrDefault(phase: RunPhase | undefined): RunPhase {
   return phase ?? "doctor";
 }
+
+export function isTerminalRunStatus(status: string): boolean {
+  return status === "completed"
+    || status === "failed"
+    || status === "cancelled"
+    || status === "budget_exhausted";
+}

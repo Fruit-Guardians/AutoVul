@@ -1,5 +1,4 @@
 import type {
-  Diagnostic,
   FileChangeType,
   InitializeResult,
   Position,
@@ -158,5 +157,3 @@ export interface L0DiagnosticWaiter {
   quietTimer?: NodeJS.Timeout;
   latestEvent?: L0DiagnosticEvent;
 }
-
-export type L0Diagnostic = Diagnostic;

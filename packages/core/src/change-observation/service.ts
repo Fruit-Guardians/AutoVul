@@ -23,6 +23,8 @@ import { readResearchOperationRoute, serializeResearchOperationRoute } from "../
 import { RunCancellationService } from "../run-cancellation.js";
 import { RunStatusService } from "../status-service.js";
 import type { ArtifactStorePort, CodeqlOperationOptions } from "../ports.js";
+import { canonicalJson } from "../canonical-json.js";
+import { isTerminalRunStatus } from "../state.js";
 import {
   normalizeChangeObservation,
   resolveChangeObservationInput,
@@ -36,7 +38,7 @@ const COMMIT_TARGET = "research";
 const EXECUTION_PHASE = "change_observation_execute" as const;
 
 export function changeObservationRunIdForInput(input: ResolvedChangeObservationInput): RunId {
-  return `run_${stableDigest(canonical({
+  return `run_${stableDigest(canonicalJson({
     service: CHANGE_OBSERVATION_SERVICE,
     service_version: CHANGE_OBSERVATION_SERVICE_VERSION,
     repository: input.input.repository,
@@ -75,7 +77,7 @@ export class ChangeObservationResearchService {
     const resolved = resolveChangeObservationInput(request.input);
     const runId = changeObservationRunIdForInput(resolved);
     const existing = await this.artifacts.findManifest(runId);
-    if (existing !== undefined && terminal(existing.status)) {
+    if (existing !== undefined && isTerminalRunStatus(existing.status)) {
       await this.assertIdempotency(runId, resolved);
       const committed = await this.readCommitted(runId);
       if (committed !== undefined) return committed;
@@ -87,7 +89,7 @@ export class ChangeObservationResearchService {
       const committed = await this.readCommitted(run.runId);
       if (committed !== undefined) return committed;
       const current = await this.status.get(run.runId);
-      if (terminal(current.status)) return terminalResult(run.runId, current.status);
+      if (isTerminalRunStatus(current.status)) return terminalResult(run.runId, current.status);
       if (current.status === "created") await this.status.start(run.runId, EXECUTION_PHASE);
       const operation = this.cancellations.begin(run.runId, options.signal);
       try {
@@ -177,7 +179,7 @@ export class ChangeObservationResearchService {
     const artifact = raw === undefined ? undefined : readChangeObservationRunArtifact(raw);
     if (artifact === undefined) return;
     const recorded = resolveChangeObservationInput(artifact.input);
-    if (canonical(idempotencyIdentity(resolved)) !== canonical(idempotencyIdentity(recorded))) {
+    if (canonicalJson(idempotencyIdentity(resolved)) !== canonicalJson(idempotencyIdentity(recorded))) {
       throw new DomainError("IDEMPOTENCY_KEY_CONFLICT", "state", "Change Observation run identity is already bound to another request", false, { runId });
     }
   }
@@ -185,7 +187,7 @@ export class ChangeObservationResearchService {
   private async markCancelled(runId: RunId, error: DomainError): Promise<void> {
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const current = await this.status.get(runId);
-      if (terminal(current.status)) return;
+      if (isTerminalRunStatus(current.status)) return;
       try {
         await this.status.cancel(runId, error.toRecord());
         return;
@@ -236,10 +238,6 @@ function idempotencyIdentity(resolved: ResolvedChangeObservationInput): unknown 
   };
 }
 
-function terminal(status: string): boolean {
-  return status === "completed" || status === "failed" || status === "cancelled" || status === "budget_exhausted";
-}
-
 function terminalResult(runId: RunId, status: string): ChangeObservationExecutionResult {
   if (status === "cancelled") return compactResult(runId, "cancelled", [{ code: "CHANGE_OBSERVATION_CANCELLED", retryable: false }]);
   return compactResult(runId, "failed", [{ code: "CHANGE_OBSERVATION_GIT_FAILED", retryable: false }]);
@@ -274,13 +272,4 @@ function classifyFailure(error: unknown, signal: AbortSignal | undefined): {
     return { error: domain, operationStatus: "failed", diagnostic: { code: "CHANGE_OBSERVATION_TIMEOUT", retryable: true } };
   }
   return { error: domain, operationStatus: "failed", diagnostic: { code: "CHANGE_OBSERVATION_GIT_FAILED", retryable: domain.retryable } };
-}
-
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  if (value !== null && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonical(record[key])}`).join(",")}}`;
-  }
-  return JSON.stringify(value);
 }

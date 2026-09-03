@@ -12,7 +12,6 @@ import type {
   Position,
 } from "vscode-languageserver-protocol";
 
-import { errorMessage } from "../process-lifecycle.js";
 import type {
   L0DiagnosticEvent,
   L0DiagnosticObservation,
@@ -54,7 +53,7 @@ export function toDiagnosticObservation(event: L0DiagnosticEvent): L0DiagnosticO
   };
 }
 
-export function severityName(diagnostic: Diagnostic): string {
+function severityName(diagnostic: Diagnostic): string {
   switch (diagnostic.severity) {
     case 1: return "error";
     case 2: return "warning";
@@ -111,5 +110,3 @@ export async function readL0Document(path: string, language: string, invalidText
   const text = await readFile(path, "utf8");
   return { language, uri: l0UriForPath(path), text, invalidText, definitionToken, completionToken };
 }
-
-export { errorMessage };

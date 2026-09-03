@@ -17,6 +17,7 @@ import {
 import type { ArtifactStorePort, CodeqlOperationOptions } from "../ports.js";
 import { RunCancellationService } from "../run-cancellation.js";
 import { RunStatusService } from "../status-service.js";
+import { canonicalJson } from "../canonical-json.js";
 import { normalizeChangeObservation, resolveChangeObservationInput, toChangeObservationPortRequest } from "./normalize.js";
 import type { ChangeObservationPort } from "./port.js";
 import { CHANGE_OBSERVATION_RESULT_ARTIFACT, readChangeObservationRunArtifact } from "./service.js";
@@ -111,7 +112,7 @@ function validRoute(route: AnalyzerServiceResearchOperationRoute): boolean {
 }
 
 function compareObservations(recorded: ChangeObservation, replayed: ChangeObservation): ChangeObservationReplayComparison {
-  if (canonical(recorded.revision_identity) !== canonical(replayed.revision_identity)) {
+  if (canonicalJson(recorded.revision_identity) !== canonicalJson(replayed.revision_identity)) {
     return comparison("revision_identity_difference", [], recorded, replayed);
   }
   if (recorded.request_fingerprint !== replayed.request_fingerprint) {
@@ -123,7 +124,7 @@ function compareObservations(recorded: ChangeObservation, replayed: ChangeObserv
   if (recorded.observation_fingerprint !== replayed.observation_fingerprint) {
     return comparison("semantic_mismatch", [], recorded, replayed);
   }
-  if (canonical(semanticObservation(recorded)) !== canonical(semanticObservation(replayed))) {
+  if (canonicalJson(semanticObservation(recorded)) !== canonicalJson(semanticObservation(replayed))) {
     return comparison("semantic_mismatch", [], recorded, replayed);
   }
   return comparison("match", [], recorded, replayed);
@@ -134,7 +135,7 @@ function sameVersion(left: ChangeObservation, right: ChangeObservation): boolean
     && left.provenance.service_version === right.provenance.service_version
     && left.provenance.git_version === right.provenance.git_version
     && left.provenance.command_profile_version === right.provenance.command_profile_version
-    && canonical(left.provenance.parser_versions) === canonical(right.provenance.parser_versions);
+    && canonicalJson(left.provenance.parser_versions) === canonicalJson(right.provenance.parser_versions);
 }
 
 /** Normalizes only Change Observation repository-relative paths, never a generic protocol. */
@@ -210,13 +211,4 @@ function assertNotCancelled(signal: AbortSignal | undefined, runId: RunId): void
 
 function digest(value: string): string {
   return sha256Utf8(value);
-}
-
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  if (value !== null && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonical(record[key])}`).join(",")}}`;
-  }
-  return JSON.stringify(value);
 }

@@ -22,6 +22,7 @@ import {
 import type { ArtifactStorePort, CodeqlOperationOptions, CodeqlPort } from "../ports.js";
 import { RunCancellationService } from "../run-cancellation.js";
 import { RunStatusService } from "../status-service.js";
+import { canonicalJson } from "../canonical-json.js";
 import { decideTypestate } from "./decision.js";
 import type { TypestateEvidenceDigest, TypestateEvidenceSnapshotPort, TypestateExecutionPort } from "./port.js";
 import { TYPESTATE_RESULT_ARTIFACT, readTypestateRunArtifact } from "./service.js";
@@ -142,7 +143,7 @@ export class TypestateReplayService {
     }
 
     const projection = decideTypestate(replayObservation, artifact.mode, artifact.hypothesis);
-    if (canonical(projection.decision) !== canonical(artifact.decision) || projection.verificationLevel !== artifact.verification_level) {
+    if (canonicalJson(projection.decision) !== canonicalJson(artifact.decision) || projection.verificationLevel !== artifact.verification_level) {
       return comparison(
         "semantic_mismatch",
         artifact.decision,
@@ -255,7 +256,7 @@ function assertNotCancelled(signal: AbortSignal | undefined, runId: RunId): void
 }
 
 function sameEvidenceDigest(before: readonly TypestateEvidenceDigest[], after: readonly TypestateEvidenceDigest[]): boolean {
-  return canonical(normalizeEvidenceDigest(before)) === canonical(normalizeEvidenceDigest(after));
+  return canonicalJson(normalizeEvidenceDigest(before)) === canonicalJson(normalizeEvidenceDigest(after));
 }
 
 function normalizeEvidenceDigest(digests: readonly TypestateEvidenceDigest[]): readonly TypestateEvidenceDigest[] {
@@ -266,7 +267,7 @@ function normalizeEvidenceDigest(digests: readonly TypestateEvidenceDigest[]): r
 
 /** Full v1 observation comparison. Arrays retain analyzer order, especially traces. */
 function sameTypestateObservation(recorded: TypestateAnalyzerObservation, replayed: TypestateAnalyzerObservation): boolean {
-  return canonical(typestateObservationSemantics(recorded)) === canonical(typestateObservationSemantics(replayed));
+  return canonicalJson(typestateObservationSemantics(recorded)) === canonicalJson(typestateObservationSemantics(replayed));
 }
 
 function typestateObservationSemantics(observation: TypestateAnalyzerObservation): unknown {
@@ -289,13 +290,4 @@ function typestateObservationSemantics(observation: TypestateAnalyzerObservation
 function normalizeEvidencePath(value: string): string {
   const normalized = value.replaceAll("\\", "/").replace(/^\.\//, "");
   return normalized.startsWith("typestate-replay/") ? `typestate/${normalized.slice("typestate-replay/".length)}` : normalized;
-}
-
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  if (value !== null && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonical(record[key])}`).join(",")}}`;
-  }
-  return JSON.stringify(value);
 }

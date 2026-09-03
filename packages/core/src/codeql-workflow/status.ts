@@ -7,7 +7,6 @@ import {
 } from "@autovul/contracts";
 
 import type { CodeqlOperationOptions } from "../ports.js";
-import { compactCaseSummary } from "./case-ledger.js";
 import type { CodeqlWorkflowContext } from "./context.js";
 
 export async function readWorkflowStatus(context: CodeqlWorkflowContext, input: unknown): Promise<QueryWorkflowStatus> {
@@ -44,9 +43,3 @@ export function boundedOperationOptions(options: CodeqlOperationOptions, timeout
     ...(options.signal === undefined ? {} : { signal: options.signal }),
   };
 }
-
-export function isTerminalWorkflowStatus(status: string): boolean {
-  return status === "completed" || status === "failed" || status === "cancelled" || status === "budget_exhausted";
-}
-
-export { compactCaseSummary };

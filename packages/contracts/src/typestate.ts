@@ -11,7 +11,6 @@ import {
 } from "./research.js";
 import { RunIdSchema, VerificationLevelSchema } from "./schemas.js";
 
-export { TYPESTATE_HYPOTHESIS_VERSION } from "./research.js";
 export const TYPESTATE_DECISION_POLICY_VERSION = "autovul.typestate.decision/1" as const;
 
 /** Narrow v1 bounds. These are protocol limits, not shared-runtime budgets. */

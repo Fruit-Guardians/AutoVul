@@ -151,6 +151,7 @@ export {
   EvidenceOperationModeSchema,
   FLOW_HYPOTHESIS_VERSION,
   MISSING_CHECK_HYPOTHESIS_VERSION,
+  TYPESTATE_HYPOTHESIS_VERSION,
   OperationBudgetSchema,
   OperationStatusSchema,
   ResearchActionSchema,
@@ -329,7 +330,6 @@ export type {
   MissingCheckRunArtifact,
 } from "./missing-check.js";
 export {
-  TYPESTATE_HYPOTHESIS_VERSION,
   TYPESTATE_DECISION_POLICY_VERSION,
   TYPESTATE_LIMITS,
   TYPESTATE_COMPLETENESS_LIMITATION_VALUES,

@@ -11,7 +11,6 @@ import {
 } from "./research.js";
 import { RunIdSchema, VerificationLevelSchema } from "./schemas.js";
 
-export { MISSING_CHECK_HYPOTHESIS_VERSION } from "./research.js";
 export const MISSING_CHECK_DECISION_POLICY_VERSION = "autovul.missing-check.decision/1" as const;
 
 export const MissingCheckSelectorSchema = Type.Object(
@@ -85,7 +84,7 @@ export const MissingCheckLocationRefSchema = Type.Object(
 );
 export type MissingCheckLocationRef = Static<typeof MissingCheckLocationRefSchema>;
 
-export const MissingCheckObservationStateSchema = Type.Union([
+const MissingCheckObservationStateSchema = Type.Union([
   Type.Literal("observed"), Type.Literal("not_found"), Type.Literal("not_run"),
 ]);
 export type MissingCheckObservationState = Static<typeof MissingCheckObservationStateSchema>;
@@ -99,7 +98,7 @@ export const MissingCheckSubjectObservationSchema = Type.Object(
 );
 export type MissingCheckSubjectObservation = Static<typeof MissingCheckSubjectObservationSchema>;
 
-export const MissingCheckRelationStateSchema = Type.Union([
+const MissingCheckRelationStateSchema = Type.Union([
   Type.Literal("unchecked_witness"),
   Type.Literal("checked_witness"),
   Type.Literal("inconclusive"),
@@ -107,7 +106,7 @@ export const MissingCheckRelationStateSchema = Type.Union([
 ]);
 export type MissingCheckRelationState = Static<typeof MissingCheckRelationStateSchema>;
 
-export const MissingCheckWitnessSchema = Type.Object(
+const MissingCheckWitnessSchema = Type.Object(
   {
     operation: MissingCheckLocationRefSchema,
     check: Type.Optional(MissingCheckLocationRefSchema),
@@ -127,13 +126,13 @@ export const MissingCheckRelationObservationSchema = Type.Object(
 );
 export type MissingCheckRelationObservation = Static<typeof MissingCheckRelationObservationSchema>;
 
-export const MissingCheckCapabilityGapSchema = Type.Object(
+const MissingCheckCapabilityGapSchema = Type.Object(
   { code: Type.String({ minLength: 1 }), path: Type.String({ minLength: 1 }) },
   { additionalProperties: false },
 );
 export type MissingCheckCapabilityGap = Static<typeof MissingCheckCapabilityGapSchema>;
 
-export const MissingCheckAnalyzerProvenanceSchema = Type.Object(
+const MissingCheckAnalyzerProvenanceSchema = Type.Object(
   {
     analyzer_id: Type.Literal("codeql"),
     available: Type.Boolean(),
@@ -188,7 +187,7 @@ export const MissingCheckAnalyzerObservationSchema = Type.Object(
 );
 export type MissingCheckAnalyzerObservation = Static<typeof MissingCheckAnalyzerObservationSchema>;
 
-export const MissingCheckOutcomeSchema = Type.Union([
+const MissingCheckOutcomeSchema = Type.Union([
   Type.Literal("check_missing"), Type.Literal("check_present"), Type.Literal("unknown"),
 ]);
 export type MissingCheckOutcome = Static<typeof MissingCheckOutcomeSchema>;
@@ -204,7 +203,7 @@ export const MissingCheckDecisionSchema = Type.Object(
 );
 export type MissingCheckDecision = Static<typeof MissingCheckDecisionSchema>;
 
-export const MissingCheckRevisionHintActionSchema = Type.Union([
+const MissingCheckRevisionHintActionSchema = Type.Union([
   Type.Literal("revise_operation"), Type.Literal("revise_check"),
   Type.Literal("revise_relation"), Type.Literal("revise_scope"),
 ]);

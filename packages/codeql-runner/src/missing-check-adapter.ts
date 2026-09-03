@@ -4,8 +4,8 @@ import { DomainError, type MissingCheckAnalyzerObservation, type MissingCheckLoc
 import type { CodeqlOperationOptions, MissingCheckExecutionPort, MissingCheckExecutionRequest, ProcessPort, ProcessResult, FileSystemPort } from "@autovul/core";
 import { NodeFileSystemPort } from "./node-filesystem.js";
 import { NodeProcessPort } from "./node-process.js";
-import { sanitizeOutput } from "./output.js";
-import { summarizeSarif } from "./query-runner.js";
+import { codeqlProcessFailure, firstSanitizedLine, processSucceeded } from "./process-result.js";
+import { summarizeSarif } from "./query-sarif.js";
 
 const MAX_OUTPUT = 256 * 1024;
 const ADAPTER_VERSION = "autovul.codeql-missing-check/1";
@@ -45,15 +45,15 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
     await this.filesystem.writeTextAtomic(join(root, "checks.ql"), query.checks);
     await this.filesystem.writeTextAtomic(join(root, "qlpack.yml"), "name: autovul/missing-check\nversion: 0.0.0\ndependencies:\n  codeql/javascript-all: \"*\"\n");
     const version = await this.run(["version"], root, options);
-    if (!successful(version)) {
-      const failure = processFailure(version, "version");
+    if (!processSucceeded(version)) {
+      const failure = codeqlProcessFailure(version, "version", "MissingCheck");
       if (failure.code === "PROCESS_CANCELLED" || failure.code === "PROCESS_TIMEOUT" || failure.code === "CODEQL_CLI_NOT_FOUND") throw failure;
       throw new DomainError("CODEQL_RESOLVE_FAILED", "environment", "MissingCheck could not resolve the CodeQL CLI version", false);
     }
-    const cliVersion = firstLine(version.stdout || version.stderr);
+    const cliVersion = firstSanitizedLine(version.stdout || version.stderr);
     if (cliVersion === undefined) throw new DomainError("CODEQL_RESOLVE_FAILED", "environment", "MissingCheck CodeQL CLI returned no version", false);
     const compile = await this.run(["query", "compile", "--check-only", "--format=json", join(root, "unchecked.ql"), "--threads=1"], root, options);
-    if (!successful(compile)) throw processFailure(compile, "compile");
+    if (!processSucceeded(compile)) throw codeqlProcessFailure(compile, "compile", "MissingCheck");
     const vulnerable = await this.observeSide(root, request.hypothesis.hypothesis_id, request.target.vulnerable.path, "vulnerable", options);
     const fixed = request.mode === "differential" && request.target.fixed !== undefined
       ? await this.observeSide(root, request.hypothesis.hypothesis_id, request.target.fixed.path, "fixed", options)
@@ -96,7 +96,7 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
     const output = join(root, side, `${kind}.sarif`);
     await this.filesystem.ensureDirectory(join(root, side));
     const result = await this.run(["database", "analyze", database, join(root, `${kind}.ql`), "--rerun", "--format=sarif-latest", `--output=${output}`, "--threads=1"], root, options);
-    if (!successful(result)) throw processFailure(result, `${side}:${kind}`);
+    if (!processSucceeded(result)) throw codeqlProcessFailure(result, `${side}:${kind}`, "MissingCheck");
     try { return { ok: true, locations: summarizeSarif(JSON.parse(await this.filesystem.readText(output)) as unknown).locations.map((location) => ({ file: location.file, start_line: location.start_line, ...(location.end_line === undefined ? {} : { end_line: location.end_line }) })) }; }
     catch (error: unknown) {
       throw new DomainError("ARTIFACT_CORRUPT", "artifact", `MissingCheck CodeQL ${side}:${kind} produced unreadable SARIF`, false, { side, kind, output, reason: error instanceof Error ? error.message : "invalid SARIF" });
@@ -114,16 +114,8 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
 
 interface Analysis { readonly ok: boolean; readonly locations: readonly MissingCheckLocationRef[]; }
 interface Side { readonly operations: MissingCheckAnalyzerObservation["operation"]; readonly checks: MissingCheckAnalyzerObservation["required_check"]; readonly relation: MissingCheckAnalyzerObservation["relation"]; readonly evidenceRefs: readonly string[]; }
-function successful(result: ProcessResult): boolean { return result.exitCode === 0 && result.signal === null && !result.cancelled && !result.timedOut; }
-function firstLine(value: string): string | undefined { const line = sanitizeOutput(value).split(/\r?\n/)[0]?.trim(); return line === "" || line === undefined ? undefined : line; }
 function subject(result: Analysis): MissingCheckAnalyzerObservation["operation"] { return { state: result.ok ? result.locations.length > 0 ? "observed" : "not_found" : "not_run", locations: result.locations.slice(0, 16) }; }
 function witnesses(result: Analysis, evidenceRef: string): MissingCheckAnalyzerObservation["relation"]["unchecked_witnesses"] { return result.locations.slice(0, 16).map((operation) => ({ operation, evidence_ref: evidenceRef })); }
-function processFailure(result: ProcessResult, stage: string): DomainError {
-  if (result.cancelled) return new DomainError("PROCESS_CANCELLED", "process", `MissingCheck CodeQL ${stage} was cancelled`, false);
-  if (result.timedOut) return new DomainError("PROCESS_TIMEOUT", "process", `MissingCheck CodeQL ${stage} timed out`, true);
-  if (/not found|enoent/i.test(`${result.stderr}\n${result.stdout}`)) return new DomainError("CODEQL_CLI_NOT_FOUND", "environment", "CodeQL CLI was not found", false);
-  return new DomainError("PROCESS_CRASHED", "process", `MissingCheck CodeQL ${stage} failed`, true);
-}
 
 function renderQuery(operation: string, check: string, file: string, entry: string): Record<"unchecked" | "checked" | "operations" | "checks", string> {
   const op = JSON.stringify(operation); const guard = JSON.stringify(check); const sourceFile = JSON.stringify(file); const entryName = JSON.stringify(entry);

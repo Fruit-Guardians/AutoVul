@@ -15,7 +15,6 @@ import {
   type FlowCompactObservation,
   type FlowAnalyzerObservation,
   type FlowDecision,
-  type FlowExpectation,
   type FlowModel,
   type FlowRevisionHint,
   type FlowRunArtifact,
@@ -35,6 +34,9 @@ import type { ArtifactStorePort, CodeqlOperationOptions, CodeqlPort } from "../p
 import { RunStatusService } from "../status-service.js";
 import { RunCancellationService } from "../run-cancellation.js";
 import { readResearchOperationRoute, serializeResearchOperationRoute } from "../research-operation.js";
+import { canonicalJson } from "../canonical-json.js";
+import { validateTargetFingerprint } from "../codeql-target.js";
+import { isTerminalRunStatus } from "../state.js";
 
 /** Flow evidence and the shared route are committed together beneath `research/`. */
 export const FLOW_RESULT_ARTIFACT = "research/flow/result.json";
@@ -159,7 +161,7 @@ export class FlowResearchService {
     }
     const runId = runIdForIdempotencyKey(request.idempotency_key);
     const existing = await this.artifacts.findManifest(runId);
-    if (existing !== undefined && isTerminal(existing.status)) {
+    if (existing !== undefined && isTerminalRunStatus(existing.status)) {
       await this.assertCompatibleIdempotency(runId, request, model, target, mode);
       const committed = await this.readCommitted(runId);
       if (committed !== undefined) return committed;
@@ -172,7 +174,7 @@ export class FlowResearchService {
       const committed = await this.readCommitted(run.runId);
       if (committed !== undefined) return committed;
       const current = await this.status.get(run.runId);
-      if (isTerminal(current.status)) {
+      if (isTerminalRunStatus(current.status)) {
         const committed = await this.readCommitted(run.runId);
         if (committed !== undefined) return committed;
         if (current.status === "cancelled") {
@@ -212,8 +214,8 @@ export class FlowResearchService {
   ): Promise<ResearchExecutionResult> {
     let targetFingerprints: { readonly vulnerable: string; readonly fixed?: string } | undefined;
     try {
-      const vulnerable = await validateAndFingerprint(this.codeql, target.vulnerable, options);
-      const fixed = target.fixed === undefined ? undefined : await validateAndFingerprint(this.codeql, target.fixed, options);
+      const vulnerable = await validateTargetFingerprint(this.codeql, target.vulnerable, options);
+      const fixed = target.fixed === undefined ? undefined : await validateTargetFingerprint(this.codeql, target.fixed, options);
       targetFingerprints = { vulnerable, ...(fixed === undefined ? {} : { fixed }) };
     } catch (error: unknown) {
       const classified = classifyFlowFailure(cancellationOr(error, options.signal, runId), "prerequisite");
@@ -400,22 +402,9 @@ export class FlowResearchService {
   }
 }
 
-function isTerminal(status: string): boolean {
-  return status === "completed" || status === "failed" || status === "cancelled" || status === "budget_exhausted";
-}
-
 function cancellationOr(error: unknown, signal: AbortSignal | undefined, runId: string): unknown {
   if (!signal?.aborted) return error;
   return new DomainError("PROCESS_CANCELLED", "process", `Flow execution for ${runId} was cancelled`, false, { runId });
-}
-
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  if (value !== null && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(record[key])}`).join(",")}}`;
-  }
-  return JSON.stringify(value);
 }
 
 function classifyFlowFailure(error: unknown, stage: "prerequisite" | "execution"): {
@@ -450,19 +439,4 @@ function classifyFlowFailure(error: unknown, stage: "prerequisite" | "execution"
     operationStatus: stage === "prerequisite" ? "blocked" : "failed",
     observationCode: stage === "prerequisite" ? "FLOW_DATABASE_PREREQUISITE_BLOCKED" : "FLOW_EXECUTION_FAILED",
   };
-}
-
-async function validateAndFingerprint(codeql: CodeqlPort, target: TargetRef, options: CodeqlOperationOptions): Promise<string> {
-  const manifest = await codeql.validateDatabase(target.path, options);
-  if (manifest.portableFingerprint === undefined) {
-    throw new DomainError("DATABASE_FINGERPRINT_UNAVAILABLE", "database", `Database fingerprint is unavailable for ${target.path}`, false, { path: target.path });
-  }
-  if (target.expected_fingerprint !== undefined && target.expected_fingerprint !== manifest.portableFingerprint) {
-    throw new DomainError("DATABASE_FINGERPRINT_MISMATCH", "database", `Database fingerprint differs for ${target.path}`, false, {
-      path: target.path,
-      expected: target.expected_fingerprint,
-      observed: manifest.portableFingerprint,
-    });
-  }
-  return manifest.portableFingerprint;
 }

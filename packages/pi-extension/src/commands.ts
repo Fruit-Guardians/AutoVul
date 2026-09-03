@@ -1,7 +1,6 @@
 import type { ExtensionAPI, ExtensionCommandContext } from "@earendil-works/pi-coding-agent";
 import {
   asDomainError,
-  DomainError,
   type DatabaseResult,
   type DoctorResult,
   type RunManifest,

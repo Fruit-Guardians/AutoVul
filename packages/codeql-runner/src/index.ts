@@ -1,7 +1,8 @@
 export { LocalArtifactStore } from "./artifact-store.js";
 export { createLocalApplication, type LocalApplicationOptions } from "./application-factory.js";
 export { CodeqlRunner, type CodeqlRunnerOptions } from "./codeql-runner.js";
-export { CodeqlQueryRunner, type QueryRunnerOptions, summarizeSarif } from "./query-runner.js";
+export { CodeqlQueryRunner, type QueryRunnerOptions } from "./query-runner.js";
+export { summarizeSarif } from "./query-sarif.js";
 export { CodeqlFlowAdapter } from "./flow-adapter.js";
 export { CodeqlMissingCheckAdapter } from "./missing-check-adapter.js";
 export { CodeqlTypestateAdapter, CODEQL_TYPESTATE_ADAPTER_VERSION } from "./typestate-adapter.js";

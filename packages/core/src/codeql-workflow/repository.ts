@@ -20,7 +20,7 @@ import type {
   StagedArtifactBundle,
 } from "../ports.js";
 import { RunStatusService } from "../status-service.js";
-import { caseSummaryFromState, isTerminalRunStatus } from "./case-ledger.js";
+import { caseSummaryFromState } from "./case-ledger.js";
 import {
   parseRecovery,
   RECOVERY_DIRECTORY,
@@ -103,23 +103,20 @@ export class WorkflowRepository {
   }
 
   async load(runId: RunId): Promise<QueryWorkflowState> {
-    const raw = await this.artifacts.readArtifact(runId, STATE_PATH);
-    if (raw === undefined) {
+    const state = await this.tryLoad(runId);
+    if (state === undefined) {
       throw new DomainError("ARTIFACT_NOT_FOUND", "artifact", `Query workflow state for ${runId} was not found`, false, { runId });
     }
-    try {
-      return parseSchema(QueryWorkflowStateSchema, upgradeLegacyState(JSON.parse(raw) as unknown), "query workflow state");
-    } catch (error: unknown) {
-      if (error instanceof DomainError && error.code === "INVALID_INPUT") {
-        throw new DomainError("ARTIFACT_CORRUPT", "artifact", `Query workflow state for ${runId} is invalid`, false, { runId, reason: error.message });
-      }
-      throw error;
-    }
+    return state;
   }
 
   async tryLoad(runId: RunId): Promise<QueryWorkflowState | undefined> {
     const raw = await this.artifacts.readArtifact(runId, STATE_PATH);
     if (raw === undefined) return undefined;
+    return this.parseState(raw, runId);
+  }
+
+  private parseState(raw: string, runId: RunId): QueryWorkflowState {
     try {
       return parseSchema(QueryWorkflowStateSchema, upgradeLegacyState(JSON.parse(raw) as unknown), "query workflow state");
     } catch (error: unknown) {

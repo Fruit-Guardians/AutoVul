@@ -1,7 +1,7 @@
 import { DomainError, type FlowAnalyzerObservation, type FlowLocationRef, type QueryDatabaseObservation, type VulnerabilitySpec } from "@autovul/contracts";
 import { projectFlowToTaintIntent, renderTaintQuery, type CodeqlOperationOptions, type FlowExecutionPort, type FlowExecutionRequest, type QueryExecutionPort, type QueryProbeExecutionPort } from "@autovul/core";
 
-export const CODEQL_FLOW_ADAPTER_VERSION = "autovul.codeql-flow/1";
+const CODEQL_FLOW_ADAPTER_VERSION = "autovul.codeql-flow/1";
 
 /** CodeQL implementation of the single Flow v1 execution port. */
 export class CodeqlFlowAdapter implements FlowExecutionPort {

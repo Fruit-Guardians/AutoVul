@@ -11,7 +11,8 @@ import {
 
 import type { CodeqlOperationOptions } from "../ports.js";
 import { databaseRefWithManifest, assertDatabaseLanguage, assertStrictSemanticLocations, assertSupportedSemanticKinds } from "./endpoint-policy.js";
-import { caseFingerprintFor, emptyCaseSummary, isTerminalRunStatus } from "./case-ledger.js";
+import { caseFingerprintFor, emptyCaseSummary } from "./case-ledger.js";
+import { isTerminalRunStatus } from "../state.js";
 import type { CodeqlWorkflowContext } from "./context.js";
 
 export async function startWorkflow(

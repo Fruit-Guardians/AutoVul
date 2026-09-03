@@ -24,6 +24,10 @@ if (oversized.length > 0) throw new Error(`Oversized hand-written production fil
 
 await assertAtMost("packages/core/src/query-workflow.ts", 400);
 await assertAtMost("packages/pi-extension/src/index.ts", 150);
+await assertAtMost("packages/codeql-runner/src/query-runner.ts", 600);
+await assertAtMost("packages/codeql-runner/src/query-sarif.ts", 250);
+await assertAtMost("packages/codeql-runner/src/change-observation-git-adapter.ts", 500);
+await assertAtMost("packages/codeql-runner/src/change-observation-parser.ts", 400);
 const facade = await readFile(join(root, "packages/core/src/query-workflow.ts"), "utf8");
 if (facade.includes("query-workflow-policy")) throw new Error("query-workflow.ts still depends on the removed mixed policy collection");
 const runnerEntry = await readFile(join(root, "packages/codeql-runner/src/index.ts"), "utf8");

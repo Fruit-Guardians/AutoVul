@@ -43,7 +43,7 @@ export function caseFingerprintFor(spec: VulnerabilitySpec): string {
   );
 }
 
-export function databaseIdentity(database: VulnerabilitySpec["vulnerable_database"]): Record<string, string | undefined> {
+function databaseIdentity(database: VulnerabilitySpec["vulnerable_database"]): Record<string, string | undefined> {
   return {
     path: database.canonical_path ?? database.path,
     fingerprint: database.fingerprint,

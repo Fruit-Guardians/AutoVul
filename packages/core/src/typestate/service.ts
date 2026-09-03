@@ -5,7 +5,6 @@ import {
   DomainError,
   TYPESTATE_DECISION_POLICY_VERSION,
   TYPESTATE_HYPOTHESIS_VERSION,
-  TypestateExecutionResultSchema,
   TypestateResearchToolInputSchema,
   TypestateRunArtifactSchema,
   asDomainError,
@@ -35,6 +34,9 @@ import type { ArtifactStorePort, CodeqlOperationOptions, CodeqlPort } from "../p
 import { decideTypestate } from "./decision.js";
 import type { TypestateExecutionPort } from "./port.js";
 import { validateTypestateHypothesis } from "./validate.js";
+import { canonicalJson } from "../canonical-json.js";
+import { validateTargetFingerprint } from "../codeql-target.js";
+import { isTerminalRunStatus } from "../state.js";
 
 export const TYPESTATE_RESULT_ARTIFACT = "research/typestate/result.json";
 const COMMIT_TARGET = "research";
@@ -116,7 +118,7 @@ export class TypestateResearchService {
     const idempotencyKey = request.idempotency_key;
     const runId = typestateRunIdForIdempotencyKey(idempotencyKey);
     const existing = await this.artifacts.findManifest(runId);
-    if (existing !== undefined && isTerminal(existing.status)) {
+    if (existing !== undefined && isTerminalRunStatus(existing.status)) {
       await this.assertIdempotency(runId, request, hypothesis);
       const committed = await this.readCommitted(runId);
       if (committed !== undefined) return committed;
@@ -128,7 +130,7 @@ export class TypestateResearchService {
       const committed = await this.readCommitted(run.runId);
       if (committed !== undefined) return committed;
       const current = await this.status.get(run.runId);
-      if (isTerminal(current.status)) {
+      if (isTerminalRunStatus(current.status)) {
         const recovered = await this.readCommitted(run.runId);
         if (recovered !== undefined) return recovered;
         if (current.status === "cancelled") {
@@ -159,8 +161,8 @@ export class TypestateResearchService {
     let targetFingerprints: { readonly vulnerable: string; readonly fixed?: string } | undefined;
     let observation: TypestateAnalyzerObservation | undefined;
     try {
-      const vulnerable = await validateAndFingerprint(this.codeql, target.vulnerable, options);
-      const fixed = target.fixed === undefined ? undefined : await validateAndFingerprint(this.codeql, target.fixed, options);
+      const vulnerable = await validateTargetFingerprint(this.codeql, target.vulnerable, options);
+      const fixed = target.fixed === undefined ? undefined : await validateTargetFingerprint(this.codeql, target.fixed, options);
       targetFingerprints = { vulnerable, ...(fixed === undefined ? {} : { fixed }) };
       observation = await this.execution.execute(
         { hypothesis, target, analyzer_id: "codeql", mode, runId, artifactRoot },
@@ -310,8 +312,8 @@ export class TypestateResearchService {
     const raw = await this.artifacts.readArtifact(runId, TYPESTATE_RESULT_ARTIFACT);
     const artifact = raw === undefined ? undefined : readTypestateRunArtifact(raw);
     if (artifact === undefined) return;
-    const requested = canonical({ hypothesis, target: request.target, mode: request.mode, budget: request.budget, idempotency_key: request.idempotency_key });
-    const committed = canonical({ hypothesis: artifact.hypothesis, target: artifact.target, mode: artifact.mode, budget: artifact.budget, idempotency_key: artifact.idempotency_key });
+    const requested = canonicalJson({ hypothesis, target: request.target, mode: request.mode, budget: request.budget, idempotency_key: request.idempotency_key });
+    const committed = canonicalJson({ hypothesis: artifact.hypothesis, target: artifact.target, mode: artifact.mode, budget: artifact.budget, idempotency_key: artifact.idempotency_key });
     if (requested !== committed) {
       throw new DomainError("IDEMPOTENCY_KEY_CONFLICT", "state", `Idempotency key is already bound to a different Typestate request: ${runId}`, false, { runId });
     }
@@ -339,10 +341,6 @@ function executionIssues(request: TypestateResearchToolInput): TypestateValidati
   return issues;
 }
 
-function isTerminal(status: string): boolean {
-  return status === "completed" || status === "failed" || status === "cancelled" || status === "budget_exhausted";
-}
-
 function cancellationOr(error: unknown, signal: AbortSignal | undefined, runId: string): unknown {
   return signal?.aborted
     ? new DomainError("PROCESS_CANCELLED", "process", `Typestate execution for ${runId} was cancelled`, false, { runId })
@@ -365,24 +363,4 @@ function classifyTypestateFailure(error: unknown): {
   if (domain.code === "PROCESS_TIMEOUT") return { error, operationStatus: "failed", observationCode: "TSTATE_ANALYZER_TIMEOUT" };
   if (domain.code === "PROCESS_OUTPUT_LIMIT") return { error, operationStatus: "failed", observationCode: "TSTATE_ANALYZER_OUTPUT_LIMIT" };
   return { error, operationStatus: "failed", observationCode: "TSTATE_EXECUTION_FAILED" };
-}
-
-async function validateAndFingerprint(codeql: CodeqlPort, target: TargetRef, options: CodeqlOperationOptions): Promise<string> {
-  const manifest = await codeql.validateDatabase(target.path, options);
-  if (manifest.portableFingerprint === undefined) {
-    throw new DomainError("DATABASE_FINGERPRINT_UNAVAILABLE", "database", `Database fingerprint is unavailable for ${target.path}`, false, { path: target.path });
-  }
-  if (target.expected_fingerprint !== undefined && target.expected_fingerprint !== manifest.portableFingerprint) {
-    throw new DomainError("DATABASE_FINGERPRINT_MISMATCH", "database", `Database fingerprint differs for ${target.path}`, false, { path: target.path, expected: target.expected_fingerprint, observed: manifest.portableFingerprint });
-  }
-  return manifest.portableFingerprint;
-}
-
-function canonical(value: unknown): string {
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  if (value !== null && typeof value === "object") {
-    const record = value as Record<string, unknown>;
-    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonical(record[key])}`).join(",")}}`;
-  }
-  return JSON.stringify(value);
 }

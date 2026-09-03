@@ -2,7 +2,7 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
 import type { PiUiState } from "./types.js";
 
-export const UI_KEY = "autovul";
+const UI_KEY = "autovul";
 
 export function renderUi(ctx: ExtensionContext, state: PiUiState): void {
   if (!ctx.hasUI) return;
@@ -111,7 +111,7 @@ export function formatCommandResult(toolName: string, value: unknown): string {
   return `CodeQL ${toolName} complete`;
 }
 
-export function footerText(state: PiUiState): string {
+function footerText(state: PiUiState): string {
   if (state.status === "ready") return "CodeQL ready";
   if (state.status === "running") return `CodeQL ◐ ${phaseLabel(state.phase)}${state.round === undefined ? "" : ` · round ${state.round}/3`}`;
   const terminal = terminalStatusText(state);
@@ -119,7 +119,7 @@ export function footerText(state: PiUiState): string {
   return resultSummary(state);
 }
 
-export function phaseLabel(phase: string): string {
+function phaseLabel(phase: string): string {
   if (phase === "query_verify") return "verify";
   if (phase.startsWith("workflow_")) return phase.slice("workflow_".length);
   return phase;

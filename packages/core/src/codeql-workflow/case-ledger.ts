@@ -1,60 +1,14 @@
 import {
   CONTRACTS_VERSION,
-  DomainError,
   type CaseRunSummary,
-  type QueryVerification,
   type QueryWorkflowState,
   type RunId,
 } from "@autovul/contracts";
 
-import type { ArtifactStorePort, ClockPort } from "../ports.js";
+import { isTerminalRunStatus } from "../state.js";
 import { caseFingerprintFor } from "./state-migrations.js";
 
 export { caseFingerprintFor };
-
-export class CaseLedger {
-  constructor(
-    private readonly artifacts: ArtifactStorePort,
-    private readonly clock: ClockPort,
-  ) {}
-
-  async summaryFor(state: QueryWorkflowState, run: { runId: RunId; status: string }): Promise<CaseRunSummary> {
-    const existing = await this.artifacts.findCaseSummary(state.case_fingerprint);
-    return caseSummaryFromState(state, run, this.clock.now(), existing, state.pack === undefined ? undefined : "completed", state.pack?.pack_id);
-  }
-
-  async update(
-    state: QueryWorkflowState,
-    run: { runId: RunId; status: string },
-    statusOverride?: CaseRunSummary["status"],
-    packId?: string,
-  ): Promise<CaseRunSummary> {
-    let saved: CaseRunSummary | undefined;
-    await this.artifacts.withCaseLock(state.case_fingerprint, async () => {
-      const existing = await this.artifacts.findCaseSummary(state.case_fingerprint);
-      const summary = caseSummaryFromState(
-        state,
-        run,
-        this.clock.now(),
-        existing,
-        statusOverride,
-        packId,
-      );
-      await this.artifacts.saveCaseSummary(summary);
-      saved = summary;
-    });
-    if (saved === undefined) {
-      throw new DomainError(
-        "ARTIFACT_CORRUPT",
-        "artifact",
-        "Case summary was not saved",
-        false,
-        { caseFingerprint: state.case_fingerprint, runId: run.runId },
-      );
-    }
-    return saved;
-  }
-}
 
 export function emptyCaseSummary(fingerprint: string, runId: RunId, maxCandidates: number, updatedAt: string): CaseRunSummary {
   return {
@@ -121,15 +75,6 @@ export function caseSummaryFromState(
   };
 }
 
-export function isTerminalRunStatus(status: string): boolean {
-  return status === "completed" || status === "failed" || status === "cancelled" || status === "budget_exhausted";
-}
-
 function caseStatusFromRun(status: string): CaseRunSummary["status"] {
-  if (status === "completed" || status === "failed" || status === "cancelled" || status === "budget_exhausted") return status;
-  return "active";
-}
-
-export function verificationForCandidate(state: QueryWorkflowState, candidateId: string): QueryVerification | undefined {
-  return state.verifications.find((item) => item.candidate_id === candidateId);
+  return isTerminalRunStatus(status) ? status as CaseRunSummary["status"] : "active";
 }

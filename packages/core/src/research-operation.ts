@@ -12,7 +12,7 @@ import {
 import type { ArtifactStorePort } from "./ports.js";
 
 /** Shared runtime route; Capability payloads remain in Capability artifacts. */
-export const RESEARCH_OPERATION_ARTIFACT = "research/operation.json";
+const RESEARCH_OPERATION_ARTIFACT = "research/operation.json";
 
 type ResearchOperationRouteWrite =
   | Omit<CapabilityResearchOperationRoute, "schema_version" | "route_kind">
@@ -29,14 +29,6 @@ export function serializeResearchOperationRoute(
     persisted,
     "research operation route",
   ));
-}
-
-export async function writeResearchOperationRoute(
-  artifacts: ArtifactStorePort,
-  runId: RunId,
-  route: ResearchOperationRouteWrite,
-): Promise<void> {
-  await artifacts.writeArtifact(runId, RESEARCH_OPERATION_ARTIFACT, serializeResearchOperationRoute(route));
 }
 
 export async function readResearchOperationRoute(

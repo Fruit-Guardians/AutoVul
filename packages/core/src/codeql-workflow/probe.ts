@@ -10,7 +10,8 @@ import {
 import type { CodeqlOperationOptions } from "../ports.js";
 import { normalizeTaintIntent } from "../language-packs.js";
 import type { CodeqlWorkflowContext } from "./context.js";
-import { boundedOperationOptions, isTerminalWorkflowStatus } from "./status.js";
+import { boundedOperationOptions } from "./status.js";
+import { isTerminalRunStatus } from "../state.js";
 
 export async function probeQuery(
   context: CodeqlWorkflowContext,
@@ -24,7 +25,7 @@ export async function probeQuery(
       const state = await context.repository.load(runId);
       const intent = normalizeTaintIntent(inputIntent, state.spec.language);
       const run = await context.repository.getRun(runId);
-      if (isTerminalWorkflowStatus(run.status)) {
+      if (isTerminalRunStatus(run.status)) {
         throw newDomainStateError(runId, run.status);
       }
       if (run.status === "created" || run.status === "checkpointed") {

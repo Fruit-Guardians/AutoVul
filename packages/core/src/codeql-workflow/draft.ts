@@ -12,7 +12,8 @@ import { qlpackForLanguage } from "../language-packs.js";
 import { assertCandidateLanguage, assertCandidateProbeForUserCase } from "./candidate-policy.js";
 import { prepareCandidate } from "./candidate-preparation.js";
 import type { CodeqlWorkflowContext } from "./context.js";
-import { boundedOperationOptions, isTerminalWorkflowStatus } from "./status.js";
+import { boundedOperationOptions } from "./status.js";
+import { isTerminalRunStatus } from "../state.js";
 
 export async function draftQuery(
   context: CodeqlWorkflowContext,
@@ -35,7 +36,7 @@ export async function draftQuery(
       }
       assertCandidateProbeForUserCase(candidate, state.spec);
       const run = await context.repository.getRun(runId);
-      if (isTerminalWorkflowStatus(run.status)) {
+      if (isTerminalRunStatus(run.status)) {
         throw new DomainError("INVALID_STATE_TRANSITION", "state", `Cannot draft in ${run.status} run`, false, { runId, status: run.status });
       }
       if (run.status === "created" || run.status === "checkpointed") await context.repository.startRun(runId, "query_draft");

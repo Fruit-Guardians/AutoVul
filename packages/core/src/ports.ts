@@ -11,9 +11,7 @@ import type {
   TaintQueryIntent,
   RunId,
   RunManifest,
-  RunPhase,
   VulnerabilitySpec,
-  VerificationLevel,
 } from "@autovul/contracts";
 
 export interface ProcessCommand {
@@ -183,9 +181,4 @@ export interface QueryDraftExecutionPort {
   executeDraft(request: QueryDraftRequest, options: CodeqlOperationOptions): Promise<QueryDraftReport>;
   /** Close a long-lived language-service session owned by the adapter. */
   close?(): Promise<void>;
-}
-
-export interface RunMutation {
-  readonly phase?: RunPhase;
-  readonly verificationLevel?: VerificationLevel;
 }

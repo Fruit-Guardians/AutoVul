@@ -7,7 +7,6 @@ import {
   type RunId,
   type RunManifest,
   type RunPhase,
-  type RunStatus,
   type VerificationLevel,
 } from "@autovul/contracts";
 import { parseSchema } from "@autovul/contracts";

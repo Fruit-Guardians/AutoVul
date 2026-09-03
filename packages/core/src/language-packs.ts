@@ -538,7 +538,7 @@ function cppMatcherExpression(role: "source" | "sink", value: string, matcher: T
     }
     const constraints = [`access.getTarget().getName() = "${qlString(property)}"`];
     if (matcher.type !== undefined) {
-      constraints.push(cppFieldTypeConstraint(matcher.type, property));
+      constraints.push(cppFieldTypeConstraint(matcher.type));
     }
     if (matcher.file !== undefined) {
       const accessor = matcher.file.startsWith("/") ? "getAbsolutePath()" : "getRelativePath()";
@@ -555,7 +555,7 @@ function cppMatcherExpression(role: "source" | "sink", value: string, matcher: T
   throw new DomainError("CAPABILITY_MISMATCH", "input", `C/C++ matcher kind ${matcher.kind} is not implemented`, false, { role, matcher });
 }
 
-function cppFieldTypeConstraint(typeName: string, property: string): string {
+function cppFieldTypeConstraint(typeName: string): string {
   const declaringType = `access.getTarget().getDeclaringType()`;
   return `(${declaringType}.getName() = "${qlString(typeName)}" or ${declaringType}.getQualifiedName() = "${qlString(typeName)}")`;
 }

@@ -55,11 +55,22 @@ for (const [name, relativeRoot] of Object.entries(packageRoots)) {
       if (imported.startsWith("@autovul/") && !(allowedInternal[name] ?? []).includes(imported)) {
         throw new Error(`${name} has forbidden reverse dependency ${imported}: ${source}`);
       }
+      if (!imported.startsWith(".") && !imported.startsWith("node:")) {
+        const dependency = dependencyName(imported);
+        if (!declared.has(dependency)) {
+          throw new Error(`${name} imports undeclared dependency ${dependency}: ${source}`);
+        }
+      }
     }
     if (name !== "pi-extension" && /\bany\b/.test(contents)) {
       throw new Error(`${name} contains an explicit any type: ${source}`);
     }
   }
+}
+
+function dependencyName(specifier) {
+  if (!specifier.startsWith("@")) return specifier.split("/", 1)[0];
+  return specifier.split("/", 2).join("/");
 }
 
 async function readSourceFiles(directory) {

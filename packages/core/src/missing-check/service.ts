@@ -4,7 +4,6 @@ import {
   CONTRACTS_VERSION,
   MISSING_CHECK_DECISION_POLICY_VERSION,
   MISSING_CHECK_HYPOTHESIS_VERSION,
-  MissingCheckExecutionResultSchema,
   MissingCheckRunArtifactSchema,
   MissingCheckResearchToolInputSchema,
   DomainError,
@@ -23,14 +22,16 @@ import {
   type OperationBudget,
   type OperationStatus,
   type RunId,
-  type TargetRef,
   type VerificationLevel,
 } from "@autovul/contracts";
 
 import { RunCancellationService } from "../run-cancellation.js";
-import { readResearchOperationRoute, serializeResearchOperationRoute } from "../research-operation.js";
+import { serializeResearchOperationRoute } from "../research-operation.js";
 import { RunStatusService } from "../status-service.js";
 import type { ArtifactStorePort, CodeqlOperationOptions, CodeqlPort } from "../ports.js";
+import { canonicalJson } from "../canonical-json.js";
+import { validateTargetFingerprint } from "../codeql-target.js";
+import { isTerminalRunStatus } from "../state.js";
 import { decideMissingCheck } from "./decision.js";
 import type { MissingCheckExecutionPort } from "./port.js";
 import { validateMissingCheckHypothesis } from "./validate.js";
@@ -94,7 +95,7 @@ export class MissingCheckResearchService {
     if (issues.length > 0 || request.target === undefined || request.mode === undefined || request.budget === undefined || request.idempotency_key === undefined) return { valid: false, issues, allowed_next_actions: ["revise", "stop"] } as never;
     const runId = missingCheckRunIdForIdempotencyKey(request.idempotency_key);
     const existing = await this.artifacts.findManifest(runId);
-    if (existing !== undefined && terminal(existing.status)) {
+    if (existing !== undefined && isTerminalRunStatus(existing.status)) {
       await this.assertIdempotency(runId, request, hypothesis);
       const result = await this.readCommitted(runId);
       if (result !== undefined) return result;
@@ -105,7 +106,7 @@ export class MissingCheckResearchService {
       const committed = await this.readCommitted(run.runId);
       if (committed !== undefined) return committed;
       const current = await this.status.get(run.runId);
-      if (terminal(current.status)) return this.failed(run.runId, "MCHECK_TERMINAL_WITHOUT_ARTIFACT", "failed", hypothesis, request);
+      if (isTerminalRunStatus(current.status)) return this.failed(run.runId, "MCHECK_TERMINAL_WITHOUT_ARTIFACT", "failed", hypothesis, request);
       if (current.status === "created") await this.status.start(run.runId, "missing_check_execute");
       const operation = this.cancellations.begin(run.runId, options.signal);
       try { return await this.runAnalyzer(run.runId, hypothesis, request, { ...options, signal: operation.signal }, run.artifactRoot); }
@@ -116,8 +117,8 @@ export class MissingCheckResearchService {
   private async runAnalyzer(runId: RunId, hypothesis: MissingCheckHypothesis, request: MissingCheckResearchToolInput, options: CodeqlOperationOptions, artifactRoot: string): Promise<MissingCheckExecutionResult> {
     const target = request.target!;
     try {
-      const vulnerableFingerprint = await validateAndFingerprint(this.codeql, target.vulnerable, options);
-      const fixedFingerprint = target.fixed === undefined ? undefined : await validateAndFingerprint(this.codeql, target.fixed, options);
+      const vulnerableFingerprint = await validateTargetFingerprint(this.codeql, target.vulnerable, options);
+      const fixedFingerprint = target.fixed === undefined ? undefined : await validateTargetFingerprint(this.codeql, target.fixed, options);
       const targetFingerprints = { vulnerable: vulnerableFingerprint, ...(fixedFingerprint === undefined ? {} : { fixed: fixedFingerprint }) };
       const observation = await this.execution.execute({ hypothesis, target, analyzer_id: "codeql", mode: request.mode!, runId, artifactRoot }, { ...options, timeoutMs: Math.min(options.timeoutMs, request.budget!.timeout_ms) });
       if (options.signal?.aborted) throw new DomainError("PROCESS_CANCELLED", "process", `MissingCheck execution for ${runId} was cancelled`, false, { runId });
@@ -186,7 +187,7 @@ export class MissingCheckResearchService {
     const raw = await this.artifacts.readArtifact(runId, MISSING_CHECK_RESULT_ARTIFACT);
     const artifact = raw === undefined ? undefined : readMissingCheckRunArtifact(raw);
     if (artifact === undefined) return;
-    if (canonical({ hypothesis, target: request.target, mode: request.mode, budget: request.budget, idempotency_key: request.idempotency_key }) !== canonical({ hypothesis: artifact.hypothesis, target: artifact.target, mode: artifact.mode, budget: artifact.budget, idempotency_key: artifact.idempotency_key })) {
+    if (canonicalJson({ hypothesis, target: request.target, mode: request.mode, budget: request.budget, idempotency_key: request.idempotency_key }) !== canonicalJson({ hypothesis: artifact.hypothesis, target: artifact.target, mode: artifact.mode, budget: artifact.budget, idempotency_key: artifact.idempotency_key })) {
       throw new DomainError("IDEMPOTENCY_KEY_CONFLICT", "state", `Idempotency key is already bound to a different MissingCheck request: ${runId}`, false, { runId });
     }
   }
@@ -209,17 +210,4 @@ function executionIssues(request: MissingCheckResearchToolInput): MissingCheckVa
   if (request.budget === undefined) issues.push({ code: "MCHECK_BUDGET_REQUIRED", path: "/budget", expected_kind: "object" });
   if (request.idempotency_key === undefined) issues.push({ code: "MCHECK_IDEMPOTENCY_KEY_REQUIRED", path: "/idempotency_key" });
   return issues;
-}
-function terminal(status: string): boolean { return status === "completed" || status === "failed" || status === "cancelled" || status === "budget_exhausted"; }
-function canonical(value: unknown): string { if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`; if (value !== null && typeof value === "object") { const record = value as Record<string, unknown>; return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${canonical(record[key])}`).join(",")}}`; } return JSON.stringify(value); }
-
-async function validateAndFingerprint(codeql: CodeqlPort, target: TargetRef, options: CodeqlOperationOptions): Promise<string> {
-  const manifest = await codeql.validateDatabase(target.path, options);
-  if (manifest.portableFingerprint === undefined) {
-    throw new DomainError("DATABASE_FINGERPRINT_UNAVAILABLE", "database", `Database fingerprint is unavailable for ${target.path}`, false, { path: target.path });
-  }
-  if (target.expected_fingerprint !== undefined && target.expected_fingerprint !== manifest.portableFingerprint) {
-    throw new DomainError("DATABASE_FINGERPRINT_MISMATCH", "database", `Database fingerprint differs for ${target.path}`, false, { path: target.path, expected: target.expected_fingerprint, observed: manifest.portableFingerprint });
-  }
-  return manifest.portableFingerprint;
 }

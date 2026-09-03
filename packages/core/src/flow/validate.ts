@@ -3,7 +3,6 @@ import { Value } from "typebox/value";
 import {
   FLOW_HYPOTHESIS_VERSION,
   FlowModelSchema,
-  type EnvelopeAction,
   type FlowEndpoint,
   type FlowModel,
   type FlowValidationIssue,
@@ -60,10 +59,6 @@ export function validateFlowExpectation(input: unknown, mode: "probe" | "reprodu
     if (typeof values.min_paths === "number" && typeof values.max_paths === "number" && values.max_paths < values.min_paths) issues.push({ code: "FLOW_PATH_RANGE_INVALID", path: `/expectation/${side}/max_paths` });
   }
   return issues;
-}
-
-export function envelopeActionsForValidModel(): readonly EnvelopeAction[] {
-  return ["execute", "stop"];
 }
 
 function schemaIssues(input: unknown): FlowValidationIssue[] {
