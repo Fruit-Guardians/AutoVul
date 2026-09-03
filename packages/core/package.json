@@ -18,6 +18,6 @@
   },
   "dependencies": {
     "@autovul/contracts": "0.1.0",
-    "typebox": "1.3.7"
+    "typebox": "1.3.23"
   }
 }
