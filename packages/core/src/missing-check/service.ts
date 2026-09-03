@@ -18,11 +18,11 @@ import {
   type MissingCheckResearchToolInput,
   type MissingCheckRevisionHint,
   type MissingCheckRunArtifact,
+  type MissingCheckTarget,
   type MissingCheckValidationIssue,
   type OperationBudget,
   type OperationStatus,
   type RunId,
-  type TargetRef,
   type VerificationLevel,
 } from "@autovul/contracts";
 
@@ -206,7 +206,26 @@ function envelopeIssues(input: unknown): MissingCheckValidationIssue[] {
 function executionIssues(request: MissingCheckResearchToolInput): MissingCheckValidationIssue[] {
   const issues: MissingCheckValidationIssue[] = [];
   if (request.mode === undefined) issues.push({ code: "MCHECK_MODE_REQUIRED", path: "/mode", allowed_values: ["probe", "reproduce", "differential"] });
-  if (request.target === undefined) issues.push({ code: "MCHECK_TARGET_REQUIRED", path: "/target", expected_kind: "object" });
+  if (request.target === undefined) {
+    issues.push({ code: "MCHECK_TARGET_REQUIRED", path: "/target", expected_kind: "object" });
+  } else {
+    const analyzerId = request.analyzer_id ?? "codeql";
+    if (analyzerId === "javascript_cfg") {
+      if (request.target.vulnerable.kind !== "git_revision") {
+        issues.push({ code: "MCHECK_TARGET_KIND_MISMATCH", path: "/target/vulnerable/kind", allowed_values: ["git_revision"] });
+      }
+      if (request.target.fixed !== undefined && request.target.fixed.kind !== "git_revision") {
+        issues.push({ code: "MCHECK_TARGET_KIND_MISMATCH", path: "/target/fixed/kind", allowed_values: ["git_revision"] });
+      }
+    } else if (analyzerId === "codeql") {
+      if (request.target.vulnerable.kind !== "codeql_database") {
+        issues.push({ code: "MCHECK_TARGET_KIND_MISMATCH", path: "/target/vulnerable/kind", allowed_values: ["codeql_database"] });
+      }
+      if (request.target.fixed !== undefined && request.target.fixed.kind !== "codeql_database") {
+        issues.push({ code: "MCHECK_TARGET_KIND_MISMATCH", path: "/target/fixed/kind", allowed_values: ["codeql_database"] });
+      }
+    }
+  }
   if (request.mode === "differential" && request.target?.fixed === undefined) issues.push({ code: "MCHECK_FIXED_TARGET_REQUIRED", path: "/target/fixed" });
   if (request.analyzer_id !== undefined && request.analyzer_id !== "codeql" && request.analyzer_id !== "javascript_cfg") {
     issues.push({ code: "MCHECK_ANALYZER_REQUIRED", path: "/analyzer_id", allowed_values: ["codeql", "javascript_cfg"] });
@@ -219,7 +238,7 @@ function executionIssues(request: MissingCheckResearchToolInput): MissingCheckVa
 async function resolveTargetFingerprint(
   codeql: CodeqlPort,
   execution: MissingCheckExecutionPort,
-  target: TargetRef,
+  target: MissingCheckTarget["vulnerable"],
   options: CodeqlOperationOptions,
 ): Promise<string> {
   if (target.kind === "codeql_database") {
@@ -231,11 +250,12 @@ async function resolveTargetFingerprint(
   if (target.expected_fingerprint !== undefined) {
     return target.expected_fingerprint;
   }
+  const loc = target.kind === "git_revision" ? `${target.repository}@${target.revision}` : (target as { path?: string }).path;
   throw new DomainError(
     "DATABASE_FINGERPRINT_UNAVAILABLE",
     "database",
-    `Target fingerprint unavailable for ${target.path}`,
+    `Target fingerprint unavailable for ${loc}`,
     false,
-    { path: target.path },
+    { location: loc },
   );
 }

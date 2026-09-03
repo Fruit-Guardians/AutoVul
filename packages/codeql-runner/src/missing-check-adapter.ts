@@ -31,7 +31,11 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
   }
 
   async execute(request: MissingCheckExecutionRequest, options: CodeqlOperationOptions): Promise<MissingCheckAnalyzerObservation> {
-    const root = join(request.artifactRoot, "missing-check", request.hypothesis.hypothesis_id);
+    if (request.target.vulnerable.kind !== "codeql_database") {
+      throw new DomainError("INVALID_INPUT", "input", "CodeqlMissingCheckAdapter requires codeql_database target", false);
+    }
+    const evidenceNamespace = request.workspace === "replay" ? "missing-check-replay" : "missing-check";
+    const root = join(request.artifactRoot, evidenceNamespace, request.hypothesis.hypothesis_id);
     await this.filesystem.ensureDirectory(root);
     const query = renderQuery(
       request.hypothesis.operation.name,
@@ -54,9 +58,9 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
     if (cliVersion === undefined) throw new DomainError("CODEQL_RESOLVE_FAILED", "environment", "MissingCheck CodeQL CLI returned no version", false);
     const compile = await this.run(["query", "compile", "--check-only", "--format=json", join(root, "unchecked.ql"), "--threads=1"], root, options);
     if (!processSucceeded(compile)) throw codeqlProcessFailure(compile, "compile", "MissingCheck");
-    const vulnerable = await this.observeSide(root, request.hypothesis.hypothesis_id, request.target.vulnerable.path, "vulnerable", options);
-    const fixed = request.mode === "differential" && request.target.fixed !== undefined
-      ? await this.observeSide(root, request.hypothesis.hypothesis_id, request.target.fixed.path, "fixed", options)
+    const vulnerable = await this.observeSide(root, evidenceNamespace, request.hypothesis.hypothesis_id, request.target.vulnerable.path, "vulnerable", options);
+    const fixed = request.mode === "differential" && request.target.fixed !== undefined && request.target.fixed.kind === "codeql_database"
+      ? await this.observeSide(root, evidenceNamespace, request.hypothesis.hypothesis_id, request.target.fixed.path, "fixed", options)
       : undefined;
     return {
       schema_version: "autovul.missing-check/1", compile_accepted: true,
@@ -66,12 +70,12 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
         vulnerable: { status: "complete", scope: request.hypothesis.scope, limitations: [...COMPLETENESS_LIMITATIONS] },
         ...(fixed === undefined ? {} : { fixed: { status: "complete", scope: request.hypothesis.scope, limitations: [...COMPLETENESS_LIMITATIONS] } }),
       },
-      evidence_refs: [...vulnerable.evidenceRefs, ...(fixed?.evidenceRefs ?? [])],
+      evidence_refs: [...vulnerable.evidenceRefs, ...(fixed === undefined ? [] : fixed.evidenceRefs)],
       analyzer: { analyzer_id: "codeql", available: true, evidence_kind: "real_analyzer", adapter_version: ADAPTER_VERSION, version: cliVersion },
     };
   }
 
-  private async observeSide(root: string, hypothesisId: string, database: string, side: "vulnerable" | "fixed", options: CodeqlOperationOptions): Promise<Side> {
+  private async observeSide(root: string, evidenceNamespace: string, hypothesisId: string, database: string, side: "vulnerable" | "fixed", options: CodeqlOperationOptions): Promise<Side> {
     // CodeQL writes query-result state beneath the database. Keep these
     // observations serial so independent selectors cannot race that state.
     const operations = await this.analyze(root, database, side, "operations", options);
@@ -79,7 +83,7 @@ export class CodeqlMissingCheckAdapter implements MissingCheckExecutionPort {
     const unchecked = await this.analyze(root, database, side, "unchecked", options);
     const checked = await this.analyze(root, database, side, "checked", options);
     const operation = subject(operations); const check = subject(checks);
-    const evidencePrefix = `missing-check/${hypothesisId}/${side}`;
+    const evidencePrefix = `${evidenceNamespace}/${hypothesisId}/${side}`;
     const uncheckedWitnesses = witnesses(unchecked, `${evidencePrefix}/unchecked.sarif`);
     const checkedWitnesses = witnesses(checked, `${evidencePrefix}/checked.sarif`);
     const relation = unchecked.ok && uncheckedWitnesses.length > 0

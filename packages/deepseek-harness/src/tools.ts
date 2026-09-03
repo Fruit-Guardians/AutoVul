@@ -62,10 +62,11 @@ export async function executeDeepSeekTool(
     throw new DomainError("INVALID_INPUT", "input", `Unsupported DeepSeek Harness tool: ${name}`, false, { name });
   } catch (error: unknown) {
     const domain = asDomainError(error);
+    const errorRecord = domain.toRecord();
     return {
       success: false,
-      output: domain.message,
-      error: domain.toRecord(),
+      output: JSON.stringify({ error: errorRecord }, null, 2),
+      error: errorRecord,
     };
   }
 }

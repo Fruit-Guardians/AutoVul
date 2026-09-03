@@ -49,7 +49,7 @@ export function createLocalApplication(options: LocalApplicationOptions = {}): A
     flow: new CodeqlFlowAdapter(queries, queries),
     missingCheck: new CompositeMissingCheckExecutionPort({
       codeql: new CodeqlMissingCheckAdapter({ executable, cwd, filesystem }),
-      javascript_cfg: new JavascriptCfgMissingCheckAdapter({ filesystem }),
+      javascript_cfg: new JavascriptCfgMissingCheckAdapter({ trustedRoots: [trustedWorkspaceRoot], filesystem }),
     }),
     typestate: new CodeqlTypestateAdapter({ executable, cwd, filesystem }),
     changeObservation: new GitChangeObservationAdapter({ trustedRoots: [trustedWorkspaceRoot], filesystem }),

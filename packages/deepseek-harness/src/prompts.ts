@@ -3,7 +3,7 @@ export const DEEPSEEK_HARNESS_SYSTEM_INSTRUCTIONS = `AutoVul vulnerability-resea
 Core Capabilities:
 1. autovul_research:
    - Choose capability="flow" when the decisive fact is source-to-sink value propagation (taint flow) on a CodeQL database.
-   - Choose capability="missing_check" when the decisive fact is that a sensitive/protected operation is reachable without a required security check. Supports both CodeQL databases and JavaScript/TypeScript source directories (analyzer_id="javascript_cfg").
+   - Choose capability="missing_check" when the decisive fact is that a sensitive/protected operation is reachable without a required security check. Supported targets: CodeQL database (analyzer_id="codeql") or immutable git_revision (analyzer_id="javascript_cfg").
    - Choose capability="typestate" when the decisive fact is a resource's finite state lifecycle and forbidden transitions.
    - Choose service="change_observation" when you need structured, read-only Git diff facts before formulating a vulnerability hypothesis.
 2. autovul_run:

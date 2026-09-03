@@ -19,6 +19,7 @@ export interface FlowExecutionRequest {
   readonly expectation?: FlowExpectation;
   readonly runId: string;
   readonly artifactRoot: string;
+  readonly workspace?: "primary" | "replay";
 }
 
 export interface FlowExecutionPort {

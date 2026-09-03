@@ -48,7 +48,13 @@ export {
 export { ChangeObservationReplayService } from "./change-observation/replay.js";
 export type { FlowExecutionPort, FlowExecutionRequest } from "./flow/port.js";
 export { CompositeMissingCheckExecutionPort } from "./missing-check/composite.js";
-export type { MissingCheckExecutionPort, MissingCheckExecutionRequest } from "./missing-check/port.js";
+export type {
+  MissingCheckExecutionPort,
+  MissingCheckExecutionRequest,
+  MissingCheckEvidenceDigest,
+  MissingCheckEvidenceSnapshotPort,
+  MissingCheckEvidenceSnapshotRequest,
+} from "./missing-check/port.js";
 export type {
   TypestateEvidenceDigest,
   TypestateEvidenceSnapshotPort,

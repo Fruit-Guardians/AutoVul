@@ -164,7 +164,11 @@ export {
   ResearchCapabilitySchema,
   ResearchRequestSchema,
   ResearchHypothesisVersionSchema,
+  CodeqlDatabaseTargetRefSchema,
+  GitRevisionTargetRefSchema,
   TargetRefSchema,
+  TargetPairSchema,
+  GitRevisionTargetPairSchema,
   RunActionSchema,
 } from "./research.js";
 export type {
@@ -188,7 +192,11 @@ export type {
   ResearchCapability,
   ResearchRequest,
   ResearchHypothesisVersion,
+  CodeqlDatabaseTargetRef,
+  GitRevisionTargetRef,
   TargetRef,
+  TargetPair,
+  GitRevisionTargetPair,
   RunAction,
 } from "./research.js";
 export {
@@ -315,6 +323,7 @@ export {
   MissingCheckRevisionHintSchema,
   MissingCheckCompactObservationSchema,
   MissingCheckExecutionResultSchema,
+  MissingCheckTargetSchema,
   MissingCheckRunArtifactSchema,
 } from "./missing-check.js";
 export type {
@@ -341,6 +350,7 @@ export type {
   MissingCheckRevisionHint,
   MissingCheckCompactObservation,
   MissingCheckExecutionResult,
+  MissingCheckTarget,
   MissingCheckRunArtifact,
 } from "./missing-check.js";
 export {

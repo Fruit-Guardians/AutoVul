@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { join } from "node:path";
-import { mkdtemp, rm } from "node:fs/promises";
+import { execFile as execFileCb } from "node:child_process";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { promisify } from "node:util";
 
 import {
   type MissingCheckExecutionResult,
@@ -26,6 +28,8 @@ import {
   FixedIdGenerator,
   MemoryArtifactStore,
 } from "./helpers.js";
+
+const execFile = promisify(execFileCb);
 
 const hypothesis: MissingCheckHypothesis = {
   schema_version: "autovul.missing-check/1",
@@ -55,6 +59,34 @@ export function handleReportRequest(user) {
   sendSensitiveReport(user);
 }
 `;
+
+async function runGit(cwd: string, args: string[]): Promise<string> {
+  const { stdout } = await execFile("git", args, { cwd, encoding: "utf8" });
+  return stdout.trim();
+}
+
+async function createGitRepo(
+  dir: string,
+  commits: { message: string; files: Record<string, string> }[],
+): Promise<string[]> {
+  await runGit(dir, ["init", "--initial-branch=main"]);
+  await runGit(dir, ["config", "user.email", "test@example.invalid"]);
+  await runGit(dir, ["config", "user.name", "Test"]);
+
+  const oids: string[] = [];
+  for (const c of commits) {
+    for (const [relPath, content] of Object.entries(c.files)) {
+      const fullPath = join(dir, relPath);
+      await mkdir(dirname(fullPath), { recursive: true });
+      await writeFile(fullPath, content, "utf8");
+      await runGit(dir, ["add", relPath]);
+    }
+    await runGit(dir, ["commit", "-m", c.message]);
+    const oid = await runGit(dir, ["rev-parse", "HEAD"]);
+    oids.push(oid);
+  }
+  return oids;
+}
 
 async function withTempDirectory<T>(fn: (dir: string) => Promise<T>): Promise<T> {
   const dir = await mkdtemp(join(tmpdir(), "autovul-deepseek-test-"));
@@ -87,6 +119,7 @@ describe("DeepSeek Harness Integration Adapter (@autovul/deepseek-harness)", () 
       expect(DEEPSEEK_HARNESS_SYSTEM_INSTRUCTIONS).toContain("missing_check");
       expect(DEEPSEEK_HARNESS_SYSTEM_INSTRUCTIONS).toContain("flow");
       expect(DEEPSEEK_HARNESS_SYSTEM_INSTRUCTIONS).toContain("typestate");
+      expect(DEEPSEEK_HARNESS_SYSTEM_INSTRUCTIONS).toContain("git_revision");
     });
   });
 
@@ -115,16 +148,25 @@ describe("DeepSeek Harness Integration Adapter (@autovul/deepseek-harness)", () 
 
     it("executes differential research and replay through the DeepSeek Harness plugin", async () => {
       await withTempDirectory(async (dir) => {
+        const repoDir = join(dir, "repo");
+        await mkdir(repoDir, { recursive: true });
+
+        const [vulnOid, fixedOid] = await createGitRepo(repoDir, [
+          {
+            message: "vulnerable report handler",
+            files: { "src/reporter.js": vulnCode },
+          },
+          {
+            message: "fixed report handler with authorization",
+            files: { "src/reporter.js": fixedCode },
+          },
+        ]);
+
         const fs = new NodeFileSystemPort();
-        const vulnDir = join(dir, "vuln");
-        const fixedDir = join(dir, "fixed");
-
-        await fs.ensureDirectory(join(vulnDir, "src"));
-        await fs.ensureDirectory(join(fixedDir, "src"));
-        await fs.writeTextAtomic(join(vulnDir, "src/reporter.js"), vulnCode);
-        await fs.writeTextAtomic(join(fixedDir, "src/reporter.js"), fixedCode);
-
-        const jsAdapter = new JavascriptCfgMissingCheckAdapter({ filesystem: fs });
+        const jsAdapter = new JavascriptCfgMissingCheckAdapter({
+          trustedRoots: [repoDir],
+          filesystem: fs,
+        });
         const missingCheck = new CompositeMissingCheckExecutionPort({
           javascript_cfg: jsAdapter,
         });
@@ -147,8 +189,8 @@ describe("DeepSeek Harness Integration Adapter (@autovul/deepseek-harness)", () 
           analyzer_id: "javascript_cfg",
           mode: "differential",
           target: {
-            vulnerable: { kind: "source_directory", path: vulnDir },
-            fixed: { kind: "source_directory", path: fixedDir },
+            vulnerable: { kind: "git_revision", repository: repoDir, revision: vulnOid },
+            fixed: { kind: "git_revision", repository: repoDir, revision: fixedOid },
           },
           budget: { timeout_ms: 5_000 },
           idempotency_key: "deepseek-mcheck-key",
@@ -182,7 +224,7 @@ describe("DeepSeek Harness Integration Adapter (@autovul/deepseek-harness)", () 
       });
     });
 
-    it("normalizes validation and domain errors into structured failure records", async () => {
+    it("normalizes validation and domain errors into structured failure JSON output", async () => {
       const plugin = createDeepSeekHarnessPlugin({
         application: new Application({
           codeql: new FakeCodeqlPort(),
@@ -196,11 +238,13 @@ describe("DeepSeek Harness Integration Adapter (@autovul/deepseek-harness)", () 
       const unknownTool = await plugin.execute("unknown_harness_tool", {});
       expect(unknownTool.success).toBe(false);
       expect(unknownTool.error?.code).toBe("INVALID_INPUT");
+      expect(JSON.parse(unknownTool.output)).toEqual({ error: unknownTool.error });
 
       // Malformed input payload
       const invalidPayload = await plugin.execute("autovul_research", { invalid: true });
       expect(invalidPayload.success).toBe(false);
       expect(invalidPayload.error?.code).toBe("INVALID_INPUT");
+      expect(JSON.parse(invalidPayload.output)).toEqual({ error: invalidPayload.error });
 
       await plugin.close();
     });

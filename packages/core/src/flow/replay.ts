@@ -3,6 +3,7 @@ import {
   DomainError,
   FLOW_DECISION_POLICY_VERSION,
   FLOW_HYPOTHESIS_VERSION,
+  stableDigest,
   type CapabilityResearchOperationRoute,
   type ResearchExecutionResult,
   type RunId,
@@ -67,6 +68,15 @@ export class FlowReplayService {
       } else if (artifact.target.fixed !== undefined || artifact.target_fingerprints.fixed !== undefined) {
         return this.blocked(run.runId, "FLOW_REPLAY_FINGERPRINT_UNRECORDED", ["stop"]);
       }
+      const evidenceRefs = artifact.observation?.evidence_refs ?? [];
+      const preDigests = new Map<string, string>();
+      for (const ref of evidenceRefs) {
+        const text = await this.artifacts.readArtifact(run.runId, ref);
+        if (text !== undefined) {
+          preDigests.set(ref, stableDigest(text));
+        }
+      }
+
       const observation = await this.execution.execute({
         model: artifact.model,
         target: artifact.target,
@@ -75,7 +85,25 @@ export class FlowReplayService {
         ...(artifact.expectation === undefined ? {} : { expectation: artifact.expectation }),
         runId: run.runId,
         artifactRoot: run.artifactRoot,
+        workspace: "replay",
       }, { ...options, timeoutMs: artifact.budget === undefined ? options.timeoutMs : Math.min(options.timeoutMs, artifact.budget.timeout_ms) });
+
+      for (const [ref, preDigest] of preDigests) {
+        const text = await this.artifacts.readArtifact(run.runId, ref);
+        if (text === undefined || stableDigest(text) !== preDigest) {
+          return compactFlowResult({
+            runId: run.runId,
+            operationStatus: "completed",
+            decision: artifact.decision,
+            verificationLevel: "generated",
+            observations: [{ code: "FLOW_REPLAY_EVIDENCE_MUTATED", evidence_ref: ref }],
+            revisionHints: [],
+            allowedNextActions: ["stop"],
+            artifactRef,
+          });
+        }
+      }
+
       if (observation.analyzer.available === false) return this.blocked(run.runId, "FLOW_REPLAY_ENVIRONMENT_BLOCKED", ["replay", "stop"]);
       if (observation.analyzer.version !== artifact.analyzer.version || observation.analyzer.adapter_version !== artifact.analyzer.adapter_version) {
         return this.versionDifference(run.runId, artifactRef, "FLOW_REPLAY_ANALYZER_VERSION_DIFFERENCE");

@@ -4,10 +4,11 @@ import { CONTRACTS_VERSION } from "./errors.js";
 import {
   EnvelopeActionSchema,
   EvidenceOperationModeSchema,
+  GitRevisionTargetPairSchema,
   MISSING_CHECK_HYPOTHESIS_VERSION,
   OperationBudgetSchema,
   OperationStatusSchema,
-  TargetRefSchema,
+  TargetPairSchema,
 } from "./research.js";
 import { RunIdSchema, VerificationLevelSchema } from "./schemas.js";
 
@@ -245,11 +246,17 @@ export const MissingCheckExecutionResultSchema = Type.Object(
 );
 export type MissingCheckExecutionResult = Static<typeof MissingCheckExecutionResultSchema>;
 
+export const MissingCheckTargetSchema = Type.Union([
+  TargetPairSchema,
+  GitRevisionTargetPairSchema,
+]);
+export type MissingCheckTarget = Static<typeof MissingCheckTargetSchema>;
+
 export const MissingCheckRunArtifactSchema = Type.Object(
   {
     schema_version: Type.Literal(CONTRACTS_VERSION), capability: Type.Literal("missing_check"),
     hypothesis_version: Type.Literal(MISSING_CHECK_HYPOTHESIS_VERSION), hypothesis: MissingCheckHypothesisSchema,
-    target: Type.Object({ vulnerable: TargetRefSchema, fixed: Type.Optional(TargetRefSchema) }, { additionalProperties: false }),
+    target: MissingCheckTargetSchema,
     mode: EvidenceOperationModeSchema, budget: Type.Optional(OperationBudgetSchema),
     idempotency_key: Type.Optional(Type.String({ minLength: 1 })), analyzer: MissingCheckAnalyzerProvenanceSchema,
     target_fingerprints: Type.Optional(Type.Object(

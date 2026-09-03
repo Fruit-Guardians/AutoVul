@@ -1,4 +1,4 @@
-import { DomainError, type MissingCheckAnalyzerObservation, type TargetRef } from "@autovul/contracts";
+import { DomainError, type MissingCheckAnalyzerObservation, type MissingCheckTarget } from "@autovul/contracts";
 
 import type { CodeqlOperationOptions } from "../ports.js";
 import type { MissingCheckExecutionPort, MissingCheckExecutionRequest } from "./port.js";
@@ -27,8 +27,8 @@ export class CompositeMissingCheckExecutionPort implements MissingCheckExecution
     return adapter.execute(request, options);
   }
 
-  async validateTarget(target: TargetRef, options: CodeqlOperationOptions): Promise<string> {
-    if (target.kind === "source_directory" && this.adapters.javascript_cfg?.validateTarget) {
+  async validateTarget(target: MissingCheckTarget["vulnerable"], options: CodeqlOperationOptions): Promise<string> {
+    if (target.kind === "git_revision" && this.adapters.javascript_cfg?.validateTarget) {
       return this.adapters.javascript_cfg.validateTarget(target, options);
     }
     if (this.adapters.codeql?.validateTarget) {
@@ -37,12 +37,13 @@ export class CompositeMissingCheckExecutionPort implements MissingCheckExecution
     if (target.expected_fingerprint !== undefined) {
       return target.expected_fingerprint;
     }
+    const location = target.kind === "git_revision" ? `${target.repository}@${target.revision}` : target.path;
     throw new DomainError(
       "DATABASE_FINGERPRINT_UNAVAILABLE",
       "database",
-      `Target fingerprint unavailable for ${target.path}`,
+      `Target fingerprint unavailable for ${location}`,
       false,
-      { path: target.path },
+      { location },
     );
   }
 }

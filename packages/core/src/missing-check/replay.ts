@@ -3,6 +3,7 @@ import {
   DomainError,
   MISSING_CHECK_DECISION_POLICY_VERSION,
   MISSING_CHECK_HYPOTHESIS_VERSION,
+  stableDigest,
   type MissingCheckExecutionResult,
   type CapabilityResearchOperationRoute,
   type RunId,
@@ -62,8 +63,48 @@ export class MissingCheckReplayService {
       } else if (artifact.target.fixed !== undefined || artifact.target_fingerprints.fixed !== undefined) {
         return this.blocked(run.runId, "MCHECK_REPLAY_FINGERPRINT_UNRECORDED", ["stop"]);
       }
+      const evidenceRefs = artifact.observation?.evidence_refs ?? [];
+      const preDigests = new Map<string, string>();
+      for (const ref of evidenceRefs) {
+        const text = await this.artifacts.readArtifact(run.runId, ref);
+        if (text !== undefined) {
+          preDigests.set(ref, stableDigest(text));
+        }
+      }
+
       const analyzerId = (artifact.analyzer.analyzer_id as "codeql" | "javascript_cfg") ?? "codeql";
-      const observation = await this.execution.execute({ hypothesis: artifact.hypothesis, target: artifact.target, analyzer_id: analyzerId, mode: artifact.mode, runId: run.runId, artifactRoot: run.artifactRoot }, { ...options, timeoutMs: artifact.budget === undefined ? options.timeoutMs : Math.min(options.timeoutMs, artifact.budget.timeout_ms) });
+      const observation = await this.execution.execute(
+        {
+          hypothesis: artifact.hypothesis,
+          target: artifact.target,
+          analyzer_id: analyzerId,
+          mode: artifact.mode,
+          runId: run.runId,
+          artifactRoot: run.artifactRoot,
+          workspace: "replay",
+        },
+        {
+          ...options,
+          timeoutMs: artifact.budget === undefined ? options.timeoutMs : Math.min(options.timeoutMs, artifact.budget.timeout_ms),
+        },
+      );
+
+      for (const [ref, preDigest] of preDigests) {
+        const text = await this.artifacts.readArtifact(run.runId, ref);
+        if (text === undefined || stableDigest(text) !== preDigest) {
+          return compactMissingCheckResult({
+            runId: run.runId,
+            operationStatus: "completed",
+            decision: artifact.decision,
+            verificationLevel: "generated",
+            observations: [{ code: "MCHECK_REPLAY_EVIDENCE_MUTATED", evidence_ref: ref }],
+            revisionHints: [],
+            allowedNextActions: ["stop"],
+            artifactRef: route.result_artifact_ref,
+          });
+        }
+      }
+
       if (!observation.analyzer.available) return this.blocked(run.runId, "MCHECK_REPLAY_ENVIRONMENT_BLOCKED", ["replay", "stop"]);
       if (artifact.analyzer.version === undefined || artifact.analyzer.adapter_version === undefined) {
         return this.versionDifference(run.runId, route.result_artifact_ref, "MCHECK_REPLAY_ANALYZER_VERSION_UNRECORDED");
@@ -96,7 +137,7 @@ export class MissingCheckReplayService {
 async function validateTarget(
   codeql: CodeqlPort,
   execution: MissingCheckExecutionPort,
-  target: import("@autovul/contracts").TargetRef,
+  target: import("@autovul/contracts").MissingCheckTarget["vulnerable"],
   recordedFingerprint: string,
   options: CodeqlOperationOptions,
 ): Promise<void> {
@@ -112,6 +153,7 @@ async function validateTarget(
       ? await execution.validateTarget(target, options)
       : target.expected_fingerprint ?? recordedFingerprint;
   if (observed !== recordedFingerprint || (target.expected_fingerprint !== undefined && observed !== target.expected_fingerprint)) {
-    throw new DomainError("DATABASE_FINGERPRINT_MISMATCH", "database", `Replay target fingerprint differs for ${target.path}`, false, { path: target.path, recorded: recordedFingerprint, observed });
+    const loc = target.kind === "git_revision" ? `${target.repository}@${target.revision}` : target.path;
+    throw new DomainError("DATABASE_FINGERPRINT_MISMATCH", "database", `Replay target fingerprint differs for ${loc}`, false, { path: loc, recorded: recordedFingerprint, observed });
   }
 }
