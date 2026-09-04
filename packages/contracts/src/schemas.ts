@@ -5,6 +5,17 @@ import { CONTRACTS_VERSION, DomainErrorSchema } from "./errors.js";
 export const RunIdSchema = Type.String({ pattern: "^run_[a-z0-9][a-z0-9_-]{5,127}$" });
 export type RunId = Static<typeof RunIdSchema>;
 
+export const GitRevisionTargetRefSchema = Type.Object(
+  {
+    kind: Type.Literal("git_revision"),
+    repository: Type.String({ minLength: 1, maxLength: 4096 }),
+    revision: Type.String({ pattern: "^(?:[a-f0-9]{40}|[a-f0-9]{64})$" }),
+    expected_fingerprint: Type.Optional(Type.String({ pattern: "^[a-f0-9]{16,64}$" })),
+  },
+  { additionalProperties: false },
+);
+export type GitRevisionTargetRef = Static<typeof GitRevisionTargetRefSchema>;
+
 export const RunPhaseSchema = Type.Union([
   Type.Literal("doctor"),
   Type.Literal("inspect"),
@@ -21,6 +32,8 @@ export const RunPhaseSchema = Type.Union([
   Type.Literal("typestate_execute"),
   /** A non-Capability Change Observation service operation. */
   Type.Literal("change_observation_execute"),
+  /** A non-Capability Variant Search service operation. */
+  Type.Literal("variant_search_execute"),
 ]);
 export type RunPhase = Static<typeof RunPhaseSchema>;
 

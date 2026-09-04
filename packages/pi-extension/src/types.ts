@@ -17,9 +17,31 @@ import type {
   TypestateExecutionResult,
   TypestateReplayComparison,
   TypestateValidationResult,
+  VariantSearchExecutionResult,
+  VariantSearchReplayComparison,
 } from "@autovul/contracts";
 
-export type ToolDetails = DoctorResult | DatabaseResult | ProbeEvidence | QueryDraftReport | QueryWorkflowStatus | QueryVerification | QueryPackManifest | FlowValidationResult | MissingCheckValidationResult | ResearchExecutionResult | MissingCheckExecutionResult | TypestateValidationResult | TypestateExecutionResult | TypestateReplayComparison | ChangeObservationExecutionResult | ChangeObservationReplayComparison | RunManifest | DomainErrorRecord;
+export type ToolDetails =
+  | DoctorResult
+  | DatabaseResult
+  | ProbeEvidence
+  | QueryDraftReport
+  | QueryWorkflowStatus
+  | QueryVerification
+  | QueryPackManifest
+  | FlowValidationResult
+  | MissingCheckValidationResult
+  | ResearchExecutionResult
+  | MissingCheckExecutionResult
+  | TypestateValidationResult
+  | TypestateExecutionResult
+  | TypestateReplayComparison
+  | ChangeObservationExecutionResult
+  | ChangeObservationReplayComparison
+  | VariantSearchExecutionResult
+  | VariantSearchReplayComparison
+  | RunManifest
+  | DomainErrorRecord;
 
 export interface PiUiState {
   status: "ready" | "running" | "completed" | "blocked" | "failed" | "cancelled" | "budget_exhausted";

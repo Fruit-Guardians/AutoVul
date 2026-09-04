@@ -27,6 +27,10 @@ import { TypestateReplayService } from "./typestate/replay.js";
 import { ChangeObservationResearchService } from "./change-observation/service.js";
 import { ChangeObservationReplayService } from "./change-observation/replay.js";
 import type { ChangeObservationPort } from "./change-observation/port.js";
+import { VariantSearchService } from "./variant-search/service.js";
+import { VariantSearchReplayService } from "./variant-search/replay.js";
+import { type VariantSearchPort, unavailableVariantSearchPort } from "./variant-search/port.js";
+import type { VariantSearchExecutionResult } from "@autovul/contracts";
 
 export interface ApplicationApi {
   doctor(options?: Partial<CodeqlOperationOptions>): Promise<DoctorResult>;
@@ -40,7 +44,7 @@ export interface ApplicationApi {
   queryProbe(runId: unknown, intent: unknown, options?: Partial<CodeqlOperationOptions>): Promise<ProbeEvidence>;
   queryDraft(runId: unknown, candidate: unknown, options?: Partial<CodeqlOperationOptions>): Promise<QueryDraftReport>;
   workflowFinalize(runId: unknown, options?: Partial<CodeqlOperationOptions>): Promise<QueryPackManifest>;
-  research(input: unknown, options?: Partial<CodeqlOperationOptions>): Promise<ResearchResult | MissingCheckResearchResult | TypestateResearchResult | ChangeObservationExecutionResult>;
+  research(input: unknown, options?: Partial<CodeqlOperationOptions>): Promise<ResearchResult | MissingCheckResearchResult | TypestateResearchResult | ChangeObservationExecutionResult | VariantSearchExecutionResult>;
   manageRun(input: unknown, options?: Partial<CodeqlOperationOptions>): Promise<RunManagementResult>;
   close(): Promise<void>;
 }
@@ -57,6 +61,7 @@ export interface ApplicationDependencies {
   readonly missingCheck?: MissingCheckExecutionPort;
   readonly typestate?: TypestateExecutionPort & TypestateEvidenceSnapshotPort;
   readonly changeObservation?: ChangeObservationPort;
+  readonly variantSearch?: VariantSearchPort;
   readonly defaultTimeoutMs?: number;
 }
 
@@ -67,6 +72,7 @@ export class Application implements ApplicationApi {
   private readonly missingCheckResearch: MissingCheckResearchService;
   private readonly typestateResearch: TypestateResearchService;
   private readonly changeObservationResearch: ChangeObservationResearchService;
+  private readonly variantSearchResearch: VariantSearchService;
   private readonly researchRuns: ResearchRunService;
   private readonly cancellations: RunCancellationService;
   private readonly defaultTimeoutMs: number;
@@ -92,11 +98,13 @@ export class Application implements ApplicationApi {
     const missingCheck = dependencies.missingCheck ?? unavailableMissingCheckExecutionPort();
     const typestate = dependencies.typestate ?? unavailableTypestateExecutionPort();
     const changeObservation = dependencies.changeObservation ?? unavailableChangeObservationPort();
+    const variantSearch = dependencies.variantSearch ?? unavailableVariantSearchPort();
     this.cancellations = new RunCancellationService();
     this.flowResearch = new FlowResearchService(status, dependencies.codeql, flow, dependencies.artifacts, this.cancellations);
     this.missingCheckResearch = new MissingCheckResearchService(status, dependencies.codeql, missingCheck, dependencies.artifacts, this.cancellations);
     this.typestateResearch = new TypestateResearchService(status, dependencies.codeql, typestate, dependencies.artifacts, this.cancellations);
     this.changeObservationResearch = new ChangeObservationResearchService(status, changeObservation, dependencies.artifacts, this.cancellations);
+    this.variantSearchResearch = new VariantSearchService(status, variantSearch, dependencies.artifacts, this.cancellations);
     this.researchRuns = new ResearchRunService(
       status,
       dependencies.artifacts,
@@ -104,6 +112,7 @@ export class Application implements ApplicationApi {
       new MissingCheckReplayService(status, dependencies.codeql, missingCheck, dependencies.artifacts, this.cancellations),
       new TypestateReplayService(status, dependencies.codeql, typestate, typestate, dependencies.artifacts, this.cancellations),
       new ChangeObservationReplayService(status, changeObservation, dependencies.artifacts, this.cancellations),
+      new VariantSearchReplayService(status, variantSearch, dependencies.artifacts, this.cancellations),
       this.cancellations,
     );
   }
@@ -152,13 +161,16 @@ export class Application implements ApplicationApi {
     return this.admitWithOptions(options, (resolved) => this.queryWorkflow.finalize(runId, resolved));
   }
 
-  research(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<ResearchResult | MissingCheckResearchResult | TypestateResearchResult | ChangeObservationExecutionResult> {
-    return this.admitWithOptions<ResearchResult | MissingCheckResearchResult | TypestateResearchResult | ChangeObservationExecutionResult>(options, (resolved) => {
+  research(input: unknown, options: Partial<CodeqlOperationOptions> = {}): Promise<ResearchResult | MissingCheckResearchResult | TypestateResearchResult | ChangeObservationExecutionResult | VariantSearchExecutionResult> {
+    return this.admitWithOptions<ResearchResult | MissingCheckResearchResult | TypestateResearchResult | ChangeObservationExecutionResult | VariantSearchExecutionResult>(options, (resolved) => {
       if (input !== null && typeof input === "object" && !Array.isArray(input)) {
         const record = input as Record<string, unknown>;
         if ("service" in record) {
           if (record.service === "change_observation") {
             return this.changeObservationResearch.research(input, resolved);
+          }
+          if (record.service === "variant_search") {
+            return this.variantSearchResearch.research(input, resolved);
           }
           throw new DomainError("INVALID_INPUT", "input", `Unsupported analyzer service: ${String(record.service)}`, false);
         }

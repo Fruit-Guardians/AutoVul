@@ -177,6 +177,105 @@ describe("V2 CLI", () => {
       await rm(root, { recursive: true, force: true });
     }
   });
+
+  it("routes Variant Search through the existing research and run commands", async () => {
+    const root = await mkdtemp(join(tmpdir(), "autovul-cli-variant-search-"));
+    try {
+      await git(root, ["init", "--initial-branch=main"]);
+      await git(root, ["config", "user.email", "cli-test@example.invalid"]);
+      await git(root, ["config", "user.name", "CLI Test"]);
+      await mkdir(join(root, "src"), { recursive: true });
+      await writeFile(join(root, "src", "exchange.ts"), "export function handleSignin() {\n  handleExchange(req);\n}\n", "utf8");
+      await git(root, ["add", "src/exchange.ts"]);
+      await git(root, ["commit", "-m", "add exchange"]);
+      const head = await gitOutput(root, ["rev-parse", "HEAD"]);
+
+      // Seed a completed MissingCheck run in local artifact store
+      const runsDir = join(root, "runs");
+      const seedRunId = "run_seed_variant_cli";
+      const seedDir = join(runsDir, seedRunId);
+      await mkdir(join(seedDir, "research"), { recursive: true });
+      await mkdir(join(seedDir, "missing-check"), { recursive: true });
+      await writeFile(join(seedDir, "manifest.json"), JSON.stringify({
+        schemaVersion: "v2.contracts/1",
+        runId: seedRunId,
+        status: "completed",
+        phase: "missing_check_execute",
+        verificationLevel: "reproduced",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        artifactRoot: seedDir,
+      }), "utf8");
+      await writeFile(join(seedDir, "research", "operation.json"), JSON.stringify({
+        schema_version: "v2.contracts/1",
+        route_kind: "capability",
+        capability: "missing_check",
+        hypothesis_version: "autovul.missing-check/1",
+        result_artifact_ref: "missing-check/result.json",
+      }), "utf8");
+      await writeFile(join(seedDir, "missing-check", "result.json"), JSON.stringify({
+        schema_version: "autovul.missing-check/1",
+        run_id: seedRunId,
+        hypothesis: {
+          operation: { name: "handleExchange" },
+          required_check: { name: "assertAdmin" },
+        },
+      }), "utf8");
+
+      const requestPath = join(root, "variant-search-request.json");
+      await writeFile(requestPath, JSON.stringify({
+        service: "variant_search",
+        service_version: "autovul.variant-search/1",
+        input: {
+          seed_run_id: seedRunId,
+          corpus: [{
+            kind: "git_revision",
+            repository: root,
+            revision: head,
+          }],
+          strategy: "symbol_call_pattern",
+          budget: {
+            max_candidates: 10,
+            max_files_per_target: 10,
+            timeout_ms: 10_000,
+          },
+        },
+      }), "utf8");
+
+      const output = ioBuffer();
+      expect(await runCli(["research", "execute", "--request", requestPath, "--json", "--runs-dir", runsDir, "--workspace-root", root], {
+        stdout: (value) => output.stdout.push(value),
+        stderr: (value) => output.stderr.push(value),
+      })).toBe(0);
+
+      const executed = JSON.parse(output.stdout.join("")) as {
+        readonly result?: {
+          readonly run_id?: string;
+          readonly service?: string;
+          readonly operation_status?: string;
+          readonly observation?: { readonly candidates?: readonly unknown[] };
+        };
+      };
+      expect(executed.result).toMatchObject({
+        service: "variant_search",
+        operation_status: "completed",
+      });
+      expect(executed.result?.observation?.candidates).toHaveLength(1);
+      const runId = executed.result?.run_id;
+      expect(runId).toMatch(/^run_/);
+
+      const replayOutput = ioBuffer();
+      expect(await runCli(["run", "replay", runId ?? "", "--json", "--runs-dir", runsDir, "--workspace-root", root], {
+        stdout: (value) => replayOutput.stdout.push(value),
+        stderr: (value) => replayOutput.stderr.push(value),
+      })).toBe(0);
+      expect(JSON.parse(replayOutput.stdout.join(""))).toMatchObject({
+        result: { service: "variant_search", status: "identical" },
+      });
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
 });
 
 async function git(repository: string, args: readonly string[]): Promise<void> {

@@ -198,7 +198,42 @@ export type {
   TargetPair,
   GitRevisionTargetPair,
   RunAction,
+  ChangeObservationResearchOperationRouteSchema,
+  VariantSearchResearchOperationRouteSchema,
 } from "./research.js";
+export type {
+  ChangeObservationResearchOperationRoute,
+  VariantSearchResearchOperationRoute,
+} from "./research.js";
+export {
+  VARIANT_SEARCH_LIMITS,
+  VARIANT_SEARCH_SERVICE,
+  VARIANT_SEARCH_SERVICE_VERSION,
+  VariantCandidateLocationSchema,
+  VariantCandidateSchema,
+  VariantSearchBudgetOverrideSchema,
+  VariantSearchBudgetSchema,
+  VariantSearchInputSchema,
+  VariantSearchObservationSchema,
+  VariantSearchResultArtifactSchema,
+  VariantSearchServiceRequestSchema,
+  VariantSearchStrategySchema,
+  VariantSearchExecutionResultSchema,
+  VariantSearchReplayComparisonSchema,
+} from "./variant-search.js";
+export type {
+  VariantCandidate,
+  VariantCandidateLocation,
+  VariantSearchBudget,
+  VariantSearchBudgetOverride,
+  VariantSearchInput,
+  VariantSearchObservation,
+  VariantSearchResultArtifact,
+  VariantSearchServiceRequest,
+  VariantSearchStrategy,
+  VariantSearchExecutionResult,
+  VariantSearchReplayComparison,
+} from "./variant-search.js";
 export {
   CHANGE_OBSERVATION_LIMITS,
   CHANGE_OBSERVATION_SERVICE,

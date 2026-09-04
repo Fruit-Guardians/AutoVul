@@ -8,6 +8,7 @@ export { CodeqlMissingCheckAdapter } from "./missing-check-adapter.js";
 export { JavascriptCfgMissingCheckAdapter } from "./javascript-cfg-adapter.js";
 export { CodeqlTypestateAdapter, CODEQL_TYPESTATE_ADAPTER_VERSION } from "./typestate-adapter.js";
 export { GitChangeObservationAdapter, type GitChangeObservationAdapterOptions } from "./change-observation-git-adapter.js";
+export { GitVariantSearchAdapter, type GitVariantSearchAdapterOptions } from "./variant-search-git-adapter.js";
 export { NodeFileSystemPort, makeTemporaryRoot } from "./node-filesystem.js";
 export { NodeProcessPort } from "./node-process.js";
 export { limitOutput, sanitizeOutput } from "./output.js";

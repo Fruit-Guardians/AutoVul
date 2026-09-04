@@ -5,7 +5,12 @@ import {
   CHANGE_OBSERVATION_SERVICE_VERSION,
   ChangeObservationServiceRequestSchema,
 } from "./change-observation.js";
-import { RunIdSchema } from "./schemas.js";
+import { GitRevisionTargetRefSchema, type GitRevisionTargetRef, RunIdSchema } from "./schemas.js";
+import {
+  VARIANT_SEARCH_SERVICE,
+  VARIANT_SEARCH_SERVICE_VERSION,
+  VariantSearchServiceRequestSchema,
+} from "./variant-search.js";
 
 /** Versioned routing identities. Domain schemas remain capability-owned. */
 export const FLOW_HYPOTHESIS_VERSION = "autovul.flow/1" as const;
@@ -112,6 +117,7 @@ export type CapabilityResearchRequest = Static<typeof CapabilityResearchRequestS
 export const ResearchRequestSchema = Type.Union([
   CapabilityResearchRequestSchema,
   ChangeObservationServiceRequestSchema,
+  VariantSearchServiceRequestSchema,
 ]);
 export type ResearchRequest = Static<typeof ResearchRequestSchema>;
 
@@ -125,16 +131,7 @@ export const CodeqlDatabaseTargetRefSchema = Type.Object(
 );
 export type CodeqlDatabaseTargetRef = Static<typeof CodeqlDatabaseTargetRefSchema>;
 
-export const GitRevisionTargetRefSchema = Type.Object(
-  {
-    kind: Type.Literal("git_revision"),
-    repository: Type.String({ minLength: 1, maxLength: 4096 }),
-    revision: Type.String({ pattern: "^(?:[a-f0-9]{40}|[a-f0-9]{64})$" }),
-    expected_fingerprint: Type.Optional(Type.String({ pattern: "^[a-f0-9]{16,64}$" })),
-  },
-  { additionalProperties: false },
-);
-export type GitRevisionTargetRef = Static<typeof GitRevisionTargetRefSchema>;
+export { GitRevisionTargetRefSchema, type GitRevisionTargetRef };
 
 /** Target identity for CodeQL-based capabilities (Flow, Typestate). */
 export const TargetRefSchema = CodeqlDatabaseTargetRefSchema;
@@ -216,7 +213,7 @@ export const CapabilityResearchOperationRouteSchema = Type.Union([
 ]);
 export type CapabilityResearchOperationRoute = Static<typeof CapabilityResearchOperationRouteSchema>;
 
-export const AnalyzerServiceResearchOperationRouteSchema = Type.Object(
+export const ChangeObservationResearchOperationRouteSchema = Type.Object(
   {
     schema_version: Type.Literal("v2.contracts/1"),
     route_kind: Type.Literal("analyzer_service"),
@@ -226,6 +223,24 @@ export const AnalyzerServiceResearchOperationRouteSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+export type ChangeObservationResearchOperationRoute = Static<typeof ChangeObservationResearchOperationRouteSchema>;
+
+export const VariantSearchResearchOperationRouteSchema = Type.Object(
+  {
+    schema_version: Type.Literal("v2.contracts/1"),
+    route_kind: Type.Literal("analyzer_service"),
+    service: Type.Literal(VARIANT_SEARCH_SERVICE),
+    service_version: Type.Literal(VARIANT_SEARCH_SERVICE_VERSION),
+    result_artifact_ref: Type.String({ minLength: 1 }),
+  },
+  { additionalProperties: false },
+);
+export type VariantSearchResearchOperationRoute = Static<typeof VariantSearchResearchOperationRouteSchema>;
+
+export const AnalyzerServiceResearchOperationRouteSchema = Type.Union([
+  ChangeObservationResearchOperationRouteSchema,
+  VariantSearchResearchOperationRouteSchema,
+]);
 export type AnalyzerServiceResearchOperationRoute = Static<typeof AnalyzerServiceResearchOperationRouteSchema>;
 
 /** Newly persisted routes are a closed static union, never artifact-name inferred. */

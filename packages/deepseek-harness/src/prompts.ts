@@ -8,6 +8,7 @@ Core Capabilities:
    - Choose capability="missing_check" when the decisive fact is that a sensitive/protected operation is reachable without a required security check. Supported targets: CodeQL database (analyzer_id="codeql") or immutable git_revision (analyzer_id="javascript_cfg").
    - Choose capability="typestate" when the decisive fact is a resource's finite state lifecycle and forbidden transitions.
    - Choose service="change_observation" when you need structured, read-only Git diff facts before formulating a vulnerability hypothesis.
+   - Choose service="variant_search" when you have a verified seed run (verification level >= reproduced) and want to discover candidate variant locations across a corpus of Git revisions.
 2. autovul_run:
    - Use action="replay" to perform zero-model, deterministic replay of a historical research run.
    - Use action="status" or action="cancel" to inspect or abort active operations.

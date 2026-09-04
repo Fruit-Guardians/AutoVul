@@ -18,6 +18,7 @@ import { CodeqlMissingCheckAdapter } from "./missing-check-adapter.js";
 import { JavascriptCfgMissingCheckAdapter } from "./javascript-cfg-adapter.js";
 import { CodeqlTypestateAdapter } from "./typestate-adapter.js";
 import { GitChangeObservationAdapter } from "./change-observation-git-adapter.js";
+import { GitVariantSearchAdapter } from "./variant-search-git-adapter.js";
 
 export interface LocalApplicationOptions {
   readonly cwd?: string;
@@ -53,6 +54,7 @@ export function createLocalApplication(options: LocalApplicationOptions = {}): A
     }),
     typestate: new CodeqlTypestateAdapter({ executable, cwd, filesystem }),
     changeObservation: new GitChangeObservationAdapter({ trustedRoots: [trustedWorkspaceRoot], filesystem }),
+    variantSearch: new GitVariantSearchAdapter({ trustedRoots: [trustedWorkspaceRoot], filesystem }),
     drafts,
     artifacts: new LocalArtifactStore(runsDir, filesystem),
     clock: new SystemClock(),

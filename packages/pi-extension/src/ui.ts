@@ -35,6 +35,7 @@ export function absorbDetails(state: PiUiState, value: unknown): void {
   const record = asRecord(value);
   if (record === undefined) return;
   if (absorbTypestateReplay(state, record)) return;
+  if (absorbAnalyzerServiceResult(state, record)) return;
   absorbAggregateResult(state, record);
   absorbValidationResult(state, record);
   const run = asRecord(record.run);
@@ -174,6 +175,23 @@ function terminalStatusText(state: PiUiState): string | undefined {
   if (state.status === "cancelled") return `${prefix} ⏹ cancelled`;
   if (state.status === "budget_exhausted") return "CodeQL ⚠ budget exhausted · /codeql status";
   return undefined;
+}
+
+function absorbAnalyzerServiceResult(state: PiUiState, record: Record<string, unknown>): boolean {
+  if (record.service !== "change_observation" && record.service !== "variant_search") return false;
+  state.phase = "research";
+  setOptionalString(state, "runId", record.run_id);
+  if (typeof record.operation_status === "string") {
+    state.operationStatus = record.operation_status;
+    setAggregateStatus(state, record.operation_status);
+  }
+  if (typeof record.artifact_ref === "string") state.artifactRef = record.artifact_ref;
+  if (typeof record.status === "string") {
+    state.phase = "run";
+    state.operationStatus = record.status;
+    state.status = record.status === "identical" ? "completed" : record.status === "cancelled" ? "cancelled" : "failed";
+  }
+  return true;
 }
 
 function absorbAggregateResult(state: PiUiState, record: Record<string, unknown>): void {

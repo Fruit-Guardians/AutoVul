@@ -11,6 +11,7 @@ import {
   TargetPairSchema,
 } from "./research.js";
 import { TypestateResearchToolInputSchema } from "./typestate.js";
+import { VariantSearchServiceRequestSchema } from "./variant-search.js";
 
 export const CodeqlMissingCheckResearchToolInputSchema = Type.Object(
   {
@@ -56,5 +57,6 @@ export const AutovulResearchToolInputSchema = Type.Union([
   MissingCheckResearchToolInputSchema,
   TypestateResearchToolInputSchema,
   ChangeObservationServiceRequestSchema,
+  VariantSearchServiceRequestSchema,
 ]);
 export type AutovulResearchToolInput = Static<typeof AutovulResearchToolInputSchema>;

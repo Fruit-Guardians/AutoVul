@@ -3,7 +3,8 @@ import {
   LegacyCapabilityResearchOperationRouteSchema,
   parseSchema,
   ResearchOperationRouteSchema,
-  type AnalyzerServiceResearchOperationRoute,
+  type ChangeObservationResearchOperationRoute,
+  type VariantSearchResearchOperationRoute,
   type FlowCapabilityResearchOperationRoute,
   type MissingCheckCapabilityResearchOperationRoute,
   type ResearchOperationRoute,
@@ -20,13 +21,16 @@ type ResearchOperationRouteWrite =
   | Omit<FlowCapabilityResearchOperationRoute, "schema_version" | "route_kind">
   | Omit<MissingCheckCapabilityResearchOperationRoute, "schema_version" | "route_kind">
   | Omit<TypestateCapabilityResearchOperationRoute, "schema_version" | "route_kind">
-  | Omit<AnalyzerServiceResearchOperationRoute, "schema_version" | "route_kind">;
+  | Omit<ChangeObservationResearchOperationRoute, "schema_version" | "route_kind">
+  | Omit<VariantSearchResearchOperationRoute, "schema_version" | "route_kind">;
 
 export function serializeResearchOperationRoute(
   route: ResearchOperationRouteWrite,
 ): string {
   const persisted: ResearchOperationRoute = "service" in route
-    ? { schema_version: CONTRACTS_VERSION, route_kind: "analyzer_service", ...route }
+    ? route.service === "change_observation"
+      ? { schema_version: CONTRACTS_VERSION, route_kind: "analyzer_service", service: "change_observation", service_version: route.service_version, result_artifact_ref: route.result_artifact_ref }
+      : { schema_version: CONTRACTS_VERSION, route_kind: "analyzer_service", service: "variant_search", service_version: route.service_version, result_artifact_ref: route.result_artifact_ref }
     : route.capability === "flow"
       ? { schema_version: CONTRACTS_VERSION, route_kind: "capability", capability: "flow", hypothesis_version: route.hypothesis_version, result_artifact_ref: route.result_artifact_ref }
       : route.capability === "missing_check"

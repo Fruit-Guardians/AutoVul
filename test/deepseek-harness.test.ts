@@ -8,12 +8,15 @@ import { promisify } from "node:util";
 import {
   type MissingCheckExecutionResult,
   type MissingCheckHypothesis,
+  type VariantSearchExecutionResult,
+  type VariantSearchReplayComparison,
 } from "@autovul/contracts";
 import {
   Application,
   CompositeMissingCheckExecutionPort,
 } from "@autovul/core";
 import {
+  GitVariantSearchAdapter,
   JavascriptCfgMissingCheckAdapter,
   NodeFileSystemPort,
 } from "@autovul/codeql-runner";
@@ -175,8 +178,12 @@ describe("DeepSeek Harness Integration Adapter (@autovul/deepseek-harness)", () 
           codeql: new FakeCodeqlPort(),
           artifacts: new MemoryArtifactStore(join(dir, "runs")),
           clock: new FixedClock(1_700_000_000_000),
-          ids: new FixedIdGenerator(["run-deepseek-diff-1"]),
+          ids: new FixedIdGenerator(["run-deepseek-diff-1", "run-deepseek-var-1"]),
           missingCheck,
+          variantSearch: new GitVariantSearchAdapter({
+            trustedRoots: [repoDir],
+            filesystem: fs,
+          }),
         });
 
         const plugin = createDeepSeekHarnessPlugin({ application: app });
@@ -219,6 +226,44 @@ describe("DeepSeek Harness Integration Adapter (@autovul/deepseek-harness)", () 
           run_id: data.run_id,
         });
         expect(statusResult.success).toBe(true);
+
+        // Discover variants via autovul_research
+        const variantResult = await plugin.execute("autovul_research", {
+          action: "execute",
+          service: "variant_search",
+          service_version: "autovul.variant-search/1",
+          input: {
+            seed_run_id: data.run_id,
+            corpus: [{
+              kind: "git_revision",
+              repository: repoDir,
+              revision: vulnOid,
+            }],
+            strategy: "symbol_call_pattern",
+            budget: {
+              max_candidates: 10,
+              max_files_per_target: 10,
+              timeout_ms: 5_000,
+            },
+          },
+        });
+
+        expect(variantResult.success).toBe(true);
+        const variantData = variantResult.data as VariantSearchExecutionResult;
+        expect(variantData.service).toBe("variant_search");
+        expect(variantData.operation_status).toBe("completed");
+        expect(variantData.observation?.candidates).toHaveLength(1);
+
+        // Replay variant search via autovul_run
+        const replayVariantResult = await plugin.execute("autovul_run", {
+          action: "replay",
+          run_id: variantData.run_id,
+        });
+
+        expect(replayVariantResult.success).toBe(true);
+        const replayVariantData = replayVariantResult.data as VariantSearchReplayComparison;
+        expect(replayVariantData.status).toBe("identical");
+        expect(replayVariantData.service).toBe("variant_search");
 
         await plugin.close();
       });

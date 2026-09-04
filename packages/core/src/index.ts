@@ -84,3 +84,18 @@ export type {
   QueryProbeExecutionPort,
   QueryProbeRequest,
 } from "./ports.js";
+export {
+  VariantSearchService,
+  VARIANT_SEARCH_RESULT_ARTIFACT,
+  variantSearchRunIdForInput,
+  readVariantSearchResultArtifact,
+} from "./variant-search/service.js";
+export { VariantSearchReplayService } from "./variant-search/replay.js";
+export { extractSeedPatternFacts } from "./variant-search/seed-facts.js";
+export {
+  unavailableVariantSearchPort,
+  type VariantSearchPort,
+  type VariantSearchPortRequest,
+  type VariantSearchPortObservation,
+  type VariantSeedPatternFacts,
+} from "./variant-search/port.js";
