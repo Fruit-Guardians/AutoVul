@@ -1,0 +1,123 @@
+{
+  "harness": "DeepSeek Function Calling Protocol Fixture",
+  "timestamp": "2026-09-04T10:09:54.934Z",
+  "turns": 14,
+  "trajectory": [
+    {
+      "role": "system",
+      "content": "AutoVul vulnerability-research capabilities are available in this DeepSeek Harness session.\n\nStart with the host's native code inspection, search, and semantic reasoning. The host may deliver a well-supported audit conclusion without an AutoVul run. Invoke AutoVul only when structured validation, deterministic analysis, durable evidence, differential checking, or replay adds value. CodeQL is an optional deep backend, not a prerequisite. Do not label a host assessment as an AutoVul verification level unless the corresponding deterministic contract has run.\n\nCore Capabilities:\n1. autovul_research:\n   - Choose capability=\"flow\" when the decisive fact is source-to-sink value propagation (taint flow) on a CodeQL database.\n   - Choose capability=\"missing_check\" when the decisive fact is that a sensitive/protected operation is reachable without a required security check. Supported targets: CodeQL database (analyzer_id=\"codeql\") or immutable git_revision (analyzer_id=\"javascript_cfg\").\n   - Choose capability=\"typestate\" when the decisive fact is a resource's finite state lifecycle and forbidden transitions.\n   - Choose service=\"change_observation\" when you need structured, read-only Git diff facts before formulating a vulnerability hypothesis.\n   - Choose service=\"variant_search\" when you have a verified seed run (verification level >= reproduced) and want to discover candidate variant locations across a corpus of Git revisions.\n2. autovul_run:\n   - Use action=\"replay\" to perform zero-model, deterministic replay of a historical research run.\n   - Use action=\"status\" or action=\"cancel\" to inspect or abort active operations.\n\nAudit Playbooks (escalate on demand):\n- Patch-Guided: Start with Git patch/diff inspection; verify pre-patch vulnerability and post-patch mitigation via differential missing_check or flow.\n- Sink-Guided: Trace backwards from dangerous operations (exec, eval, SQL, SSRF) to input source via CodeQL data-flow analysis.\n- Protocol-Guided: Check stateful resource lifecycle and invariant ordering violations via identity-sensitive typestate analysis.\n- Variant-Guided: Discover candidate sites across a corpus from a verified seed run via variant_search; validate each candidate via owning capability.\n\nArchitecture & Evidence:\n- Model reasoning forms the research hypothesis; AutoVul determines facts via deterministic execution.\n- Successful verification produces structured observations and evidence references, capped strictly by verified analyzer execution.\n- Differential verification evaluates both vulnerable and fixed targets, confirming positive reproduction on the vulnerable target and successful mitigation on the fixed target."
+    },
+    {
+      "role": "user",
+      "content": "Audit OpenClaw CVE-2026-43572 using patch-guided differential verification"
+    },
+    {
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "id": "call_0001",
+          "type": "function",
+          "function": {
+            "name": "autovul_research",
+            "arguments": "{\"action\":\"execute\",\"capability\":\"missing_check\",\"hypothesis_version\":\"autovul.missing-check/1\",\"hypothesis\":{\"schema_version\":\"autovul.missing-check/1\",\"hypothesis_id\":\"mcheck-openclaw-43572-deepseek\",\"language\":\"javascript\",\"operation\":{\"kind\":\"direct_call\",\"name\":\"handleSigninTokenExchangeInvoke\"},\"required_check\":{\"kind\":\"direct_call\",\"name\":\"isSigninInvokeAuthorized\"},\"required_relation\":\"same_callback_cfg_dominates_operation\",\"scope\":{\"kind\":\"single_file_named_entry_cfg\",\"file\":\"extensions/msteams/src/monitor-handler.ts\",\"entry\":{\"kind\":\"named_function\",\"name\":\"registerMSTeamsHandlers\"}}},\"analyzer_id\":\"javascript_cfg\",\"mode\":\"differential\",\"target\":{\"vulnerable\":{\"kind\":\"git_revision\",\"repository\":\"/var/folders/2z/ldqq73ps0z96pl_vz7y6j2p80000gn/T/autovul-deepseek-acceptance-Yj8zc9/repo\",\"revision\":\"45354fae34f91cd10b822a4d0d382a798d2263a0\"},\"fixed\":{\"kind\":\"git_revision\",\"repository\":\"/var/folders/2z/ldqq73ps0z96pl_vz7y6j2p80000gn/T/autovul-deepseek-acceptance-Yj8zc9/repo\",\"revision\":\"e13116675cd8844d4305f76103be0f50a324baa1\"}},\"budget\":{\"timeout_ms\":15000},\"idempotency_key\":\"deepseek-acceptance-case-01\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_0001",
+      "content": "{\n  \"schema_version\": \"v2.contracts/1\",\n  \"run_id\": \"run_875244accfb8986b\",\n  \"operation_status\": \"completed\",\n  \"capability\": \"missing_check\",\n  \"decision\": {\n    \"capability\": \"missing_check\",\n    \"outcome\": \"check_missing\",\n    \"fixed_outcome\": \"check_present\",\n    \"fixed_policy_satisfied\": true\n  },\n  \"verification_level\": \"differential\",\n  \"observations\": [\n    {\n      \"code\": \"MCHECK_OPERATION_OBSERVED\",\n      \"path\": \"/operation\",\n      \"locations\": [\n        {\n          \"file\": \"extensions/msteams/src/monitor-handler.ts\",\n          \"start_line\": 3,\n          \"end_line\": 3\n        }\n      ]\n    },\n    {\n      \"code\": \"MCHECK_CHECK_OBSERVED\",\n      \"path\": \"/required_check\",\n      \"locations\": [\n        {\n          \"file\": \"extensions/msteams/src/monitor-handler.ts\",\n          \"start_line\": 3,\n          \"end_line\": 3\n        }\n      ]\n    },\n    {\n      \"code\": \"MCHECK_RELATION_UNCHECKED_WITNESS\",\n      \"path\": \"/required_relation\",\n      \"evidence_ref\": \"missing-check/mcheck-openclaw-43572-deepseek/vulnerable/witnesses.json\"\n    },\n    {\n      \"code\": \"MCHECK_FIXED_RELATION_CHECKED_WITNESS\",\n      \"path\": \"/required_relation\",\n      \"evidence_ref\": \"missing-check/mcheck-openclaw-43572-deepseek/fixed/witnesses.json\"\n    }\n  ],\n  \"revision_hints\": [],\n  \"allowed_next_actions\": [\n    \"replay\",\n    \"stop\"\n  ],\n  \"artifact_ref\": \"research/missing-check/result.json\"\n}"
+    },
+    {
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "id": "call_0002",
+          "type": "function",
+          "function": {
+            "name": "autovul_run",
+            "arguments": "{\"action\":\"status\",\"run_id\":\"run_875244accfb8986b\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_0002",
+      "content": "{\n  \"schemaVersion\": \"v2.contracts/1\",\n  \"runId\": \"run_875244accfb8986b\",\n  \"status\": \"completed\",\n  \"verificationLevel\": \"differential\",\n  \"createdAt\": \"2026-09-04T10:09:54.385Z\",\n  \"updatedAt\": \"2026-09-04T10:09:54.716Z\",\n  \"artifactRoot\": \"/var/folders/2z/ldqq73ps0z96pl_vz7y6j2p80000gn/T/autovul-deepseek-acceptance-Yj8zc9/runs/run_875244accfb8986b\",\n  \"phase\": \"missing_check_execute\"\n}"
+    },
+    {
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "id": "call_0003",
+          "type": "function",
+          "function": {
+            "name": "autovul_run",
+            "arguments": "{\"action\":\"replay\",\"run_id\":\"run_875244accfb8986b\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_0003",
+      "content": "{\n  \"schema_version\": \"v2.contracts/1\",\n  \"run_id\": \"run_875244accfb8986b\",\n  \"operation_status\": \"completed\",\n  \"capability\": \"missing_check\",\n  \"decision\": {\n    \"capability\": \"missing_check\",\n    \"outcome\": \"check_missing\",\n    \"fixed_outcome\": \"check_present\",\n    \"fixed_policy_satisfied\": true\n  },\n  \"verification_level\": \"differential\",\n  \"observations\": [\n    {\n      \"code\": \"MCHECK_OPERATION_OBSERVED\",\n      \"path\": \"/operation\",\n      \"locations\": [\n        {\n          \"file\": \"extensions/msteams/src/monitor-handler.ts\",\n          \"start_line\": 3,\n          \"end_line\": 3\n        }\n      ]\n    },\n    {\n      \"code\": \"MCHECK_CHECK_OBSERVED\",\n      \"path\": \"/required_check\",\n      \"locations\": [\n        {\n          \"file\": \"extensions/msteams/src/monitor-handler.ts\",\n          \"start_line\": 3,\n          \"end_line\": 3\n        }\n      ]\n    },\n    {\n      \"code\": \"MCHECK_RELATION_UNCHECKED_WITNESS\",\n      \"path\": \"/required_relation\",\n      \"evidence_ref\": \"missing-check-replay/mcheck-openclaw-43572-deepseek/vulnerable/witnesses.json\"\n    },\n    {\n      \"code\": \"MCHECK_FIXED_RELATION_CHECKED_WITNESS\",\n      \"path\": \"/required_relation\",\n      \"evidence_ref\": \"missing-check-replay/mcheck-openclaw-43572-deepseek/fixed/witnesses.json\"\n    }\n  ],\n  \"revision_hints\": [],\n  \"allowed_next_actions\": [\n    \"replay\",\n    \"stop\"\n  ],\n  \"artifact_ref\": \"research/missing-check/result.json\"\n}"
+    },
+    {
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "id": "call_0004",
+          "type": "function",
+          "function": {
+            "name": "autovul_research",
+            "arguments": "{\"action\":\"execute\",\"capability\":\"missing_check\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_0004",
+      "content": "{\n  \"error\": {\n    \"schemaVersion\": \"v2.contracts/1\",\n    \"code\": \"INVALID_INPUT\",\n    \"category\": \"input\",\n    \"retryable\": false,\n    \"message\": \"Invalid autovul_research input\",\n    \"details\": {\n      \"label\": \"autovul_research input\",\n      \"issues\": [\n        {\n          \"path\": \"\",\n          \"message\": \"must have required properties hypothesis_version, hypothesis\"\n        },\n        {\n          \"path\": \"\",\n          \"message\": \"must be equal to constant\"\n        },\n        {\n          \"path\": \"\",\n          \"message\": \"must have required properties hypothesis_version, hypothesis\"\n        },\n        {\n          \"path\": \"\",\n          \"message\": \"must have required properties hypothesis_version, hypothesis, analyzer_id\"\n        },\n        {\n          \"path\": \"\",\n          \"message\": \"must match a schema in anyOf\"\n        },\n        {\n          \"path\": \"\",\n          \"message\": \"must have required properties hypothesis_version, hypothesis\"\n        },\n        {\n          \"path\": \"\",\n          \"message\": \"must be equal to constant\"\n        },\n        {\n          \"path\": \"\",\n          \"message\": \"must have required properties service, service_version, input\"\n        }\n      ]\n    }\n  }\n}"
+    },
+    {
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "id": "call_0005",
+          "type": "function",
+          "function": {
+            "name": "autovul_research",
+            "arguments": "{\"action\":\"execute\",\"capability\":\"missing_check\",\"hypothesis_version\":\"autovul.missing-check/1\",\"hypothesis\":{\"schema_version\":\"autovul.missing-check/1\",\"hypothesis_id\":\"mcheck-openclaw-43572-deepseek\",\"language\":\"javascript\",\"operation\":{\"kind\":\"direct_call\",\"name\":\"handleSigninTokenExchangeInvoke\"},\"required_check\":{\"kind\":\"direct_call\",\"name\":\"isSigninInvokeAuthorized\"},\"required_relation\":\"same_callback_cfg_dominates_operation\",\"scope\":{\"kind\":\"single_file_named_entry_cfg\",\"file\":\"extensions/msteams/src/monitor-handler.ts\",\"entry\":{\"kind\":\"named_function\",\"name\":\"registerMSTeamsHandlers\"}}},\"analyzer_id\":\"javascript_cfg\",\"mode\":\"differential\",\"target\":{\"vulnerable\":{\"kind\":\"git_revision\",\"repository\":\"/var/folders/2z/ldqq73ps0z96pl_vz7y6j2p80000gn/T/autovul-deepseek-acceptance-Yj8zc9/repo\",\"revision\":\"45354fae34f91cd10b822a4d0d382a798d2263a0\"},\"fixed\":{\"kind\":\"git_revision\",\"repository\":\"/var/folders/2z/ldqq73ps0z96pl_vz7y6j2p80000gn/T/autovul-deepseek-acceptance-Yj8zc9/repo\",\"revision\":\"e13116675cd8844d4305f76103be0f50a324baa1\"}},\"budget\":{\"timeout_ms\":15000},\"idempotency_key\":\"deepseek-cancelled-run\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_0005",
+      "content": "{\n  \"error\": {\n    \"schemaVersion\": \"v2.contracts/1\",\n    \"code\": \"PROCESS_CANCELLED\",\n    \"category\": \"process\",\n    \"retryable\": false,\n    \"message\": \"Workflow operation for run_2a87c931037f7c3e was cancelled while waiting\",\n    \"details\": {\n      \"runId\": \"run_2a87c931037f7c3e\",\n      \"waitingForWorkflowLease\": true\n    }\n  }\n}"
+    },
+    {
+      "role": "assistant",
+      "tool_calls": [
+        {
+          "id": "call_0006",
+          "type": "function",
+          "function": {
+            "name": "autovul_run",
+            "arguments": "{\"action\":\"status\",\"run_id\":\"run_875244accfb8986b\"}"
+          }
+        }
+      ]
+    },
+    {
+      "role": "tool",
+      "tool_call_id": "call_0006",
+      "content": "{\n  \"error\": {\n    \"schemaVersion\": \"v2.contracts/1\",\n    \"code\": \"INVALID_STATE_TRANSITION\",\n    \"category\": \"state\",\n    \"retryable\": false,\n    \"message\": \"AutoVul Application is closed\",\n    \"details\": {\n      \"applicationState\": \"closed\"\n    }\n  }\n}"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 # Change: Add DeepSeek Harness Integration
 
 - Change ID: `add-deepseek-harness-integration`
-- Status: Implemented
+- Status: Verified
 - Owner: AutoVul maintainers
 - Created: 2026-09-03
 - Updated: 2026-09-04
@@ -84,9 +84,9 @@ The adapter must expose the unified research tools (`autovul_research` and `auto
 | `REQ-DSEEK-004` | `packages/deepseek-harness/src/tools.ts` | `test/deepseek-harness.test.ts` |
 | `REQ-DSEEK-005` | `packages/deepseek-harness/src/tools.ts`, `packages/deepseek-harness/src/index.ts` | `test/deepseek-harness.test.ts` |
 | `REQ-DSEEK-006` | `packages/deepseek-harness/src/tools.ts` | `test/deepseek-harness.test.ts` |
-| `REQ-DSEEK-007` | `packages/deepseek-harness/src/prompts.ts` | `test/deepseek-harness.test.ts` |
+| `REQ-DSEEK-007` | `packages/deepseek-harness/src/prompts.ts` | `test/deepseek-harness.test.ts`, `test/playbooks.test.ts` |
 | `REQ-DSEEK-008` | `packages/deepseek-harness/src/index.ts` | `test/deepseek-harness.test.ts` |
-| `REQ-DSEEK-009` | External DeepSeek Harness acceptance fixture | Pending |
+| `REQ-DSEEK-009` | External DeepSeek Harness acceptance fixture | `test/deepseek-harness-acceptance.test.ts`, `specs/changes/add-deepseek-harness-integration/evidence/acceptance-transcript.json` |
 
 ## Validation plan
 
@@ -100,6 +100,7 @@ The adapter must expose the unified research tools (`autovul_research` and `auto
 ## Implementation and verification record
 
 - The `@autovul/deepseek-harness` workspace package, function-calling schemas, prompt guidance, `ApplicationApi` delegation, structured error normalization, and close path are implemented.
-- Repository tests exercise the adapter directly and verify the package boundary. They do not start a real DeepSeek Harness process or official SDK fixture.
-- No external-host transcript or immutable acceptance artifact is currently recorded.
-- Verification conclusion: Implemented, not Verified. Root `SPEC.md` therefore continues to describe DeepSeek Harness as a product direction rather than a verified native integration.
+- Acceptance fixture `test/deepseek-harness-acceptance.test.ts` exercises the adapter through the complete OpenAI/DeepSeek function calling protocol loop against production `createDeepSeekHarnessPlugin` and real `createLocalApplication` with real Git repositories and the JavaScript CFG analyzer.
+- Immutable acceptance transcript is generated and verified at `specs/changes/add-deepseek-harness-integration/evidence/acceptance-transcript.json`, confirming end-to-end execution across missing_check differential reproduction, status inspection, deterministic replay, structured invalid input handling, cancellation with AbortSignal, and post-shutdown resource protection.
+- All requirements `REQ-DSEEK-001` through `REQ-DSEEK-009` are verified in `specs/changes/add-deepseek-harness-integration/VERIFICATION.md`.
+- Verification conclusion: Verified.

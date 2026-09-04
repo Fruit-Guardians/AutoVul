@@ -13,7 +13,7 @@ export const RESEARCH_TOOL_DEFINITION: DeepSeekFunctionDefinition = {
   type: "function",
   function: {
     name: "autovul_research",
-    description: "Validate or execute a versioned Flow, MissingCheck, or Typestate vulnerability research hypothesis, or execute the Change Observation static service.",
+    description: "Validate or execute a versioned Flow, MissingCheck, or Typestate vulnerability research hypothesis, or execute the Change Observation or Variant Search analyzer services.",
     parameters: AutovulResearchToolInputSchema as unknown as Record<string, unknown>,
   },
 };

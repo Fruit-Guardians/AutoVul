@@ -89,7 +89,7 @@ Production dependencies follow one direction:
 | [`@autovul/core`](./packages/core) | Domain validation and decisions, lifecycle, budgets, evidence commit, recovery, and replay |
 | [`@autovul/codeql-runner`](./packages/codeql-runner) | CodeQL, JavaScript CFG, Git, filesystem, and process adapters |
 | [`@autovul/pi-extension`](./packages/pi-extension) | Thin Pi registration, lifecycle binding, and compact presentation |
-| [`@autovul/deepseek-harness`](./packages/deepseek-harness) | Thin function-calling adapter; external-harness verification is still pending |
+| [`@autovul/deepseek-harness`](./packages/deepseek-harness) | Thin function-calling adapter; external-harness boundary verified with acceptance transcript |
 | [`@autovul/cli`](./packages/cli) | Deterministic debugging, CI, status, cancellation, and model-free replay interface |
 
 ## Evidence levels

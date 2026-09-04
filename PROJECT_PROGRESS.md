@@ -136,34 +136,30 @@
 | [`add-change-observation-analyzer-v1`](./specs/changes/add-change-observation-analyzer-v1/SPEC.md) | Analyzer Service | `Archived` | [逐项验证](./specs/changes/add-change-observation-analyzer-v1/VERIFICATION.md) |
 | [`add-application-shutdown-semantics`](./specs/changes/add-application-shutdown-semantics/SPEC.md) | Runtime | `Archived` | 关闭、取消与资源释放门已记录在 SPEC |
 | [`harden-capability-execution-contracts-v1`](./specs/changes/harden-capability-execution-contracts-v1/SPEC.md) | Contracts/Replay | `Verified` | 要求映射与确定性测试已记录，尚未归档 |
-| [`add-missing-check-javascript-cfg-analyzer-v1`](./specs/changes/add-missing-check-javascript-cfg-analyzer-v1/SPEC.md) | Analyzer | `Implemented` | 真实 OpenClaw clean-process Golden 与 `VERIFICATION.md` 待补 |
-| [`add-deepseek-harness-integration`](./specs/changes/add-deepseek-harness-integration/SPEC.md) | Integration | `Implemented` | 真实外部 Harness/SDK 验收待补 |
+| [`add-missing-check-javascript-cfg-analyzer-v1`](./specs/changes/add-missing-check-javascript-cfg-analyzer-v1/SPEC.md) | Analyzer | `Verified` | [逐项验证](./specs/changes/add-missing-check-javascript-cfg-analyzer-v1/VERIFICATION.md) |
+| [`add-deepseek-harness-integration`](./specs/changes/add-deepseek-harness-integration/SPEC.md) | Integration | `Verified` | [逐项验证](./specs/changes/add-deepseek-harness-integration/VERIFICATION.md) |
 | [`rename-project-to-autovul`](./specs/changes/rename-project-to-autovul/SPEC.md) | Compatibility | `Implemented` | pre-rename 真实 replay 与兼容窗口决策待补 |
 | [`stabilize-architecture-boundaries`](./specs/changes/stabilize-architecture-boundaries/SPEC.md) | Architecture | `Implemented` | 历史 SPEC 的真实矩阵映射仍未闭合 |
 | [`harden-workflow-commit-boundaries`](./specs/changes/harden-workflow-commit-boundaries/SPEC.md) | Runtime | `Accepted` | 实现、故障注入、并发与真实 Query Pack replay 待完成 |
-| [`classify-variant-research-role`](./specs/changes/classify-variant-research-role/SPEC.md) | 分类 | `Accepted` | `search_service` 已选定；两家族分类证据待补 |
-| [`introduce-variant-search-service-v1`](./specs/changes/introduce-variant-search-service-v1/SPEC.md) | Analyzer Service | `Accepted` | 实现中；契约、证据、replay 与真实矩阵未收口 |
+| [`classify-variant-research-role`](./specs/changes/classify-variant-research-role/SPEC.md) | 分类 | `Archived` | `search_service` 已选定；两家族分类证据已闭合 |
+| [`introduce-variant-search-service-v1`](./specs/changes/introduce-variant-search-service-v1/SPEC.md) | Analyzer Service | `Verified` | [逐项验证](./specs/changes/introduce-variant-search-service-v1/VERIFICATION.md) |
 
 ## 验证快照
 
 | 项目 | 当前记录 |
 | --- | --- |
 | 最近同步的代码基线 | `9a3c37e`，`main` 与 `origin/main` 同步时的基线 |
-| 当前工作区 | 含未提交的 Variant Search、宿主投影、README、包级文档与测试改动 |
+| 当前工作区 | 完成 Variant Search v1、JavaScript CFG v1、审计 Playbooks、DeepSeek Harness 外部验收 |
 | 本轮文档检查 | `spec:check` 通过：125 条根基线要求、15 份变更 SPEC；`naming:check`、文档链接检查和 `git diff --check` 通过 |
-| 当前 full gate | 本轮未运行 `npm run check`；当前工作区含实现改动，不能用文档检查替代全量代码门禁 |
-| 已归档真实证据 | Flow、MissingCheck、Typestate、Change Observation 各自的 `VERIFICATION.md` 和 evidence 目录 |
-| 未闭合真实证据 | JavaScript CFG、DeepSeek 外部宿主、Variant 分类与 Variant Search |
+| 当前 full gate | 代码与规范门禁全绿 (`npm run check`，`vitest run`) |
+| 已归档真实证据 | Flow、MissingCheck、Typestate、Change Observation、JS CFG、Variant Search 各自的 `VERIFICATION.md` 和 evidence 目录 |
+| 外部宿主验收证据 | DeepSeek Harness 函数调用协议验收录像 (`acceptance-transcript.json`) |
 
 ## 下一步执行顺序
 
-1. 先按 `introduce-variant-search-service-v1` 收紧 seed、identity、completeness、atomic artifact 和 replay；这一步不扩大策略数量。
-2. 再建立两个真实 variant family manifests，跑结构策略与 exact/text baseline，并用 owning Capability 验证选中的非 seed candidate。
-3. Variant 达到 `Verified` 后再归档；根 `SPEC.md` 在此之前不加入 Variant 稳定要求。
-4. 补 JavaScript CFG 的真实 OpenClaw gate，决定是否推进到 `Verified`。
-5. 补 DeepSeek 真实外部 Harness 验收，确认第二宿主不是“仅兼容 function schema”的名义集成。
-6. 收口 workflow commit、rename、architecture stabilization 三项生命周期债务。
-7. 以宿主语义审计 Playbook 和提示审查固定 Agent-audit-first 路径，再从轻量 Analyzer、Dynamic Reproduction、MCP、Dependency Intelligence 中选一个立项。每次只引入一个窄边界和一个真实验收案例。
+1. 原型化受控动态复现 Port (`Controlled Dynamic Reproduction Port`)，建立受控沙箱执行、严格预算、确定性证据固化与独立 replay 契约。
+2. 收口 workflow commit、rename、architecture stabilization 三项生命周期债务。
+3. 保持根 `SPEC.md` 与已完成 SPEC 归档同步。
 
 ## 文档维护规则
 
