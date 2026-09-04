@@ -63,6 +63,17 @@ host-native semantic audit
 
 The host may stop at any stage. A host assessment is useful research output, but it must not be presented as an AutoVul verification level unless the relevant deterministic contract has run.
 
+## Semantic audit playbooks
+
+To put "Agent-native audit first, AutoVul on-demand escalation" into operational practice, four canonical playbooks guide the host Agent:
+
+- [**Patch-Guided**](./playbooks/patch-guided.md): Trace vulnerabilities backwards from Git commits, PRs, or security patches, validating fixes with `differential` verification.
+- [**Sink-Guided**](./playbooks/sink-guided.md): Trace backwards from sensitive operations (exec, eval, SQL, SSRF) through multi-procedure call chains using CodeQL data-flow evidence.
+- [**Protocol-Guided**](./playbooks/protocol-guided.md): Validate state-machine and lifecycle ordering violations on identity-sensitive resources using Typestate analysis.
+- [**Variant-Guided**](./playbooks/variant-guided.md): Discover and filter cross-repository or cross-module variants from a verified seed vulnerability using Variant Search and owning-Capability confirmation.
+
+See [playbooks/README.md](./playbooks/README.md) for the complete guide and host-autonomous boundary definitions.
+
 Production dependencies follow one direction:
 
 ```text

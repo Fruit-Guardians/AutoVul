@@ -50,6 +50,7 @@
 - [x] 将宿主主接口收敛为 `autovul_research` 与 `autovul_run`，旧 `codeql_*` 仅作兼容面。
 - [x] 将 CodeQL 定位为可选的深度分析后端，不再把项目边界写成 CodeQL 工作流。
 - [x] 将 Delta 归类为 Analyzer Service，并以 Change Observation v1 完成落地。
+- [x] 建立 4 个宿主语义审计 Playbook（`patch-guided`、`sink-guided`、`protocol-guided`、`variant-guided`），明确五维工作流与端到端真实案例，在 Pi/DeepSeek 提示与 README 中落实“Agent 原生审计优先、按需逐级增强”。
 
 ### 已归档研究能力与服务
 
@@ -99,7 +100,7 @@
 
 ### P2 — 下一阶段候选，尚未立项
 
-- [ ] 宿主语义审计 Playbook：在 Pi/DeepSeek Integration 或独立 Skill 中整理 patch-guided、sink-guided、protocol-guided 和 variant-guided 路线；复用宿主文件/搜索能力，不新增模型 Provider、Agent Loop 或 Core 语义审计框架。
+- [x] 宿主语义审计 Playbook：在 playbooks/ 目录提供 patch-guided、sink-guided、protocol-guided 和 variant-guided 路线，并在 Pi/DeepSeek 提示中完成对齐；复用宿主文件/搜索能力，不新增模型 Provider、Agent Loop 或 Core 语义审计框架。
 - [ ] 轻量 Analyzer：优先围绕规则明确、局部可判定的研究动作立项，例如语法/CFG、Git/patch、依赖事实；每项单独写 SPEC 和 completeness 边界。
 - [ ] Dynamic Reproduction Port：先解决隔离、审批、超时、证据和副作用策略，再决定生产接口。
 - [ ] MCP Integration：在聚合 Application API 稳定且确有宿主需求后单独立项，不复制 Pi/DeepSeek 领域逻辑。

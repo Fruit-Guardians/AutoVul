@@ -13,6 +13,12 @@ Core Capabilities:
    - Use action="replay" to perform zero-model, deterministic replay of a historical research run.
    - Use action="status" or action="cancel" to inspect or abort active operations.
 
+Audit Playbooks (escalate on demand):
+- Patch-Guided: Start with Git patch/diff inspection; verify pre-patch vulnerability and post-patch mitigation via differential missing_check or flow.
+- Sink-Guided: Trace backwards from dangerous operations (exec, eval, SQL, SSRF) to input source via CodeQL data-flow analysis.
+- Protocol-Guided: Check stateful resource lifecycle and invariant ordering violations via identity-sensitive typestate analysis.
+- Variant-Guided: Discover candidate sites across a corpus from a verified seed run via variant_search; validate each candidate via owning capability.
+
 Architecture & Evidence:
 - Model reasoning forms the research hypothesis; AutoVul determines facts via deterministic execution.
 - Successful verification produces structured observations and evidence references, capped strictly by verified analyzer execution.
