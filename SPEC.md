@@ -1,8 +1,8 @@
 # AutoVul V2 Product Specification
 
 - Status: Accepted baseline
-- Version: 1.7
-- Last updated: 2026-09-02
+- Version: 1.8
+- Last updated: 2026-09-04
 
 ## 1. Purpose
 
@@ -10,11 +10,13 @@ AutoVul V2 MUST provide host-independent, structured and verifiable vulnerabilit
 
 AutoVul V2 MUST NOT implement or position itself as a general Agent or general Agent Harness. The host owns model access, the Agent Loop, session context, planning, generic tools and user interaction. This project owns vulnerability-research domain contracts, deterministic analyzer execution, evidence, validation and replayable artifacts.
 
+AutoVul is an optional research-strengthening layer, not an admission gate for vulnerability auditing. A host MAY inspect code with its native tools and model reasoning, reach a semantic audit conclusion, and present that conclusion without starting an AutoVul run. AutoVul verification terminology applies only when the corresponding versioned contract and evidence policy have actually been executed.
+
 ## 2. Scope
 
 ### 2.1 Current supported capabilities
 
-- `REQ-SCOPE-001`: The system MUST accept a vulnerability description or patch description and a compatible CodeQL database.
+- `REQ-SCOPE-001`: The compatibility CodeQL workflow MUST accept a vulnerability description or patch description and a compatible CodeQL database. A CodeQL database MUST NOT be required for host-native auditing or non-CodeQL research paths.
 - `REQ-SCOPE-002`: The system MUST support structured Source/Sink-oriented CodeQL query synthesis and verification for the language families represented by verified Language Packs.
 - `REQ-SCOPE-003`: The system MUST expose the same deterministic Application behavior through Pi Extension and CLI adapters.
 - `REQ-SCOPE-004`: The system MUST produce persisted run state and replayable Query Pack artifacts.
@@ -25,6 +27,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 
 ### 2.2 Extensible product direction
 
+- `REQ-SCOPE-009`: A host MUST remain free to perform and deliver native semantic code auditing without an AutoVul run. AutoVul execution MUST be optional and selected only when structured validation, deterministic analysis, evidence preservation, differential checking, recovery, or replay is useful.
 - `REQ-SCOPE-010`: New vulnerability-research capabilities MAY be added as domain contracts, Core ports, Analyzers/Runners and thin host integrations.
 - `REQ-SCOPE-011`: Future capabilities MAY include patch analysis, dependency intelligence, additional static analyzers, dynamic reproduction and variant discovery.
 - `REQ-SCOPE-012`: A new capability MUST define structured evidence and an observable verification gate before being presented as supported.
@@ -53,6 +56,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-ARCH-013`: Model content MUST remain a Hypothesis until a Capability validator accepts it. Analyzer adapters MUST return observations and capability gaps only; Core is the sole writer of the model-visible `decision` and `verification_level`.
 - `REQ-ARCH-014`: Core MAY return structured, field-level revision hints. It MUST NOT generate a replacement Hypothesis, retain a host research plan, invoke a model or start an autonomous retry or revision loop.
 - `REQ-ARCH-015`: A later Capability MUST have a real case Flow cannot honestly express, independent contracts and predicates, actionable diagnostics, fake-adapter failure coverage, a real-tool gate, a counter-example strategy and independently replayable artifacts before it is added or claimed as supported.
+- `REQ-ARCH-016`: AutoVul MUST NOT attempt to absorb the host's native semantic audit into Core. Model-led code understanding, open-ended exploration and the decision to report an agent-assessed issue remain host responsibilities; AutoVul MAY strengthen selected hypotheses through explicit deterministic operations.
 
 ### 3.2 Analyzer service boundary
 
@@ -151,8 +155,9 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
   - `variant_validated`: additional positive, negative or cross-project validation passed.
 - `REQ-EVIDENCE-003`: Mocks, fake runners, diagnostic wrappers and copied reference queries MUST NOT be presented as real vulnerability evidence.
 - `REQ-EVIDENCE-004`: Negative results and failures MUST retain their stage, structured diagnostic, retryability and relevant reproducible inputs.
-- `REQ-EVIDENCE-005`: Claims in UI, reports and documentation MUST NOT exceed the recorded verification level.
+- `REQ-EVIDENCE-005`: AutoVul verification claims in UI, reports and documentation MUST NOT exceed the recorded verification level. Separately identified host assessments remain subject to `REQ-EVIDENCE-007`.
 - `REQ-EVIDENCE-006`: Analyzer Service observations are deterministic tool facts, not vulnerability evidence levels. They MAY support a host or owning Capability's later action, but MUST NOT independently raise `generated`, `compiled`, `reproduced`, `differential`, or `variant_validated`.
+- `REQ-EVIDENCE-007`: A host MAY present a model-derived semantic audit conclusion, but an AutoVul integration MUST NOT label or serialize that conclusion as an AutoVul `decision` or verification level unless the owning contract's required execution and evidence policy have completed. Host assessment and AutoVul verification MUST remain distinguishable.
 
 ## 7. Artifact and replay requirements
 
@@ -180,10 +185,12 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-INTEGRATION-002`: Tool inputs and outputs MUST use versioned schemas; prose MUST NOT substitute for required structured fields.
 - `REQ-INTEGRATION-003`: Integrations SHOULD return compact model-consumable feedback while preserving full evidence in artifacts.
 - `REQ-INTEGRATION-004`: Adding a host integration MUST NOT require changing Core domain behavior.
-- `REQ-INTEGRATION-005`: Pi is the currently implemented native host integration. DeepSeek Harness and MCP are product directions, not implemented support claims until their own accepted change SPEC and verification gates pass.
+- `REQ-INTEGRATION-005`: Pi is the currently verified native host integration. A DeepSeek Harness adapter may exist under its own change SPEC but MUST remain outside the stable support claim until its external-host verification gate passes. MCP remains a product direction until its own accepted change SPEC and verification gates pass.
 - `REQ-INTEGRATION-006`: The target model-facing research interface MUST contain only `autovul_research` and `autovul_run`. Compatibility `codeql_*` tools MAY remain available but MUST NOT be presented as a third primary research interface.
 - `REQ-INTEGRATION-007`: Pi and CLI MUST route those aggregate entries through the same Application API and remain thin registration, conversion, cancellation and presentation layers.
 - `REQ-INTEGRATION-008`: Pi MUST tell the host to select Flow for source-to-sink value propagation, MissingCheck for a protected operation reachable without its required check, Typestate for one resource's ordered lifecycle transition, and Change Observation only for bounded immutable revision facts that the host may interpret before choosing a Capability. Its aggregate result UI MUST preserve the selected Capability or service branch without recasting one as another.
+- `REQ-INTEGRATION-009`: Host guidance MUST present native semantic code auditing as the normal starting point and AutoVul as an optional escalation path. It MUST NOT require an AutoVul tool call or CodeQL execution before the host can deliver an agent-assessed result.
+- `REQ-INTEGRATION-010`: Analyzer escalation SHOULD proceed only as needed from host-native inspection to bounded Git/AST/CFG observations, Capability execution, CodeQL deep analysis, and dynamic reproduction. A later stage MUST NOT be treated as universally required merely because it offers a stronger evidence mode.
 
 ## 10. Compatibility and current limitations
 
@@ -191,7 +198,7 @@ AutoVul V2 MUST NOT implement or position itself as a general Agent or general A
 - `REQ-COMPAT-002`: Current accepted platform behavior is the tested POSIX/macOS path. Windows support MUST NOT be claimed until process-tree cleanup, paths and CI gates are implemented and verified.
 - `REQ-COMPAT-003`: Current database operations are inspection and validation. Automatic database creation or execution of target build scripts MUST NOT be claimed as implemented.
 - `REQ-COMPAT-004`: The Python V1 runtime is outside this isolated TypeScript workspace and MUST NOT be silently imported as a V2 dependency.
-- `REQ-COMPAT-005`: Flow v1, MissingCheck v1, and Typestate v1 are the currently verified Research Capabilities. Delta remains archived as the `analyzer_service` classification, and its verified implementation is Change Observation Analyzer v1; neither is a Capability. Variant remains Draft and unsupported pending its independent classification evidence.
+- `REQ-COMPAT-005`: Flow v1, MissingCheck v1, and Typestate v1 are the currently verified Research Capabilities. Delta remains archived as the `analyzer_service` classification, and its verified implementation is Change Observation Analyzer v1; neither is a Capability. Variant remains unverified and unsupported pending its independent classification evidence and follow-up implementation gates.
 
 ## 11. Baseline acceptance gates
 
@@ -201,7 +208,7 @@ The baseline is conformant only when:
 2. Dependency-direction checks pass.
 3. Unit and integration tests pass.
 4. Package dry-run succeeds.
-5. Behavior-specific real CodeQL, Golden, differential and replay gates pass when a claim depends on them.
+5. Behavior-specific real Analyzer, Golden, differential and replay gates pass when a claim depends on them; CodeQL gates apply only to CodeQL-backed claims.
 6. Skipped real-tool or real-model checks are explicitly reported and are not converted into success claims.
 
 ## 12. Change control

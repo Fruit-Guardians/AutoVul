@@ -10,6 +10,8 @@
 
 AutoVul V2 **不是 Agent，也不是通用 Agent Harness**。它是面向漏洞研究的专业能力扩展，运行在 Pi Agent、DeepSeek Harness 等成熟宿主之下。
 
+宿主自身的代码阅读与模型推理是默认审计路径。宿主可以不调用 AutoVul 直接形成并交付语义审计结论；AutoVul 只在结构化校验、确定性分析、证据固化、差分或 replay 有实际收益时介入。不得把 CodeQL 或任意 AutoVul run 设为审计结论的前置条件。
+
 ```text
 宿主 Agent：模型、Agent Loop、上下文、计划、工具选择和用户交互
 本项目：漏洞研究领域能力、确定性执行、证据、验证和可重放产物
@@ -23,7 +25,7 @@ AutoVul V2 **不是 Agent，也不是通用 Agent Harness**。它是面向漏洞
 - Core 不依赖 Pi、DeepSeek Harness、UI、具体模型或具体进程实现。
 - Pi Extension、未来的 DeepSeek Plugin、MCP 和 CLI 必须保持为薄适配层。
 - 新的漏洞研究能力应通过版本化契约、Core Port 和 Analyzer 实现，不要继续扩大单一 CodeQL workflow。
-- 不把模型回答当作漏洞事实；结论必须由结构化、可重放的工具证据支持。
+- 不把宿主语义判断伪装成 AutoVul 的确定性验证结论；只有 AutoVul 的验证等级必须由对应契约要求的结构化、可重放证据支持。
 - 严格区分 `generated`、`compiled`、`reproduced`、`differential` 和 `variant_validated`。
 - fake、mock 和诊断 wrapper 只能验证基础设施，不得作为真实漏洞成功证据。
 - 真实环境不可用时明确报告阻塞或未运行，不得制造降级成功。

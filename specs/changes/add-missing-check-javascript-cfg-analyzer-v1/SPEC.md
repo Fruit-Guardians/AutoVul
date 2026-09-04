@@ -4,7 +4,7 @@
 - Status: Implemented
 - Owner: AutoVul maintainers
 - Created: 2026-09-03
-- Updated: 2026-09-03
+- Updated: 2026-09-04
 - Public contract: `v2.contracts/1`
 - Depends on: archived `admit-missing-check-capability-v1`, `harden-capability-execution-contracts-v1`
 
@@ -73,3 +73,10 @@ AutoVul Core owns dispatching to the configured MissingCheck execution port base
 - End-to-end integration test with `Application.research()` using `analyzer_id: "javascript_cfg"` in `differential` mode.
 - Clean-process replay test ensuring exact outcome reproduction and fingerprint mismatch detection.
 - `npm run check` across the workspace.
+
+## Verification record
+
+- Contracts, explicit analyzer/target pairing, Git object access, CFG/polarity handling, evidence namespaces, fingerprint checks, and replay immutability checks are implemented and covered by repository tests.
+- Current fixtures exercise real temporary Git objects and the production parser/adapter, but no committed OpenClaw vulnerable/fixed clean-process Golden and no per-requirement `VERIFICATION.md` have been recorded for this change.
+- TypeScript syntax may be parseable by the underlying parser, but it is not a verified language-support claim under this SPEC.
+- Verification conclusion: Implemented, not Verified. The archived MissingCheck CodeQL capability remains the verified baseline; `javascript_cfg` is an additional implementation awaiting its real gate.

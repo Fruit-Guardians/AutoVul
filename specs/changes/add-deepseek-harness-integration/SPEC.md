@@ -1,10 +1,10 @@
 # Change: Add DeepSeek Harness Integration
 
 - Change ID: `add-deepseek-harness-integration`
-- Status: Verified
+- Status: Implemented
 - Owner: AutoVul maintainers
 - Created: 2026-09-03
-- Updated: 2026-09-03
+- Updated: 2026-09-04
 - Public contract: `v2.contracts/1`
 - Depends on: `harden-capability-execution-contracts-v1`, `add-missing-check-javascript-cfg-analyzer-v1`
 
@@ -32,7 +32,7 @@ The adapter must expose the unified research tools (`autovul_research` and `auto
 
 ### Core (`@autovul/core`) owns:
 - All vulnerability research semantics, deterministic rules, state transitions, evidence storage, and replay verification.
-- Core remains 100% free of DeepSeek Harness types or concepts.
+- Core MUST remain free of DeepSeek Harness types or concepts.
 
 ## Scope
 
@@ -72,6 +72,7 @@ The adapter must expose the unified research tools (`autovul_research` and `auto
 - `REQ-DSEEK-006`: Adapter tool execution MUST catch and normalize domain errors into structured failure records without unhandled process crashes.
 - `REQ-DSEEK-007`: The plugin MUST provide system prompt snippets guiding the host model on capability selection, hypothesis formulation, and evidence-backed verification.
 - `REQ-DSEEK-008`: Calling `plugin.close()` MUST cleanly invoke `ApplicationApi.close()`.
+- `REQ-DSEEK-009`: Verified status MUST require an acceptance run through a real DeepSeek Harness integration boundary, or its official executable/SDK fixture, covering both aggregate tools, structured invalid input, cancellation, replay, and shutdown. Direct calls against a fake `ApplicationApi` are implementation evidence only.
 
 ## Requirement Traceability
 
@@ -85,6 +86,7 @@ The adapter must expose the unified research tools (`autovul_research` and `auto
 | `REQ-DSEEK-006` | `packages/deepseek-harness/src/tools.ts` | `test/deepseek-harness.test.ts` |
 | `REQ-DSEEK-007` | `packages/deepseek-harness/src/prompts.ts` | `test/deepseek-harness.test.ts` |
 | `REQ-DSEEK-008` | `packages/deepseek-harness/src/index.ts` | `test/deepseek-harness.test.ts` |
+| `REQ-DSEEK-009` | External DeepSeek Harness acceptance fixture | Pending |
 
 ## Validation plan
 
@@ -93,3 +95,11 @@ The adapter must expose the unified research tools (`autovul_research` and `auto
 - Replay test executing `autovul_run` to achieve deterministic model-free verification.
 - Error handling tests validating `INVALID_INPUT` and cancellation handling.
 - Full workspace verification: `npm run check`.
+- Real external-harness acceptance covering registration, both aggregate calls, cancellation, replay, and close.
+
+## Implementation and verification record
+
+- The `@autovul/deepseek-harness` workspace package, function-calling schemas, prompt guidance, `ApplicationApi` delegation, structured error normalization, and close path are implemented.
+- Repository tests exercise the adapter directly and verify the package boundary. They do not start a real DeepSeek Harness process or official SDK fixture.
+- No external-host transcript or immutable acceptance artifact is currently recorded.
+- Verification conclusion: Implemented, not Verified. Root `SPEC.md` therefore continues to describe DeepSeek Harness as a product direction rather than a verified native integration.

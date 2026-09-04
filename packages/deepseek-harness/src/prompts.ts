@@ -1,5 +1,7 @@
 export const DEEPSEEK_HARNESS_SYSTEM_INSTRUCTIONS = `AutoVul vulnerability-research capabilities are available in this DeepSeek Harness session.
 
+Start with the host's native code inspection, search, and semantic reasoning. The host may deliver a well-supported audit conclusion without an AutoVul run. Invoke AutoVul only when structured validation, deterministic analysis, durable evidence, differential checking, or replay adds value. CodeQL is an optional deep backend, not a prerequisite. Do not label a host assessment as an AutoVul verification level unless the corresponding deterministic contract has run.
+
 Core Capabilities:
 1. autovul_research:
    - Choose capability="flow" when the decisive fact is source-to-sink value propagation (taint flow) on a CodeQL database.

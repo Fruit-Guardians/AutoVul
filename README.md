@@ -1,107 +1,106 @@
 # AutoVul
 
-AutoVul is a host-independent vulnerability-research extension and deterministic analysis engine.
+AutoVul is a host-independent vulnerability-research capability layer and deterministic execution system.
 
-It runs under mature Agent/Harness hosts such as Pi Agent. The host understands the request, reads code, forms a vulnerability hypothesis and decides what to do next. AutoVul validates structured research inputs, executes analyzers, persists evidence and verifies results.
+It is designed to run under mature Agent/Harness hosts. The host owns model access, reasoning, planning, tool selection, hypothesis revision, and user interaction. AutoVul owns versioned research contracts, bounded analyzer execution, structured evidence, deterministic decisions, and model-free replay.
 
-> The host Agent owns understanding, reasoning and orchestration. AutoVul owns vulnerability-research capabilities, deterministic execution, evidence and verification.
+AutoVul does not implement a general Agent, an Agent loop, a model-provider framework, conversation memory, planning, or subagent orchestration.
 
-AutoVul does not implement a general Agent, model provider, Agent Loop, conversation memory, planning system or subagent framework.
+The host does not need AutoVul to finish every audit. It may inspect code with its native tools and model reasoning and deliver a semantic finding directly. AutoVul is invoked when a selected hypothesis benefits from stricter structure, lightweight or deep analysis, differential verification, durable evidence, recovery, or replay. CodeQL is one optional deep backend, not the default entry point.
 
-## Current capability
+## Project status
 
-The current TypeScript V2 implementation provides a verified CodeQL query workflow:
+The verified baseline contains three independent Research Capabilities and one supporting Analyzer Service:
 
-- structured Source/Sink-oriented query intent;
-- Language Packs for Python, JavaScript/TypeScript, Java/Kotlin and C/C++;
-- Source and Sink probes;
-- advisory CodeQL Language Server draft diagnostics;
-- authoritative CodeQL CLI compile and analyze execution;
-- vulnerable/fixed differential verification;
-- persisted run state, bounded candidate budgets and crash recovery;
-- relocatable Query Packs with model-free replay;
-- thin Pi and CLI integrations sharing the same Application API.
+| Area | Contract | Current status | Verified boundary |
+| --- | --- | --- | --- |
+| Flow | `autovul.flow/1` | Archived | Real CodeQL differential and relocated replay across the accepted Python, JavaScript, Java, and C/C++ matrix |
+| MissingCheck | `autovul.missing-check/1` | Archived | Real CodeQL differential and fresh-process replay for the frozen JavaScript direct-call/dominance case |
+| Typestate | `autovul.typestate/1` | Archived | Identity-sensitive Ghost differential, negative cases, and relocated replay for the frozen single-resource protocol |
+| Change Observation | `autovul.change-observation/1` | Archived | Read-only immutable Git observations and relocated replay for the accepted OpenClaw/Ghost matrix |
 
-CodeQL databases must already exist. AutoVul currently inspects and validates them but does not create databases or execute target-project build/install scripts.
+The following work exists but is not part of the verified support baseline:
 
-The accepted result levels are:
+| Workstream | Lifecycle state | Remaining gate |
+| --- | --- | --- |
+| JavaScript CFG MissingCheck analyzer | Implemented | Real OpenClaw clean-process Golden, full evidence mapping, and independent replay |
+| DeepSeek Harness adapter | Implemented | Real external-harness acceptance, cancellation, replay, and shutdown verification |
+| Variant role classification | Accepted | Two recorded real families, safe counter-examples, strategy comparison, and owning-Capability validation |
+| Variant Search service | Accepted; implementation in progress | Contract hardening, accurate partial results, atomic evidence, full replay invariants, and a real two-family matrix |
 
-- `generated`: a candidate exists but has not passed execution verification;
-- `compiled`: the analyzer accepted the rule;
-- `reproduced`: the vulnerable target matched the expected behavior or location;
-- `differential`: the vulnerable target matched and the fixed target satisfied the non-match policy;
-- `variant_validated`: additional positive, negative or cross-project validation passed.
-
-Probe results, model reasoning, mocks and diagnostic wrappers are not vulnerability confirmation.
-
-## Research capability direction
-
-AutoVul is designed as a set of parallel vulnerability-research capabilities over one deterministic runtime. Flow is the first capability being completed; it is not a universal vulnerability IR.
-
-```text
-Host Agent / Harness
-  -> capability-specific hypothesis
-       Flow | MissingCheck | Typestate | ...
-  -> AutoVul
-       capability validation and decision policy
-       shared run / budget / evidence / replay runtime
-       analyzer adapters
-```
-
-Each capability owns its hypothesis shape, observations and success predicate. Capabilities share operation state, budgets, cancellation, artifacts, evidence and replay. The shared layer does not force authorization, lifecycle or state-machine problems into Source/Sink semantics.
-
-The planned Flow Model describes Source, Sink, explicit propagation steps and barriers. Target references, analyzer selection and budgets belong to the execution request. CodeQL becomes an optional execution backend rather than part of the Flow Model.
-
-The aggregate capability API (`autovul_research` and `autovul_run`) is implemented alongside the existing CodeQL compatibility surface. Flow v1 is verified across the accepted 20-case Python, JavaScript, Java and C/C++ real-CodeQL matrix, including vulnerable/fixed differential analysis and relocated model-free replay. The narrowly frozen MissingCheck v1 is verified for its declared JavaScript single-file CFG boundary. Typestate, Delta and Variant are not implemented support claims.
-
-See:
-
-- [Research capability architecture](./docs/design/RESEARCH_CAPABILITY_ARCHITECTURE.md)
-- [Flow capability design](./docs/design/FLOW_BASED_DIRECTION.md)
-- [Flow capability implementation plan](./docs/design/FLOW_BASED_PLAN.md)
-- [Flow capability v1 change SPEC](./specs/changes/introduce-flow-capability-v1/SPEC.md)
-- [MissingCheck capability v1 SPEC](./specs/changes/admit-missing-check-capability-v1/SPEC.md)
-- [Typestate candidate capability SPEC](./specs/changes/admit-typestate-capability-v1/SPEC.md)
-- [Delta role-classification SPEC](./specs/changes/classify-delta-research-role/SPEC.md)
-- [Variant role-classification SPEC](./specs/changes/classify-variant-research-role/SPEC.md)
-- [Product specification](./SPEC.md)
-- [Project charter](./AGENTS.md)
-- [SPEC workflow](./specs/README.md)
+See [PROJECT_PROGRESS.md](./PROJECT_PROGRESS.md) for the complete task ledger, change-SPEC matrix, and ordered next steps. A lifecycle label is evidence-sensitive: `Implemented` does not mean `Verified`, and only archived behavior belongs in the stable root baseline.
 
 ## Architecture
 
+Research semantics are parallel. They share a runtime, not a universal vulnerability model.
+
 ```text
 Host Agent / Harness
-  -> Integration Adapter
-       -> Application API
-            -> Core domain policy and workflow
-                 -> Analyzer Ports
-                      -> CodeQL Runner
+  -> two aggregate tools: autovul_research | autovul_run
+  -> explicit domain branch
+       Research Capability
+         Flow | MissingCheck | Typestate
+       Analyzer Service
+         Change Observation | Variant Search (in progress)
+  -> shared deterministic runtime
+       run identity | budget | timeout | cancellation | lease
+       atomic artifacts | evidence | recovery | replay
+  -> capability/service-specific Analyzer Port
+       CodeQL | JavaScript CFG | Git object inspection
 ```
 
-Production dependencies follow:
+Each Research Capability owns its Hypothesis, Observation, Decision Policy, diagnostics, and success predicate. Analyzer Services return bounded facts or candidates and never emit another Capability's vulnerability verdict. CodeQL is an optional deep-analysis backend, not the product boundary.
+
+The intended escalation path is:
 
 ```text
-contracts <- core <- codeql-runner <- pi-extension / cli
+host-native semantic audit
+  -> Git / patch / AST / CFG observation (optional)
+  -> Capability validation and execution (optional)
+  -> CodeQL deep analysis (optional)
+  -> dynamic reproduction or differential evidence (optional)
 ```
 
-The packages are:
+The host may stop at any stage. A host assessment is useful research output, but it must not be presented as an AutoVul verification level unless the relevant deterministic contract has run.
 
-- `@autovul/contracts`: versioned TypeBox schemas and stable protocols;
-- `@autovul/core`: deterministic policy, workflow state, budgets and verification decisions;
-- `@autovul/codeql-runner`: CodeQL CLI/LSP, filesystem, process and SARIF adapters;
-- `@autovul/pi-extension`: thin Pi registration, commands, lifecycle and presentation;
-- `@autovul/cli`: deterministic debugging, CI and model-free replay interface.
+Production dependencies follow one direction:
+
+```text
+@autovul/contracts
+  <- @autovul/core
+  <- @autovul/codeql-runner
+  <- @autovul/pi-extension | @autovul/deepseek-harness | @autovul/cli
+```
+
+| Package | Responsibility |
+| --- | --- |
+| [`@autovul/contracts`](./packages/contracts) | Versioned TypeBox schemas, tool envelopes, artifacts, and domain errors |
+| [`@autovul/core`](./packages/core) | Domain validation and decisions, lifecycle, budgets, evidence commit, recovery, and replay |
+| [`@autovul/codeql-runner`](./packages/codeql-runner) | CodeQL, JavaScript CFG, Git, filesystem, and process adapters |
+| [`@autovul/pi-extension`](./packages/pi-extension) | Thin Pi registration, lifecycle binding, and compact presentation |
+| [`@autovul/deepseek-harness`](./packages/deepseek-harness) | Thin function-calling adapter; external-harness verification is still pending |
+| [`@autovul/cli`](./packages/cli) | Deterministic debugging, CI, status, cancellation, and model-free replay interface |
+
+## Evidence levels
+
+- `generated`: a candidate exists but has not passed execution verification.
+- `compiled`: the analyzer accepted the rule, but the target behavior is not yet reproduced.
+- `reproduced`: the vulnerable target produced the expected result or witness.
+- `differential`: the vulnerable target matched and the fixed target satisfied the Capability-specific fixed policy.
+- `variant_validated`: an accepted later policy has validated additional positive, negative, or cross-project cases.
+
+Model reasoning, probes, mocks, fake adapters, text similarity, and search candidates do not confirm a vulnerability.
+
+## Requirements
+
+- Node.js `>=22.19.0`
+- npm
+- Git for Git-backed Analyzer Services
+- CodeQL CLI and prebuilt databases only for CodeQL-backed execution and real CodeQL gates
+
+AutoVul does not create CodeQL databases or execute target-project build/install scripts automatically.
 
 ## Development
-
-Requirements:
-
-- Node.js and npm;
-- CodeQL CLI for real analyzer tests and normal CodeQL execution;
-- prebuilt vulnerable/fixed CodeQL databases for differential research.
-
-Install and run the standard checks:
 
 ```bash
 npm install
@@ -112,97 +111,78 @@ npm run lint
 npm run pack:check
 ```
 
-`npm run check` runs the main build, architecture, specification, unit/integration and package gates. Real CodeQL, real-model and Golden commands remain separate when they require external tools or credentials.
+`npm run check` runs the main build, architecture, specification, unit/integration, and package gates. Real CodeQL, real-host, and Golden commands remain separate when they require external tools, fixtures, or credentials. A skipped external gate must stay skipped or blocked; it cannot be replaced by a fake success.
 
-## CLI workflow
+## Aggregate research interface
 
-Build the workspace, inspect the environment and execute a query workflow:
+The host-facing research surface contains two primary tools:
+
+- `autovul_research`: validate or execute one versioned Capability hypothesis or Analyzer Service request.
+- `autovul_run`: inspect status, cancel an active operation, or replay a committed run.
+
+The CLI exposes the same Application API:
 
 ```bash
-npm run build
-npx --workspace @autovul/cli autovul doctor --json
-npx --workspace @autovul/cli autovul workflow start --spec ./spec.json --json
-npx --workspace @autovul/cli autovul query draft <run-id> --candidate ./candidate.json --json
-npx --workspace @autovul/cli autovul query verify <run-id> --candidate ./candidate.json --json
-npx --workspace @autovul/cli autovul workflow finalize <run-id> --json
+autovul research validate --request ./request.json --json
+autovul research execute --request ./request.json --json
+autovul run status <run-id> --json
+autovul run cancel <run-id> --json
+autovul run replay <run-id> --json
 ```
 
-Replay a finalized Query Pack without a model or the originating run:
+Compatibility `workflow`, `query`, `query-pack`, and `codeql_*` entries remain available for the historical CodeQL workflow. They are not a third primary research interface.
+
+### Pi Agent
+
+After building the workspace, load the extension from the repository:
 
 ```bash
-npx --workspace @autovul/cli autovul query-pack verify ./query-pack \
-  --vulnerable-db /path/to/vulnerable \
-  --fixed-db /path/to/fixed \
-  --workspace-root /trusted/root \
-  --json
-```
-
-For the aggregate research interface, pass a structured request file; the CLI
-only validates, executes, inspects, cancels, or replays a bounded operation.
-It does not accept an open-ended research goal:
-
-```bash
-npx --workspace @autovul/cli autovul research validate --request ./flow-request.json --json
-npx --workspace @autovul/cli autovul research execute --request ./flow-request.json --json
-npx --workspace @autovul/cli autovul run status <run-id> --json
-npx --workspace @autovul/cli autovul run cancel <run-id> --json
-npx --workspace @autovul/cli autovul run replay <run-id> --json
-```
-
-The finalized pack contains the rendered query, candidate, vulnerability specification, qlpack metadata, verification result, evidence, reproduction instructions and a digest manifest.
-
-## Pi integration
-
-Load the built extension from the project workspace:
-
-```bash
-npm run build
 pi -e ./packages/pi-extension/dist/index.js
 ```
 
-The extension exposes the target aggregate research interface:
+Pi remains the Agent. The extension registers tools, converts inputs, forwards cancellation, and renders compact results.
 
-- `autovul_research` — validate or execute a structured Flow hypothesis;
-- `autovul_run` — inspect, cancel, or replay a bounded operation.
+### DeepSeek Harness
 
-The following remain compatibility tools for the existing CodeQL workflow:
+The package currently exposes an OpenAI-compatible function-calling adapter over `ApplicationApi`:
 
-- `codeql_database`
-- `codeql_workflow`
-- `codeql_query`
+```typescript
+import { createDeepSeekHarnessPlugin } from "@autovul/deepseek-harness";
+import { createLocalApplication } from "@autovul/codeql-runner";
 
-Pi remains the Agent. The extension converts tool input, calls the shared Application API, handles cancellation and presents compact results. It does not start another Agent Loop.
+const application = createLocalApplication({ workspaceRoot: process.cwd() });
+const plugin = createDeepSeekHarnessPlugin({ application });
 
-Useful commands include `/codeql`, `/codeql doctor`, `/codeql-status [run-id]` and `/codeql-generate`.
-
-## Real verification gates
-
-Run these gates only when their external dependencies are available:
-
-```bash
-npm run test:m3-compile
-npm run test:m3-golden-real
-npm run test:l0-lsp:snapshot
-npm run test:lsp:conformance
-npm run test:m4-pi-e2e
-npm run test:m4-golden-real
+const tools = plugin.tools;
+const instructions = plugin.prompts.systemInstructions;
+const result = await plugin.execute("autovul_research", request);
 ```
 
-The M3 real Golden gate covers 20 Python, JavaScript, Java and C/C++ vulnerable/fixed cases, strict endpoint checks and relocated replay. LSP results remain advisory; authoritative acceptance comes from CodeQL CLI execution. Model-backed evaluation must use an approved wrapper and reports blocked when the model, credentials or analyzer environment is unavailable. It never falls back to fake success.
+This adapter is implemented and covered by repository tests. It is not yet claimed as a verified native DeepSeek Harness integration until the real external-host gate is recorded.
 
-## Safety and platform status
+## Safety boundary
 
 - Paths are canonicalized and constrained to configured workspace or trusted roots.
-- Long-running operations support timeout and cancellation and clean up subprocess trees.
-- Critical state and artifacts use atomic persistence and deterministic recovery.
-- Output, execution time, candidate count, revisions and concurrency are bounded.
-- Target build and install scripts are not executed automatically.
-- Recognized secrets and unrestricted environment data must not be persisted.
+- Long-running operations have explicit timeout and cancellation paths and clean up owned subprocesses.
+- Critical artifacts use atomic persistence and deterministic recovery rules.
+- Output size, execution time, candidate count, revisions, and concurrency are bounded by the owning contract.
+- Target build, install, test, proof-of-concept, and service commands are not executed automatically.
+- Git-backed services use explicit local repositories and immutable revisions; they do not clone, fetch, checkout, or expand the corpus on their own.
+- Recognized credentials and unrestricted environment data must not be persisted.
 
-The accepted platform path is POSIX/macOS. Windows process-tree cleanup and Windows CI have not been implemented or verified, so Windows support is not currently claimed.
+The accepted platform is POSIX/macOS. Windows support is not claimed until its process, path, and CI gates are implemented and verified.
 
-## Compatibility
+## Specifications
 
-During the pre-1.0 migration window, `pure-auto-codeql-v2` remains a CLI alias. Deprecated `PURE_AUTO_CODEQL_*` environment variables continue to work where documented, while matching `AUTOVUL_*` values take precedence. Stable historical CodeQL rule IDs retain their former namespace where changing them would break replay or compatibility.
+- [Project charter](./AGENTS.md)
+- [Stable product specification](./SPEC.md)
+- [Task ledger and progress table](./PROJECT_PROGRESS.md)
+- [SPEC lifecycle](./specs/README.md)
+- [Flow v1 history](./specs/changes/introduce-flow-capability-v1/SPEC.md)
+- [MissingCheck v1 history](./specs/changes/admit-missing-check-capability-v1/SPEC.md)
+- [Typestate v1 history](./specs/changes/admit-typestate-capability-v1/SPEC.md)
+- [Change Observation v1 history](./specs/changes/add-change-observation-analyzer-v1/SPEC.md)
+- [Variant classification](./specs/changes/classify-variant-research-role/SPEC.md)
+- [Variant Search implementation SPEC](./specs/changes/introduce-variant-search-service-v1/SPEC.md)
 
-The Python V1 runtime is outside this isolated TypeScript workspace and is not imported as a V2 dependency.
+During the pre-1.0 compatibility window, `pure-auto-codeql-v2` remains a CLI alias. Deprecated `PURE_AUTO_CODEQL_*` environment variables remain accepted where documented, with matching `AUTOVUL_*` values taking precedence.

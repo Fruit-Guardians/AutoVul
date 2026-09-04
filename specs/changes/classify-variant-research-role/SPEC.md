@@ -1,11 +1,11 @@
 # Change: Classify Variant Research Role
 
 - Change ID: `classify-variant-research-role`
-- Status: Draft
+- Status: Accepted
 - Owner: AutoVul maintainers
 - Created: 2026-08-29
-- Updated: 2026-08-30
-- Classification gate: Open
+- Updated: 2026-09-04
+- Classification gate: Role selected as `search_service`; real-family verification remains open
 - Depends on: `establish-research-capability-architecture` and at least one Verified seed Capability result
 
 ## Problem
@@ -19,7 +19,7 @@
 
 The existing verification level `variant_validated` does not imply that Variant is itself a Capability. A search candidate is not a vulnerability, and an LLM-suggested similarity is not evidence. If AutoVul absorbs open-ended target discovery, iterative planning, web search, and semantic judgment, it becomes an Agent. If it exposes only deterministic, bounded candidate generation and validation, the behavior may belong as an Analyzer/search service consumed by existing Capabilities.
 
-This change classifies Variant before production implementation. It defines seed quality, corpus boundaries, candidate evidence, validation ownership, stopping rules, and conditional implementation paths. It does not add `capability: variant` or claim variant discovery support.
+This change classifies Variant before a support claim is made. It defines seed quality, corpus boundaries, candidate evidence, validation ownership, stopping rules, and conditional implementation paths. The accepted target role is `search_service`; the classification remains unverified until the required real-family evidence is committed. This change does not add `capability: variant` or claim variant discovery support.
 
 ## Host boundary
 
@@ -148,9 +148,9 @@ Verified seed artifact
 host_strategy | search_service | research_capability | reject
 ```
 
-### Preferred hypothesis to test
+### Accepted role to verify
 
-The initial design hypothesis is that Variant will become a bounded `search_service`, not a Capability:
+Variant is accepted as a bounded `search_service`, not a Capability:
 
 ```text
 Host chooses seed, corpus, strategy, and next candidate
@@ -159,7 +159,7 @@ Host chooses seed, corpus, strategy, and next candidate
   -> Owning Capability validates it
 ```
 
-This preference is not a conclusion. The case-family evidence may classify it differently.
+This is the architectural decision that authorizes the follow-up implementation SPEC. It is not yet a verified support claim: the family corpus, counter-examples, strategy results, owning-Capability validation, and replay evidence are still required by this SPEC.
 
 ## Conditional implementation plan
 
@@ -255,10 +255,9 @@ This classification has no public compatibility impact. Existing verification le
   one replayed MissingCheck `differential` run as a currently available seed.
   Its temporary artifact root remains an explicit external dependency until a
   retention/privacy decision makes it durable.
-- Can deterministic search produce useful candidates beyond exact clone matching without opaque model judgment?
-- Which owning Capability and seed artifact should anchor the first family?
-- What corpus is explicit and bounded enough for replay while still representative?
-- Does any real case require an independent Variant decision, or is search plus owning-Capability validation sufficient?
+- A second committed real family has not yet been recorded. Ghost is a candidate family, not accepted evidence until its seed, corpus, vulnerable members, safe counter-examples, and validation results are captured in a family manifest.
+- It remains unproven that deterministic search adds useful recall beyond exact clone or symbol matching without introducing opaque model judgment.
+- The first durable corpus identity and retention policy remain open; local repository paths alone are not a portable corpus identity.
 - What future policy, if any, should permit `variant_validated`?
 
 ## Decision log
@@ -269,25 +268,19 @@ This classification has no public compatibility impact. Existing verification le
 | 2026-08-29 | Require a Verified seed | Variant search must start from evidence, not model speculation. |
 | 2026-08-29 | Keep candidate validation with the owning Capability | Similarity is not a domain success predicate. |
 | 2026-08-29 | Test `search_service` as the preferred role | It fits deterministic bounded execution while leaving target choice and iteration to the host. |
+| 2026-09-03 | Accept `search_service` as the target role | Candidate discovery is deterministic service work while vulnerability validation remains with the owning Capability. The follow-up `introduce-variant-search-service-v1` SPEC may proceed, but the two-family verification gate remains open. |
 
 ## Delivery gate
 
-Draft status authorizes seed/family collection and bounded read-only strategy spikes only. It does not authorize public contracts, production modules, capability literals, network discovery, model tools, or support claims.
-
-After real family evidence selects and verifies one role, a separate accepted implementation SPEC is mandatory for production work.
+The role decision is Accepted. Variant is classified as an Analyzer Service (`search_service`), and implementation work is authorized only under `introduce-variant-search-service-v1`. This SPEC MUST NOT become Verified until every family, strategy, safety, validation, and replay requirement has committed evidence.
 
 ## Verification record
 
-Complete this section before changing the status to Verified.
-
-- Commands and results: Seed audit reviewed the MissingCheck v1 Verified Golden,
-  its admission evidence, committed temporary run artifact, and a fresh
-  Application-instance replay. The replay returned the original
-  `missing_check` `differential` result.
-- Requirement-to-evidence mapping: `REQ-VARIANT-002` is satisfied for one
-  temporary, path-dependent seed. `REQ-VARIANT-001` and all family/search
-  requirements remain blocked by the missing second family and validation corpus.
-- Skipped or blocked checks: Family collection, search spikes, production
-  implementation, and `variant_validated` policy remain out of scope until the
-  corpus gate is satisfied.
-- Remaining limitations: Variant has no classified product role and is not implemented or supported.
+- Recorded evidence: [`evidence/SEED-AUDIT.md`](./evidence/SEED-AUDIT.md) identifies one replayed MissingCheck differential seed and its external artifact dependency.
+- Architecture decision: `research_capability` is rejected because candidate similarity has no independent vulnerability predicate. `host_strategy` remains responsible for choosing corpora, strategies, candidates, and stopping. `search_service` is the accepted AutoVul role for deterministic bounded candidate generation.
+- Requirements not yet verified:
+  - `REQ-VARIANT-001` through `REQ-VARIANT-006`: the required two real family manifests, safe/fixed counter-examples, immutable corpora, and validation outcomes are not committed.
+  - `REQ-VARIANT-020` through `REQ-VARIANT-029`: deterministic strategy comparison, full budget/partial-result behavior, candidate identity, and replay evidence remain incomplete.
+  - `REQ-VARIANT-030` through `REQ-VARIANT-037`: selected candidates have not yet passed the recorded owning-Capability validation matrix.
+  - `REQ-VARIANT-040` through `REQ-VARIANT-046`: privacy, portability, retention, and replay checks require production-service evidence.
+- Verification conclusion: Accepted, not Verified. Repository tests or a prototype candidate list cannot close the real-family gate.
