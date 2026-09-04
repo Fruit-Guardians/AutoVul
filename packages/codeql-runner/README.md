@@ -9,15 +9,16 @@
    - `CodeqlQueryRunner`: Authoritative query and probe execution via CodeQL CLI.
    - `CodeqlLspDraftRunner`: Advisory draft diagnostics via CodeQL Language Server.
    - Capability adapters use the verified language renderers for Python, JavaScript/TypeScript, Java/Kotlin, and C/C++ where their owning SPEC permits them.
-2. **JavaScript AST CFG Adapter** (`JavascriptCfgMissingCheckAdapter`, implemented; real Golden pending):
+2. **JavaScript AST CFG Adapter** (`JavascriptCfgMissingCheckAdapter`):
    - Fast, local, model-free AST and intra-procedural CFG analysis for missing check hypotheses.
-   - Checks the bounded direct-call dominance and condition-polarity cases declared by its change SPEC without requiring prebuilt CodeQL databases.
+   - Parses JS/TS syntax using the TypeScript parser, but verified semantics are strictly limited to JavaScript.
+   - Checks bounded direct-call dominance and condition-polarity cases declared by its change SPEC without requiring prebuilt CodeQL databases.
 3. **Git Change Observation Adapter** (`GitChangeObservationAdapter`):
    - Performs read-only inspection of immutable Git commit trees using `git cat-file -p`.
    - AST symbol traversal between base and head revisions within canonicalized `trustedRoots`.
-4. **Git Variant Search Adapter** (`GitVariantSearchAdapter`, in progress):
+4. **Git Variant Search Adapter** (`GitVariantSearchAdapter`):
    - Scans explicit target corpus revisions for symbol call patterns and enclosing signatures.
-   - Current implementation parses selected JavaScript/TypeScript-family extensions and emits SHA-256 candidate identities. Portable identity, complete budget/gap semantics, atomic evidence, and real-family replay remain open verification gates.
+   - Parses selected JavaScript/TypeScript-family extensions and emits canonical SHA-256 candidate identities, structured gaps, atomic bundles, and replayable evidence.
 
 ## Application Factory
 

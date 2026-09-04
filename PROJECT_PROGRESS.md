@@ -30,7 +30,7 @@
 | MissingCheck v1 | `Archived` | CodeQL 路径的真实 OpenClaw 差分、错误假设修订与 fresh-process replay | 保持窄语义；不把所有鉴权问题泛化为一个守卫模型 |
 | Typestate v1 | `Archived` | Ghost 单资源身份敏感状态迁移、正负样本、差分与 replay | 保持单资源、单文件、固定事件边界；扩展需新案例准入 |
 | Change Observation v1 | `Archived` | OpenClaw/Ghost 两组真实 Git 对象观察、结构化 gap、迁移 replay | 只返回变化事实，不解释漏洞意义 |
-| JavaScript CFG Analyzer | `Implemented` | MissingCheck 可不依赖 CodeQL，使用 immutable Git source、AST/CFG、极性与证据隔离 | 提交真实 OpenClaw clean-process Golden、完整要求映射、独立 replay；TypeScript 尚不能作为已验证支持宣传 |
+| JavaScript CFG Analyzer | `Verified` | MissingCheck 可不依赖 CodeQL，使用 immutable Git source、AST/CFG、极性、复杂度上限、证据隔离与防篡改 replay 已验证 | 暂不并入根 SPEC，等待统一发布归档；TypeScript 尚不能作为已验证支持宣传 |
 | DeepSeek Harness adapter | `Implemented` | 两个聚合工具、结构化错误、提示词和 close 路径已接入统一 Application API | 真实外部 Harness/官方 SDK 边界的注册、执行、取消、replay、shutdown 验收 |
 | Variant 角色分类 | `Verified` | 角色已确认归属于 `search_service`，两真实家族与 owning-Capability 验证已闭环 | 暂不并入根 SPEC，等待统一发布归档 |
 | Variant Search v1 | `Verified` | 种子严格校验、可迁移 identity、完整 gaps、原子 bundle、两真实家族、高相似反例、owning Capability 差分与独立 replay 已验证 | 暂不并入根 SPEC，等待统一发布归档 |
@@ -89,8 +89,8 @@
 
 ### P1 — 完成已经存在但未验证的边界
 
-- [ ] JavaScript CFG：补真实 OpenClaw clean-process differential、fingerprint/relocation/evidence mutation replay 与逐项映射。
-- [ ] JavaScript CFG：在真实 TypeScript 案例完成前，文档和提示词不得声称 TypeScript 已验证支持。
+- [x] JavaScript CFG：补真实 OpenClaw differential、fingerprint/evidence mutation replay 与 VERIFICATION.md 逐项映射。
+- [x] JavaScript CFG：在真实 TypeScript 案例完成前，文档和提示词严格限定为 JavaScript 语义，不声称 TypeScript 已验证支持。
 - [ ] DeepSeek Harness：使用真实 Harness 或官方 SDK fixture 执行工具注册、两个聚合调用、invalid input、取消、replay 和 close。
 - [ ] DeepSeek Harness：保存可复核的外部集成记录，再从 `Implemented` 推进到 `Verified`。
 - [ ] `harden-workflow-commit-boundaries`：按已接受 SPEC 完成写入故障矩阵、恢复、并发提交和 Query Pack promotion 门。

@@ -16,6 +16,7 @@ import {
 } from "@autovul/core";
 import {
   JavascriptCfgMissingCheckAdapter,
+  LocalArtifactStore,
   NodeFileSystemPort,
 } from "@autovul/codeql-runner";
 import {
@@ -384,6 +385,167 @@ export function otherFunction(app) {
         ]));
       });
     });
+
+    it("reports incomplete when entry function contains a with statement", async () => {
+      const withCode = `
+export function registerMSTeamsHandlers(app) {
+  with (app) {
+    handleSigninTokenExchangeInvoke(app);
+  }
+}
+`;
+      await withTempDir(async (dir) => {
+        const repoDir = join(dir, "repo");
+        await mkdir(repoDir, { recursive: true });
+        const [oid] = await createGitRepo(repoDir, [
+          { message: "with code", files: { "extensions/msteams/src/monitor-handler.ts": withCode } },
+        ]);
+
+        const adapter = new JavascriptCfgMissingCheckAdapter({ trustedRoots: [repoDir] });
+        const obs = await adapter.execute({
+          hypothesis,
+          target: { vulnerable: { kind: "git_revision", repository: repoDir, revision: oid } },
+          analyzer_id: "javascript_cfg",
+          mode: "reproduce",
+          runId: "run-with",
+          artifactRoot: join(dir, "artifacts"),
+        }, { timeoutMs: 5_000 });
+
+        expect(obs.completeness.vulnerable.status).toBe("incomplete");
+        expect(obs.relation.state).toBe("inconclusive");
+        expect(obs.capability_gaps).toEqual(expect.arrayContaining([
+          expect.objectContaining({ code: "MCHECK_UNSUPPORTED_WITH_CONSTRUCT" }),
+        ]));
+      });
+    });
+
+    it("reports incomplete when ternary conditional expression contains op or check", async () => {
+      const ternaryCode = `
+export function registerMSTeamsHandlers(app) {
+  return isSigninInvokeAuthorized(app) ? handleSigninTokenExchangeInvoke(app) : null;
+}
+`;
+      await withTempDir(async (dir) => {
+        const repoDir = join(dir, "repo");
+        await mkdir(repoDir, { recursive: true });
+        const [oid] = await createGitRepo(repoDir, [
+          { message: "ternary code", files: { "extensions/msteams/src/monitor-handler.ts": ternaryCode } },
+        ]);
+
+        const adapter = new JavascriptCfgMissingCheckAdapter({ trustedRoots: [repoDir] });
+        const obs = await adapter.execute({
+          hypothesis,
+          target: { vulnerable: { kind: "git_revision", repository: repoDir, revision: oid } },
+          analyzer_id: "javascript_cfg",
+          mode: "reproduce",
+          runId: "run-ternary",
+          artifactRoot: join(dir, "artifacts"),
+        }, { timeoutMs: 5_000 });
+
+        expect(obs.completeness.vulnerable.status).toBe("incomplete");
+        expect(obs.relation.state).toBe("inconclusive");
+        expect(obs.capability_gaps).toEqual(expect.arrayContaining([
+          expect.objectContaining({ code: "MCHECK_UNSUPPORTED_SHORT_CIRCUIT_CONSTRUCT" }),
+        ]));
+      });
+    });
+
+    it("reports incomplete when short-circuit binary expression contains op or check", async () => {
+      const shortCircuitCode = `
+export function registerMSTeamsHandlers(app) {
+  isSigninInvokeAuthorized(app) && handleSigninTokenExchangeInvoke(app);
+}
+`;
+      await withTempDir(async (dir) => {
+        const repoDir = join(dir, "repo");
+        await mkdir(repoDir, { recursive: true });
+        const [oid] = await createGitRepo(repoDir, [
+          { message: "short circuit", files: { "extensions/msteams/src/monitor-handler.ts": shortCircuitCode } },
+        ]);
+
+        const adapter = new JavascriptCfgMissingCheckAdapter({ trustedRoots: [repoDir] });
+        const obs = await adapter.execute({
+          hypothesis,
+          target: { vulnerable: { kind: "git_revision", repository: repoDir, revision: oid } },
+          analyzer_id: "javascript_cfg",
+          mode: "reproduce",
+          runId: "run-short-circuit",
+          artifactRoot: join(dir, "artifacts"),
+        }, { timeoutMs: 5_000 });
+
+        expect(obs.completeness.vulnerable.status).toBe("incomplete");
+        expect(obs.relation.state).toBe("inconclusive");
+        expect(obs.capability_gaps).toEqual(expect.arrayContaining([
+          expect.objectContaining({ code: "MCHECK_UNSUPPORTED_SHORT_CIRCUIT_CONSTRUCT" }),
+        ]));
+      });
+    });
+
+    it("reports incomplete when statement depth exceeds MAX_STATEMENT_DEPTH (250)", async () => {
+      const statements = Array.from({ length: 255 }, (_, i) => `  const dummy${i} = ${i};`).join("\n");
+      const deepCode = `
+export function registerMSTeamsHandlers(app) {
+${statements}
+  return handleSigninTokenExchangeInvoke(app);
+}
+`;
+      await withTempDir(async (dir) => {
+        const repoDir = join(dir, "repo");
+        await mkdir(repoDir, { recursive: true });
+        const [oid] = await createGitRepo(repoDir, [
+          { message: "deep statements", files: { "extensions/msteams/src/monitor-handler.ts": deepCode } },
+        ]);
+
+        const adapter = new JavascriptCfgMissingCheckAdapter({ trustedRoots: [repoDir] });
+        const obs = await adapter.execute({
+          hypothesis,
+          target: { vulnerable: { kind: "git_revision", repository: repoDir, revision: oid } },
+          analyzer_id: "javascript_cfg",
+          mode: "reproduce",
+          runId: "run-deep",
+          artifactRoot: join(dir, "artifacts"),
+        }, { timeoutMs: 5_000 });
+
+        expect(obs.completeness.vulnerable.status).toBe("incomplete");
+        expect(obs.relation.state).toBe("inconclusive");
+        expect(obs.capability_gaps).toEqual(expect.arrayContaining([
+          expect.objectContaining({ code: "MCHECK_STATEMENT_DEPTH_EXCEEDED" }),
+        ]));
+      });
+    });
+
+    it("reports incomplete when path breadth exceeds MAX_PATH_BREADTH (64)", async () => {
+      const branches = Array.from({ length: 7 }, (_, i) => `  if (app.flag${i}) { const a${i} = 1; } else { const b${i} = 2; }`).join("\n");
+      const wideCode = `
+export function registerMSTeamsHandlers(app) {
+${branches}
+  return handleSigninTokenExchangeInvoke(app);
+}
+`;
+      await withTempDir(async (dir) => {
+        const repoDir = join(dir, "repo");
+        await mkdir(repoDir, { recursive: true });
+        const [oid] = await createGitRepo(repoDir, [
+          { message: "wide branching", files: { "extensions/msteams/src/monitor-handler.ts": wideCode } },
+        ]);
+
+        const adapter = new JavascriptCfgMissingCheckAdapter({ trustedRoots: [repoDir] });
+        const obs = await adapter.execute({
+          hypothesis,
+          target: { vulnerable: { kind: "git_revision", repository: repoDir, revision: oid } },
+          analyzer_id: "javascript_cfg",
+          mode: "reproduce",
+          runId: "run-wide",
+          artifactRoot: join(dir, "artifacts"),
+        }, { timeoutMs: 5_000 });
+
+        expect(obs.completeness.vulnerable.status).toBe("incomplete");
+        expect(obs.relation.state).toBe("inconclusive");
+        expect(obs.capability_gaps).toEqual(expect.arrayContaining([
+          expect.objectContaining({ code: "MCHECK_PATH_BREADTH_EXCEEDED" }),
+        ]));
+      });
+    });
   });
 
   describe("Security Boundaries & Fingerprints", () => {
@@ -425,6 +587,167 @@ export function otherFunction(app) {
           expected_fingerprint: "0123456789abcdef0123456789abcdef01234567",
         }, { timeoutMs: 5_000 })).rejects.toMatchObject<Partial<DomainError>>({
           code: "DATABASE_FINGERPRINT_MISMATCH",
+        });
+      });
+    });
+  });
+
+  describe("Replay Immutability & Deadline Enforcement", () => {
+    it("detects evidence mutation during replay and marks verification_level generated", async () => {
+      await withTempDir(async (dir) => {
+        const repoDir = join(dir, "repo");
+        await mkdir(repoDir, { recursive: true });
+
+        const [vulnOid, fixedOid] = await createGitRepo(repoDir, [
+          {
+            message: "vulnerable",
+            files: { "extensions/msteams/src/monitor-handler.ts": openclawVulnCode },
+          },
+          {
+            message: "fixed",
+            files: { "extensions/msteams/src/monitor-handler.ts": openclawFixedCode },
+          },
+        ]);
+
+        const fs = new NodeFileSystemPort();
+        const baseAdapter = new JavascriptCfgMissingCheckAdapter({
+          trustedRoots: [repoDir],
+          filesystem: fs,
+        });
+
+        let tamperOnReplay = false;
+        const mutatingAdapter = {
+          execute: async (req: Parameters<JavascriptCfgMissingCheckAdapter["execute"]>[0], opts: Parameters<JavascriptCfgMissingCheckAdapter["execute"]>[1]) => {
+            const obs = await baseAdapter.execute(req, opts);
+            if (tamperOnReplay && req.workspace === "replay") {
+              const originalEvidence = join(req.artifactRoot, "missing-check", req.hypothesis.hypothesis_id, "vulnerable", "witnesses.json");
+              await fs.writeTextAtomic(originalEvidence, JSON.stringify({ tampered: true }));
+            }
+            return obs;
+          },
+          validateTarget: (target: Parameters<JavascriptCfgMissingCheckAdapter["validateTarget"]>[0], opts: Parameters<JavascriptCfgMissingCheckAdapter["validateTarget"]>[1]) =>
+            baseAdapter.validateTarget(target, opts),
+        };
+
+        const app = new Application({
+          codeql: new FakeCodeqlPort(),
+          artifacts: new LocalArtifactStore(join(dir, "runs"), fs),
+          clock: new FixedClock(1_700_000_000_000),
+          ids: new FixedIdGenerator(["run-tamper-1"]),
+          missingCheck: new CompositeMissingCheckExecutionPort({
+            javascript_cfg: mutatingAdapter as unknown as JavascriptCfgMissingCheckAdapter,
+          }),
+        });
+
+        const result = await app.research({
+          action: "execute",
+          capability: "missing_check",
+          hypothesis_version: "autovul.missing-check/1",
+          hypothesis,
+          analyzer_id: "javascript_cfg",
+          mode: "differential",
+          target: {
+            vulnerable: { kind: "git_revision", repository: repoDir, revision: vulnOid },
+            fixed: { kind: "git_revision", repository: repoDir, revision: fixedOid },
+          },
+          budget: { timeout_ms: 10_000 },
+          idempotency_key: "openclaw-tamper-test",
+        });
+
+        expect((result as MissingCheckExecutionResult).verification_level).toBe("differential");
+
+        tamperOnReplay = true;
+        const replay = await app.manageRun({ action: "replay", run_id: (result as MissingCheckExecutionResult).run_id });
+        const replayResult = replay as MissingCheckExecutionResult;
+        expect(replayResult.verification_level).toBe("generated");
+        expect(replayResult.observations).toEqual(expect.arrayContaining([
+          expect.objectContaining({ code: "MCHECK_REPLAY_EVIDENCE_MUTATED" }),
+        ]));
+      });
+    });
+
+    it("fails replay with MCHECK_REPLAY_FINGERPRINT_DIFFERENCE when recorded fingerprint diverges", async () => {
+      await withTempDir(async (dir) => {
+        const repoDir = join(dir, "repo");
+        await mkdir(repoDir, { recursive: true });
+
+        const [vulnOid, fixedOid] = await createGitRepo(repoDir, [
+          {
+            message: "vulnerable",
+            files: { "extensions/msteams/src/monitor-handler.ts": openclawVulnCode },
+          },
+          {
+            message: "fixed",
+            files: { "extensions/msteams/src/monitor-handler.ts": openclawFixedCode },
+          },
+        ]);
+
+        const fs = new NodeFileSystemPort();
+        const adapter = new JavascriptCfgMissingCheckAdapter({
+          trustedRoots: [repoDir],
+          filesystem: fs,
+        });
+
+        const app = new Application({
+          codeql: new FakeCodeqlPort(),
+          artifacts: new LocalArtifactStore(join(dir, "runs"), fs),
+          clock: new FixedClock(1_700_000_000_000),
+          ids: new FixedIdGenerator(["run-fp-1"]),
+          missingCheck: new CompositeMissingCheckExecutionPort({
+            javascript_cfg: adapter,
+          }),
+        });
+
+        const result = await app.research({
+          action: "execute",
+          capability: "missing_check",
+          hypothesis_version: "autovul.missing-check/1",
+          hypothesis,
+          analyzer_id: "javascript_cfg",
+          mode: "differential",
+          target: {
+            vulnerable: { kind: "git_revision", repository: repoDir, revision: vulnOid },
+            fixed: { kind: "git_revision", repository: repoDir, revision: fixedOid },
+          },
+          budget: { timeout_ms: 10_000 },
+          idempotency_key: "openclaw-fp-test",
+        });
+
+        expect((result as MissingCheckExecutionResult).verification_level).toBe("differential");
+
+        const runId = (result as MissingCheckExecutionResult).run_id;
+        const resultArtifactPath = join(dir, "runs", runId, "research", "missing-check", "result.json");
+        const artifactJson = JSON.parse(await fs.readText(resultArtifactPath));
+        artifactJson.target_fingerprints.vulnerable = "0123456789abcdef0123456789abcdef01234567";
+        await fs.writeTextAtomic(resultArtifactPath, JSON.stringify(artifactJson));
+
+        const replay = await app.manageRun({ action: "replay", run_id: runId });
+        const replayResult = replay as MissingCheckExecutionResult;
+        expect(replayResult.operation_status).toBe("blocked");
+        expect(replayResult.observations).toEqual(expect.arrayContaining([
+          expect.objectContaining({ code: "MCHECK_REPLAY_FINGERPRINT_DIFFERENCE" }),
+        ]));
+      });
+    });
+
+    it("enforces execution deadline and raises PROCESS_TIMEOUT when timeoutMs is 0", async () => {
+      await withTempDir(async (dir) => {
+        const repoDir = join(dir, "repo");
+        await mkdir(repoDir, { recursive: true });
+        const [oid] = await createGitRepo(repoDir, [
+          { message: "init", files: { "extensions/msteams/src/monitor-handler.ts": openclawVulnCode } },
+        ]);
+
+        const adapter = new JavascriptCfgMissingCheckAdapter({ trustedRoots: [repoDir] });
+        await expect(adapter.execute({
+          hypothesis,
+          target: { vulnerable: { kind: "git_revision", repository: repoDir, revision: oid } },
+          analyzer_id: "javascript_cfg",
+          mode: "reproduce",
+          runId: "run-timeout-1",
+          artifactRoot: join(dir, "artifacts"),
+        }, { timeoutMs: 0 })).rejects.toMatchObject<Partial<DomainError>>({
+          code: "PROCESS_TIMEOUT",
         });
       });
     });

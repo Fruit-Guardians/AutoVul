@@ -32,6 +32,9 @@ const COMPLETENESS_LIMITATIONS = [
   "helper_semantics_excluded",
 ] as const;
 
+const MAX_STATEMENT_DEPTH = 250;
+const MAX_PATH_BREADTH = 64;
+
 const GIT_ENVIRONMENT: Readonly<Record<string, string>> = {
   GIT_ATTR_NOSYSTEM: "1",
   GIT_CONFIG_NOSYSTEM: "1",
@@ -62,6 +65,10 @@ interface PathState {
   readonly isTerminated: boolean;
 }
 
+interface AnalysisContext {
+  breadthExceeded: boolean;
+}
+
 export class JavascriptCfgMissingCheckAdapter implements MissingCheckExecutionPort, MissingCheckEvidenceSnapshotPort {
   private readonly filesystem: FileSystemPort;
   private readonly process: ProcessPort;
@@ -78,6 +85,10 @@ export class JavascriptCfgMissingCheckAdapter implements MissingCheckExecutionPo
   async execute(request: MissingCheckExecutionRequest, options: CodeqlOperationOptions): Promise<MissingCheckAnalyzerObservation> {
     if (options.signal?.aborted) {
       throw new DomainError("PROCESS_CANCELLED", "process", `Execution was cancelled: ${request.runId}`, false);
+    }
+    const deadline = Date.now() + (options.timeoutMs ?? 30_000);
+    if (Date.now() >= deadline) {
+      throw new DomainError("PROCESS_TIMEOUT", "process", `Execution timed out: ${request.runId}`, false);
     }
     const target = request.target;
     if (target.vulnerable.kind !== "git_revision") {
@@ -97,6 +108,7 @@ export class JavascriptCfgMissingCheckAdapter implements MissingCheckExecutionPo
       target.vulnerable.revision,
       request.hypothesis.scope.file,
       options.signal,
+      deadline,
     );
 
     const vulnerable = vulnerableSource === undefined
@@ -138,6 +150,7 @@ export class JavascriptCfgMissingCheckAdapter implements MissingCheckExecutionPo
         target.fixed.revision,
         request.hypothesis.scope.file,
         options.signal,
+        deadline,
       );
 
       fixed = fixedSource === undefined
@@ -299,8 +312,13 @@ export class JavascriptCfgMissingCheckAdapter implements MissingCheckExecutionPo
     revision: string,
     filePath: string,
     signal?: AbortSignal,
+    deadline?: number,
   ): Promise<string | undefined> {
     const repository = await this.resolveTrustedRepository(repositoryPath);
+    const remainingTimeout = deadline !== undefined ? Math.max(1000, deadline - Date.now()) : 10_000;
+    if (deadline !== undefined && Date.now() >= deadline) {
+      throw new DomainError("PROCESS_TIMEOUT", "process", `Execution timed out reading git file: ${filePath}`, false);
+    }
     const result = await this.process.execute(
       {
         executable: this.gitExecutable,
@@ -310,7 +328,7 @@ export class JavascriptCfgMissingCheckAdapter implements MissingCheckExecutionPo
         shell: false,
       },
       {
-        timeoutMs: 10_000,
+        timeoutMs: Math.min(10_000, remainingTimeout),
         maxOutputBytes: 10 * 1024 * 1024,
         ...(signal === undefined ? {} : { signal }),
       },
@@ -389,6 +407,18 @@ function analyzeSource(
   const checkedWitnesses: MissingCheckWitness[] = [];
 
   const bodyStatements = getStatements(entryFunction);
+  if (bodyStatements.length > MAX_STATEMENT_DEPTH) {
+    return {
+      complete: false,
+      gaps: [{ code: "MCHECK_STATEMENT_DEPTH_EXCEEDED", path: entryName }],
+      operations: [],
+      checks: [],
+      uncheckedWitnesses: [],
+      checkedWitnesses: [],
+    };
+  }
+
+  const context: AnalysisContext = { breadthExceeded: false };
   walkStatements(
     bodyStatements,
     [{ isGuarded: false, isTerminated: false }],
@@ -401,7 +431,19 @@ function analyzeSource(
     checks,
     uncheckedWitnesses,
     checkedWitnesses,
+    context,
   );
+
+  if (context.breadthExceeded) {
+    return {
+      complete: false,
+      gaps: [{ code: "MCHECK_PATH_BREADTH_EXCEEDED", path: entryName }],
+      operations: [],
+      checks: [],
+      uncheckedWitnesses: [],
+      checkedWitnesses: [],
+    };
+  }
 
   return {
     complete: true,
@@ -446,6 +488,23 @@ function getStatements(fn: ts.FunctionLikeDeclaration): readonly ts.Statement[] 
   return [];
 }
 
+function containsCallTo(root: ts.Node, targetNames: readonly string[]): boolean {
+  let found = false;
+  function visit(n: ts.Node): void {
+    if (found) return;
+    if (ts.isCallExpression(n)) {
+      const callee = getCalleeName(n.expression);
+      if (callee !== undefined && targetNames.includes(callee)) {
+        found = true;
+        return;
+      }
+    }
+    ts.forEachChild(n, visit);
+  }
+  visit(root);
+  return found;
+}
+
 function findUnsupportedConstructsGaps(
   fn: ts.FunctionLikeDeclaration,
   opName: string,
@@ -476,25 +535,35 @@ function findUnsupportedConstructsGaps(
       gaps.push({ code: "MCHECK_UNSUPPORTED_TRY_CONSTRUCT", path: "try" });
       return;
     }
+    if (ts.isWithStatement(node)) {
+      gaps.push({ code: "MCHECK_UNSUPPORTED_WITH_CONSTRUCT", path: "with" });
+      return;
+    }
     if (ts.isBreakStatement(node) || ts.isContinueStatement(node) || ts.isLabeledStatement(node)) {
       gaps.push({ code: "MCHECK_UNSUPPORTED_JUMP_CONSTRUCT", path: ts.SyntaxKind[node.kind] });
       return;
     }
-    if (ts.isFunctionDeclaration(node) || ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
-      let containsOpOrCheck = false;
-      function checkNested(n: ts.Node): void {
-        if (containsOpOrCheck) return;
-        if (ts.isCallExpression(n)) {
-          const callee = getCalleeName(n.expression);
-          if (callee === opName || callee === checkName) {
-            containsOpOrCheck = true;
-            return;
-          }
-        }
-        ts.forEachChild(n, checkNested);
+    if (ts.isConditionalExpression(node)) {
+      if (containsCallTo(node, [opName, checkName])) {
+        gaps.push({ code: "MCHECK_UNSUPPORTED_SHORT_CIRCUIT_CONSTRUCT", path: "conditional_expression" });
+        return;
       }
-      checkNested(node);
-      if (containsOpOrCheck) {
+    }
+    if (ts.isBinaryExpression(node)) {
+      const op = node.operatorToken.kind;
+      if (
+        op === ts.SyntaxKind.AmpersandAmpersandToken ||
+        op === ts.SyntaxKind.BarBarToken ||
+        op === ts.SyntaxKind.QuestionQuestionToken
+      ) {
+        if (containsCallTo(node, [opName, checkName])) {
+          gaps.push({ code: "MCHECK_UNSUPPORTED_SHORT_CIRCUIT_CONSTRUCT", path: ts.SyntaxKind[op] });
+          return;
+        }
+      }
+    }
+    if (ts.isFunctionDeclaration(node) || ts.isArrowFunction(node) || ts.isFunctionExpression(node)) {
+      if (containsCallTo(node, [opName, checkName])) {
         gaps.push({ code: "MCHECK_UNSUPPORTED_NESTED_CALL", path: "nested_function" });
         return;
       }
@@ -518,11 +587,16 @@ function walkStatements(
   checks: MissingCheckLocationRef[],
   uncheckedWitnesses: MissingCheckWitness[],
   checkedWitnesses: MissingCheckWitness[],
+  context: AnalysisContext,
 ): readonly PathState[] {
   let currentPaths: readonly PathState[] = incomingPaths.filter((p) => !p.isTerminated);
 
   for (const stmt of statements) {
     if (currentPaths.length === 0) break;
+    if (currentPaths.length > MAX_PATH_BREADTH) {
+      context.breadthExceeded = true;
+      break;
+    }
 
     if (ts.isIfStatement(stmt)) {
       currentPaths = walkIfStatement(
@@ -537,7 +611,12 @@ function walkStatements(
         checks,
         uncheckedWitnesses,
         checkedWitnesses,
+        context,
       );
+      if (currentPaths.length > MAX_PATH_BREADTH) {
+        context.breadthExceeded = true;
+        break;
+      }
       continue;
     }
 
@@ -565,6 +644,7 @@ function walkIfStatement(
   checks: MissingCheckLocationRef[],
   uncheckedWitnesses: MissingCheckWitness[],
   checkedWitnesses: MissingCheckWitness[],
+  context: AnalysisContext,
 ): readonly PathState[] {
   const polarity = evaluateConditionPolarity(stmt.expression, checkName, sourceFile, filePath, checks);
 
@@ -595,6 +675,7 @@ function walkIfStatement(
     checks,
     uncheckedWitnesses,
     checkedWitnesses,
+    context,
   );
 
   let elseExitingPaths: readonly PathState[];
@@ -612,12 +693,18 @@ function walkIfStatement(
       checks,
       uncheckedWitnesses,
       checkedWitnesses,
+      context,
     );
   } else {
     elseExitingPaths = elseInitialPaths;
   }
 
-  return [...thenExitingPaths, ...elseExitingPaths];
+  const combined = [...thenExitingPaths, ...elseExitingPaths];
+  if (combined.length > MAX_PATH_BREADTH) {
+    context.breadthExceeded = true;
+    return combined.slice(0, MAX_PATH_BREADTH);
+  }
+  return combined;
 }
 
 function evaluateConditionPolarity(

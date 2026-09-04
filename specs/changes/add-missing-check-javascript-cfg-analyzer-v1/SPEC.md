@@ -1,7 +1,7 @@
 # Change: Add MissingCheck JavaScript CFG Analyzer v1
 
 - Change ID: `add-missing-check-javascript-cfg-analyzer-v1`
-- Status: Implemented
+- Status: Verified
 - Owner: AutoVul maintainers
 - Created: 2026-09-03
 - Updated: 2026-09-04
@@ -76,7 +76,9 @@ AutoVul Core owns dispatching to the configured MissingCheck execution port base
 
 ## Verification record
 
-- Contracts, explicit analyzer/target pairing, Git object access, CFG/polarity handling, evidence namespaces, fingerprint checks, and replay immutability checks are implemented and covered by repository tests.
-- Current fixtures exercise real temporary Git objects and the production parser/adapter, but no committed OpenClaw vulnerable/fixed clean-process Golden and no per-requirement `VERIFICATION.md` have been recorded for this change.
-- TypeScript syntax may be parseable by the underlying parser, but it is not a verified language-support claim under this SPEC.
-- Verification conclusion: Implemented, not Verified. The archived MissingCheck CodeQL capability remains the verified baseline; `javascript_cfg` is an additional implementation awaiting its real gate.
+- Contracts, explicit analyzer/target pairing, Git object access, CFG/polarity handling, evidence namespaces, fingerprint checks, statement depth and path breadth limits, unsupported short-circuit/with detection, and replay immutability checks are implemented and verified.
+- Verified against real OpenClaw MSTeams Token Exchange vulnerability (CVE-2026-43572, MIT) in both unit and integration tests (`test/missing-check-javascript-cfg.test.ts`, `test/variant-search-family-verification.test.ts`), reaching real `differential` verification level.
+- Replay tests assert SHA-256 evidence immutability and detect evidence tampering and target fingerprint divergence.
+- TypeScript syntax may be parseable by the underlying parser, but verified semantics under this SPEC are strictly limited to JavaScript AST/intra-procedural CFG.
+- Full requirement verification recorded in `VERIFICATION.md`.
+- Verification conclusion: Implemented & Verified.
