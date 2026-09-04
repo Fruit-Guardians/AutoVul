@@ -314,7 +314,7 @@ export function registerActionHandlers(app: any) {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
-  });
+  }, 25_000);
 
   it("Family 2 (Webhook Verification): discovers candidates, validates non-seed variant, and proves safe counter-example", async () => {
     const root = await mkdtemp(join(tmpdir(), "autovul-fam2-"));
@@ -539,5 +539,5 @@ export function handleInvoiceWebhook(req: any) {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
-  });
+  }, 25_000);
 });

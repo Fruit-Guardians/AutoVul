@@ -62,6 +62,7 @@ export interface ApplicationDependencies {
   readonly typestate?: TypestateExecutionPort & TypestateEvidenceSnapshotPort;
   readonly changeObservation?: ChangeObservationPort;
   readonly variantSearch?: VariantSearchPort;
+  readonly reproduction?: import("./dynamic-reproduction/port.js").DynamicReproductionPort;
   readonly defaultTimeoutMs?: number;
 }
 

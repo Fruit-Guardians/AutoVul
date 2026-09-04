@@ -19,6 +19,7 @@ import { JavascriptCfgMissingCheckAdapter } from "./javascript-cfg-adapter.js";
 import { CodeqlTypestateAdapter } from "./typestate-adapter.js";
 import { GitChangeObservationAdapter } from "./change-observation-git-adapter.js";
 import { GitVariantSearchAdapter } from "./variant-search-git-adapter.js";
+import { ControlledDynamicReproductionAdapter } from "./dynamic-reproduction-adapter.js";
 
 export interface LocalApplicationOptions {
   readonly cwd?: string;
@@ -43,6 +44,7 @@ export function createLocalApplication(options: LocalApplicationOptions = {}): A
     cwd,
     ...(process.env.CODEQL_DISTRIBUTION_ROOT === undefined ? {} : { distributionRoot: process.env.CODEQL_DISTRIBUTION_ROOT }),
   });
+  const artifacts = new LocalArtifactStore(runsDir, filesystem);
   const dependencies = {
     codeql,
     queries,
@@ -55,8 +57,9 @@ export function createLocalApplication(options: LocalApplicationOptions = {}): A
     typestate: new CodeqlTypestateAdapter({ executable, cwd, filesystem }),
     changeObservation: new GitChangeObservationAdapter({ trustedRoots: [trustedWorkspaceRoot], filesystem }),
     variantSearch: new GitVariantSearchAdapter({ trustedRoots: [trustedWorkspaceRoot], filesystem }),
+    reproduction: new ControlledDynamicReproductionAdapter(artifacts),
     drafts,
-    artifacts: new LocalArtifactStore(runsDir, filesystem),
+    artifacts,
     clock: new SystemClock(),
     ids: new RandomIdGenerator(),
   };

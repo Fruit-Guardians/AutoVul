@@ -501,3 +501,22 @@ export { AutovulResearchToolInputSchema, MissingCheckResearchToolInputSchema } f
 export type { AutovulResearchToolInput, MissingCheckResearchToolInput } from "./research-tool.js";
 export { parseSchema } from "./validation.js";
 export { stableDigest } from "./digest.js";
+export {
+  DYNAMIC_REPRODUCTION_PORT_ID,
+  DYNAMIC_REPRODUCTION_CONTRACT_VERSION,
+  DYNAMIC_REPRODUCTION_LIMITS,
+  DynamicReproductionCommandSchema,
+  DynamicReproductionBudgetSchema,
+  DynamicReproductionWitnessArtifactSchema,
+  DynamicReproductionExecutionRequestSchema,
+  DynamicReproductionExecutionObservationSchema,
+  DynamicReproductionReplayVerificationSchema,
+} from "./dynamic-reproduction.js";
+export type {
+  DynamicReproductionCommand,
+  DynamicReproductionBudget,
+  DynamicReproductionWitnessArtifact,
+  DynamicReproductionExecutionRequest,
+  DynamicReproductionExecutionObservation,
+  DynamicReproductionReplayVerification,
+} from "./dynamic-reproduction.js";

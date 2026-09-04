@@ -99,3 +99,13 @@ export {
   type VariantSearchPortObservation,
   type VariantSeedPatternFacts,
 } from "./variant-search/port.js";
+export {
+  unavailableDynamicReproductionPort,
+  validateReproductionEnvironment,
+  SAFE_SYSTEM_EXECUTABLES,
+  FORBIDDEN_ENV_VARS,
+  SAFE_BASE_ENV_VARS,
+  type DynamicReproductionPort,
+  type DynamicReproductionPortOptions,
+} from "./dynamic-reproduction/port.js";
+export { DynamicReproductionReplayService } from "./dynamic-reproduction/replay.js";

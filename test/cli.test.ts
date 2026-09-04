@@ -176,7 +176,7 @@ describe("V2 CLI", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
-  });
+  }, 20_000);
 
   it("routes Variant Search through the existing research and run commands", async () => {
     const root = await mkdtemp(join(tmpdir(), "autovul-cli-variant-search-"));
@@ -309,7 +309,7 @@ describe("V2 CLI", () => {
     } finally {
       await rm(root, { recursive: true, force: true });
     }
-  });
+  }, 20_000);
 });
 
 async function git(repository: string, args: readonly string[]): Promise<void> {

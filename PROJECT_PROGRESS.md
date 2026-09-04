@@ -143,23 +143,24 @@
 | [`harden-workflow-commit-boundaries`](./specs/changes/harden-workflow-commit-boundaries/SPEC.md) | Runtime | `Accepted` | 实现、故障注入、并发与真实 Query Pack replay 待完成 |
 | [`classify-variant-research-role`](./specs/changes/classify-variant-research-role/SPEC.md) | 分类 | `Archived` | `search_service` 已选定；两家族分类证据已闭合 |
 | [`introduce-variant-search-service-v1`](./specs/changes/introduce-variant-search-service-v1/SPEC.md) | Analyzer Service | `Verified` | [逐项验证](./specs/changes/introduce-variant-search-service-v1/VERIFICATION.md) |
+| [`prototype-controlled-dynamic-reproduction-port`](./specs/changes/prototype-controlled-dynamic-reproduction-port/SPEC.md) | Analyzer Port | `Verified` | [逐项验证](./specs/changes/prototype-controlled-dynamic-reproduction-port/VERIFICATION.md) |
 
 ## 验证快照
 
 | 项目 | 当前记录 |
 | --- | --- |
 | 最近同步的代码基线 | `9a3c37e`，`main` 与 `origin/main` 同步时的基线 |
-| 当前工作区 | 完成 Variant Search v1、JavaScript CFG v1、审计 Playbooks、DeepSeek Harness 外部验收 |
-| 本轮文档检查 | `spec:check` 通过：125 条根基线要求、15 份变更 SPEC；`naming:check`、文档链接检查和 `git diff --check` 通过 |
+| 当前工作区 | 完成 Variant Search v1、JavaScript CFG v1、审计 Playbooks、DeepSeek Harness 外部验收、受控动态复现 Port 原型 |
+| 本轮文档检查 | `spec:check` 通过：130 条根基线要求、16 份变更 SPEC；`naming:check`、文档链接检查和 `git diff --check` 通过 |
 | 当前 full gate | 代码与规范门禁全绿 (`npm run check`，`vitest run`) |
 | 已归档真实证据 | Flow、MissingCheck、Typestate、Change Observation、JS CFG、Variant Search 各自的 `VERIFICATION.md` 和 evidence 目录 |
 | 外部宿主验收证据 | DeepSeek Harness 函数调用协议验收录像 (`acceptance-transcript.json`) |
+| 动态复现证据 | 受控沙箱进程树生命周期、环境清洗、SHA-256 证物固化与 replay 测试通过 |
 
 ## 下一步执行顺序
 
-1. 原型化受控动态复现 Port (`Controlled Dynamic Reproduction Port`)，建立受控沙箱执行、严格预算、确定性证据固化与独立 replay 契约。
-2. 收口 workflow commit、rename、architecture stabilization 三项生命周期债务。
-3. 保持根 `SPEC.md` 与已完成 SPEC 归档同步。
+1. 收口 workflow commit、rename、architecture stabilization 三项生命周期债务。
+2. 保持根 `SPEC.md` 与已完成 SPEC 归档同步。
 
 ## 文档维护规则
 

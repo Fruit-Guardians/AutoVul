@@ -49,6 +49,12 @@ export const DomainErrorCodeSchema = Type.Union([
   Type.Literal("CHANGE_OBSERVATION_REPOSITORY_INVALID"),
   Type.Literal("REVISION_OBJECT_MISSING"),
   Type.Literal("CHANGE_OBSERVATION_GIT_FAILED"),
+  Type.Literal("DYN_UNTRUSTED_ROOT"),
+  Type.Literal("DYN_UNSAFE_ENVIRONMENT"),
+  Type.Literal("DYN_TIMEOUT_EXCEEDED"),
+  Type.Literal("DYN_WITNESS_ESCAPE"),
+  Type.Literal("DYN_WITNESS_TOO_LARGE"),
+  Type.Literal("DYN_REPLAY_DIGEST_MISMATCH"),
 ]);
 export type DomainErrorCode = Static<typeof DomainErrorCodeSchema>;
 
