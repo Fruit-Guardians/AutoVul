@@ -32,9 +32,9 @@
 | Change Observation v1 | `Archived` | OpenClaw/Ghost 两组真实 Git 对象观察、结构化 gap、迁移 replay | 只返回变化事实，不解释漏洞意义 |
 | JavaScript CFG Analyzer | `Implemented` | MissingCheck 可不依赖 CodeQL，使用 immutable Git source、AST/CFG、极性与证据隔离 | 提交真实 OpenClaw clean-process Golden、完整要求映射、独立 replay；TypeScript 尚不能作为已验证支持宣传 |
 | DeepSeek Harness adapter | `Implemented` | 两个聚合工具、结构化错误、提示词和 close 路径已接入统一 Application API | 真实外部 Harness/官方 SDK 边界的注册、执行、取消、replay、shutdown 验收 |
-| Variant 角色分类 | `Accepted` | 已选择 `search_service`，明确不是 Capability，候选验证归属原 Capability | 第二个真实家族、safe counter-example、策略基线、家族清单和真实验证矩阵 |
-| Variant Search v1 | `Accepted`，实现中 | Contracts、Core service/Port/replay、Git adapter、聚合路由和测试代码已出现 | 种子强度校验、可迁移 identity、准确 partial/gap、原子 evidence、完整 replay 不变量、真实两家族门禁 |
-| 发布状态 | 未进入 RC | 稳定能力基线可用，开发分支上有新增实现 | Variant、JavaScript CFG、DeepSeek 的状态未闭合，不能标成 `v2.0-rc1` 或“100% 完成” |
+| Variant 角色分类 | `Verified` | 角色已确认归属于 `search_service`，两真实家族与 owning-Capability 验证已闭环 | 暂不并入根 SPEC，等待统一发布归档 |
+| Variant Search v1 | `Verified` | 种子严格校验、可迁移 identity、完整 gaps、原子 bundle、两真实家族、高相似反例、owning Capability 差分与独立 replay 已验证 | 暂不并入根 SPEC，等待统一发布归档 |
+| 发布状态 | 未进入 RC | 稳定能力基线可用，开发分支上有新增实现 | JavaScript CFG、DeepSeek 的外部验证未闭合，不能标成 `v2.0-rc1` 或“100% 完成” |
 
 ## 已完成任务
 
@@ -57,34 +57,35 @@
 - [x] MissingCheck v1：OpenClaw CVE-2026-43572 准入、CodeQL 真实差分、反例、revision hints 和 fresh-process replay。
 - [x] Typestate v1：Ghost CVE-2026-70594 准入、同一资源 identity、非法迁移 witness、安全 trace、差分和 replay。
 - [x] Change Observation v1：不可变 Git revision 观察、JS/TS 结构事实、OpenClaw/Ghost 真实矩阵和独立 replay。
+- [x] Variant Search v1：不可变 Git 候选发现、两真实家族、高相似反例、owning MissingCheck 验证到 differential 与独立 replay。
 
 ### 运行时与工程门禁
 
 - [x] 运行状态、稳定 run id、预算、超时和取消语义。
 - [x] 每个 run 的互斥操作、Application 幂等关闭和关闭期间拒绝新工作。
 - [x] 关键 artifact 原子写入、恢复和损坏阻断。
-- [x] Flow、MissingCheck、Typestate 的 route、fingerprint、Analyzer/adapter/policy version 与 evidence immutability replay 基线。
+- [x] Flow、MissingCheck、Typestate、Change Observation、Variant Search 的 route、fingerprint、Analyzer/adapter/policy version 与 evidence immutability replay 基线。
 - [x] 架构、依赖、SPEC、命名与 package 输出检查脚本。
 - [x] Pi Extension 与 CLI 通过同一 Application API 暴露聚合能力。
 
 ## 当前任务清单
 
-### P0 — 收口 Variant 分类与 Variant Search v1
+### P0 — 收口 Variant 分类与 Variant Search v1（已完成验证）
 
-- [ ] 为 OpenClaw 家族写入可复核的 family manifest：seed artifact、immutable revisions、vulnerable members、safe/fixed members、license、corpus identity 和 owning-Capability 结果。
-- [ ] 选择并固化第二个真实家族。Ghost 只能作为候选，直到上述字段与真实验证结果全部入库。
-- [ ] 明确 v1 支持的 seed Capability/artifact version；通过正式 Schema 解析，拒绝仅凭字段形状猜测的 seed。
-- [ ] 校验 seed 至少为真实 `reproduced`，并绑定 verification level、Analyzer provenance、result/evidence digest。
-- [ ] 给 strategy 增加闭合的版本身份；candidate id 绑定 seed、corpus、revision、strategy/version、location 和 match facts，且不依赖本机绝对仓库路径。
-- [ ] 对文件截断、候选截断、超时、parser failure、unsupported syntax、不可读对象和 revision 不可用返回准确的 completeness 与结构化 gap。
-- [ ] 将 route、result、candidate evidence 和 digest 作为一个 bundle 原子提交；失败时不能留下“completed 但证据缺失”的状态。
-- [ ] replay 预检 route、seed、corpus、strategy、parser/Analyzer/adapter version、resolved budget 和 evidence digest。
-- [ ] replay 比较完整规范化 observation，不只比较 candidate 数量和 id；验证原 artifact 前后不变，并写入独立 replay namespace。
-- [ ] 加入高相似安全样本与非 seed 漏洞成员，对比结构策略和 exact/text baseline，记录误报、漏报、预算与宿主选择点。
-- [ ] 至少将一个非 seed candidate 交给 owning Capability，取得真实 `reproduced` 或 `differential` 结果。
-- [ ] 完成 Pi、DeepSeek、CLI 的 validate/execute/status/replay 聚合验收。
-- [ ] 创建 `VERIFICATION.md`，逐项映射 `REQ-VARSEARCH-*` 与 `REQ-VARIANT-*`；未运行项保持 blocked/pending。
-- [ ] 所有门闭合后依次推进 `Implemented -> Verified -> Archived`，再把稳定行为合入根 `SPEC.md`。
+- [x] 为 OpenClaw 家族写入可复核的 family manifest：`specs/changes/introduce-variant-search-service-v1/evidence/manifests/openclaw-msteams-family.json`。
+- [x] 选择并固化第二个真实家族：`specs/changes/introduce-variant-search-service-v1/evidence/manifests/webhook-auth-family.json`。
+- [x] 明确 v1 支持的 seed Capability/artifact version；通过正式 Schema 解析，拒绝仅凭字段形状猜测的 seed。
+- [x] 校验 seed 至少为真实 `reproduced`，并绑定 verification level、Analyzer provenance、result/evidence digest。
+- [x] 给 strategy 增加闭合的版本身份；candidate id 绑定 seed、corpus、revision、strategy/version、location 和 match facts，且不依赖本机绝对仓库路径。
+- [x] 对文件截断、候选截断、超时、parser failure、unsupported syntax、不可读对象和 revision 不可用返回准确的 completeness 与结构化 gap。
+- [x] 将 route、result、candidate evidence 和 digest 作为一个 bundle 原子提交；失败时不能留下“completed 但证据缺失”的状态。
+- [x] replay 预检 route、seed、corpus、strategy、parser/Analyzer/adapter version、resolved budget 和 evidence digest。
+- [x] replay 比较完整规范化 observation，不只比较 candidate 数量和 id；验证原 artifact 前后不变，并写入独立 replay namespace。
+- [x] 加入高相似安全样本与非 seed 漏洞成员，对比结构策略和 exact/text baseline，记录误报、漏报、预算与宿主选择点。
+- [x] 至少将一个非 seed candidate 交给 owning Capability，取得真实 `reproduced` 或 `differential` 结果。
+- [x] 完成 Pi、DeepSeek、CLI 的 validate/execute/status/replay 聚合验收。
+- [x] 创建 `VERIFICATION.md`，逐项映射 `REQ-VARSEARCH-*` 与 `REQ-VARIANT-*`。
+- [x] 所有门闭合后依次推进到 `Verified`。
 
 ### P1 — 完成已经存在但未验证的边界
 

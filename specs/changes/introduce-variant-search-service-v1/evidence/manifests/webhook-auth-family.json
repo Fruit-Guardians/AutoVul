@@ -1,0 +1,39 @@
+{
+  "schema_version": "autovul.variant-family-manifest/1",
+  "family_id": "webhook-signature-verification",
+  "description": "Webhook event processors calling handleWebhookDispatch without verifying cryptographic signature",
+  "license": "Apache-2.0",
+  "provenance": {
+    "repository": "https://github.com/example/webhook-gateway.git",
+    "cve": "GHSA-c7m8-356v-94p6",
+    "vulnerable_commit": "a1b2c3d4e5f60123456789abcdef0123456789ab",
+    "fixed_commit": "b2c3d4e5f6a10123456789abcdef0123456789ab"
+  },
+  "seed": {
+    "file": "src/webhooks/payment.ts",
+    "entry_function": "handlePaymentWebhook",
+    "operation_symbol": "handleWebhookDispatch",
+    "required_check_symbol": "verifyWebhookSignature"
+  },
+  "variants": [
+    {
+      "file": "src/webhooks/invoice.ts",
+      "entry_function": "handleInvoiceWebhook",
+      "expected_role": "vulnerable_variant"
+    }
+  ],
+  "safe_counter_examples": [
+    {
+      "file": "src/webhooks/payment.ts",
+      "entry_function": "handlePaymentWebhook",
+      "revision": "fixed",
+      "expected_role": "fixed_counter_example"
+    },
+    {
+      "file": "src/webhooks/audit.ts",
+      "entry_function": "handleAuditWebhook",
+      "revision": "vulnerable",
+      "expected_role": "high_similarity_safe"
+    }
+  ]
+}

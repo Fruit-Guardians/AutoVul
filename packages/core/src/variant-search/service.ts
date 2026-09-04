@@ -8,6 +8,7 @@ import {
   VARIANT_SEARCH_LIMITS,
   VARIANT_SEARCH_SERVICE,
   VARIANT_SEARCH_SERVICE_VERSION,
+  VARIANT_SEARCH_STRATEGY_VERSION,
   VariantSearchResultArtifactSchema,
   VariantSearchServiceRequestSchema,
   type RunId,
@@ -33,7 +34,6 @@ import type {
 import { extractSeedPatternFacts } from "./seed-facts.js";
 
 export const VARIANT_SEARCH_RESULT_ARTIFACT = "research/variant-search/result.json";
-const RESEARCH_OPERATION_ARTIFACT = "research/operation.json";
 const EXECUTION_PHASE = "variant_search_execute" as const;
 
 export function variantSearchRunIdForInput(
@@ -127,12 +127,18 @@ export class VariantSearchService {
         match_kind: c.match_kind,
         matched_symbols: [...c.matched_symbols],
         evidence_ref: c.evidence_ref,
+        ...(c.evidence_digest !== undefined ? { evidence_digest: c.evidence_digest } : {}),
       }));
       observation = {
         schema_version: VARIANT_SEARCH_SERVICE_VERSION,
         seed_run_id: input.seed_run_id,
-        seed_capability: seedFacts.capability,
+        seed_capability: "missing_check",
+        seed_digest: seedFacts.seedDigest,
+        seed_verification_level: seedFacts.seedVerificationLevel,
         strategy: input.strategy,
+        strategy_version: VARIANT_SEARCH_STRATEGY_VERSION,
+        completeness: portObs.completeness,
+        gaps: [...portObs.gaps],
         candidates,
         budget_exhausted: portObs.budgetExhausted,
         targets_inspected: portObs.targetsInspected,
@@ -173,27 +179,25 @@ export class VariantSearchService {
       result_artifact_ref: VARIANT_SEARCH_RESULT_ARTIFACT,
     });
 
-    await this.artifacts.writeArtifact(runId, RESEARCH_OPERATION_ARTIFACT, routeJson);
-    await this.artifacts.writeArtifact(
-      runId,
-      VARIANT_SEARCH_RESULT_ARTIFACT,
-      JSON.stringify(artifact, null, 2),
-    );
-
-    // Persist individual candidate evidence artifacts for complete evidence traceability
-    for (const candidate of observation.candidates) {
-      await this.artifacts.writeArtifact(
-        runId,
-        candidate.evidence_ref,
-        JSON.stringify({
+    const bundleEntries = [
+      { relativePath: "operation.json", content: routeJson },
+      { relativePath: "variant-search/result.json", content: JSON.stringify(artifact, null, 2) },
+      ...observation.candidates.map((candidate) => ({
+        relativePath: `variant-search/candidates/${candidate.candidate_id}.json`,
+        content: JSON.stringify({
           schema_version: CONTRACTS_VERSION,
           service: VARIANT_SEARCH_SERVICE,
           service_version: VARIANT_SEARCH_SERVICE_VERSION,
           seed_run_id: input.seed_run_id,
+          seed_digest: seedFacts.seedDigest,
           candidate,
         }, null, 2),
-      );
-    }
+      })),
+    ];
+
+    const operationId = `variant-search-commit-${stableDigest(runId)}`;
+    const bundle = await this.artifacts.stageArtifactBundle(runId, operationId, "research", bundleEntries);
+    await this.artifacts.promoteArtifactBundle(runId, bundle);
 
     await this.status.complete(runId, "generated", EXECUTION_PHASE);
 

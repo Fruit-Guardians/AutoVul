@@ -214,12 +214,46 @@ describe("V2 CLI", () => {
         result_artifact_ref: "missing-check/result.json",
       }), "utf8");
       await writeFile(join(seedDir, "missing-check", "result.json"), JSON.stringify({
-        schema_version: "autovul.missing-check/1",
-        run_id: seedRunId,
+        schema_version: "v2.contracts/1",
+        capability: "missing_check",
+        hypothesis_version: "autovul.missing-check/1",
         hypothesis: {
-          operation: { name: "handleExchange" },
-          required_check: { name: "assertAdmin" },
+          schema_version: "autovul.missing-check/1",
+          hypothesis_id: "mcheck-test-seed",
+          language: "javascript",
+          operation: { kind: "direct_call", name: "handleExchange" },
+          required_check: { kind: "direct_call", name: "assertAdmin" },
+          required_relation: "same_callback_cfg_dominates_operation",
+          scope: {
+            kind: "single_file_named_entry_cfg",
+            file: "index.js",
+            entry: { kind: "named_function", name: "handleExchange" },
+          },
         },
+        target: {
+          vulnerable: {
+            kind: "git_revision",
+            repository: root,
+            revision: head,
+          },
+        },
+        mode: "reproduce",
+        analyzer: {
+          analyzer_id: "javascript_cfg",
+          available: true,
+          evidence_kind: "real_analyzer",
+          version: "autovul.javascript-cfg/1",
+          adapter_version: "autovul.javascript-cfg/1",
+        },
+        decision: {
+          capability: "missing_check",
+          outcome: "check_missing",
+        },
+        verification_level: "differential",
+        operation_status: "completed",
+        observations: [],
+        revision_hints: [],
+        allowed_next_actions: ["execute", "replay", "stop"],
       }), "utf8");
 
       const requestPath = join(root, "variant-search-request.json");

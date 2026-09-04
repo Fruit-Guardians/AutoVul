@@ -1,15 +1,27 @@
 import type {
+  MissingCheckAnalyzerProvenance,
+  RunId,
   VariantCandidate,
   VariantSearchBudget,
+  VariantSearchGap,
   VariantSearchInput,
+  VerificationLevel,
 } from "@autovul/contracts";
 
 export interface VariantSeedPatternFacts {
-  readonly capability: string;
+  readonly capability: "missing_check";
+  readonly seedRunId: RunId;
+  readonly seedDigest: string;
+  readonly seedVerificationLevel: VerificationLevel;
+  readonly analyzerProvenance: MissingCheckAnalyzerProvenance;
+  readonly primarySymbol: string;
+  readonly checkSymbol: string;
   readonly matchedSymbols: readonly string[];
-  readonly primarySymbol?: string;
-  readonly checkSymbol?: string;
   readonly enclosingFunction?: string;
+  readonly targetFingerprints?: {
+    readonly vulnerable: string;
+    readonly fixed?: string;
+  };
 }
 
 export interface VariantSearchPortRequest {
@@ -20,6 +32,8 @@ export interface VariantSearchPortRequest {
 
 export interface VariantSearchPortObservation {
   readonly candidates: readonly VariantCandidate[];
+  readonly completeness: "complete" | "partial";
+  readonly gaps: readonly VariantSearchGap[];
   readonly budgetExhausted: boolean;
   readonly targetsInspected: number;
   readonly filesInspected: number;

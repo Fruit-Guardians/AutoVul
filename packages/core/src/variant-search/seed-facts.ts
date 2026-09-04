@@ -1,11 +1,22 @@
+import { Value } from "typebox/value";
+
 import {
   DomainError,
+  MissingCheckRunArtifactSchema,
+  stableDigest,
+  type MissingCheckRunArtifact,
   type RunId,
 } from "@autovul/contracts";
 
 import type { ArtifactStorePort } from "../ports.js";
 import { readResearchOperationRoute } from "../research-operation.js";
 import type { VariantSeedPatternFacts } from "./port.js";
+
+const ACCEPTED_SEED_VERIFICATION_LEVELS = new Set([
+  "reproduced",
+  "differential",
+  "variant_validated",
+]);
 
 export async function extractSeedPatternFacts(
   artifacts: ArtifactStorePort,
@@ -23,64 +34,73 @@ export async function extractSeedPatternFacts(
   if (route === undefined) {
     throw new DomainError("INVALID_INPUT", "input", `Seed run has no committed route: ${seedRunId}`, false);
   }
+  if (route.route_kind !== "capability" || route.capability !== "missing_check") {
+    throw new DomainError(
+      "INVALID_INPUT",
+      "input",
+      `Seed run ${seedRunId} is not a missing_check capability run (route_kind: ${route.route_kind}, capability: ${route.route_kind === "capability" ? route.capability : "none"}); Variant Search v1 only supports real MissingCheck seeds`,
+      false,
+    );
+  }
 
   const rawArtifact = await artifacts.readArtifact(seedRunId, route.result_artifact_ref);
   if (rawArtifact === undefined) {
     throw new DomainError("INVALID_INPUT", "input", `Seed result artifact cannot be read: ${route.result_artifact_ref}`, false);
   }
 
-  const parsed = JSON.parse(rawArtifact) as Record<string, unknown>;
-
-  // 1. MissingCheck Seed
-  if (parsed.hypothesis && typeof parsed.hypothesis === "object") {
-    const hyp = parsed.hypothesis as Record<string, unknown>;
-    const op = hyp.operation as { name?: string } | undefined;
-    const check = hyp.required_check as { name?: string } | undefined;
-    const scope = hyp.scope as { entry?: { name?: string } } | undefined;
-    const matchedSymbols = [op?.name, check?.name].filter((s): s is string => typeof s === "string" && s.length > 0);
-    if (matchedSymbols.length > 0) {
-      return {
-        capability: "missing_check",
-        matchedSymbols,
-        ...(op?.name !== undefined ? { primarySymbol: op.name } : {}),
-        ...(check?.name !== undefined ? { checkSymbol: check.name } : {}),
-        ...(scope?.entry?.name !== undefined ? { enclosingFunction: scope.entry.name } : {}),
-      };
-    }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawArtifact);
+  } catch {
+    throw new DomainError("INVALID_INPUT", "input", `Seed result artifact is not valid JSON: ${route.result_artifact_ref}`, false);
   }
 
-  // 2. Flow Seed
-  if (parsed.query && typeof parsed.query === "object") {
-    const q = parsed.query as Record<string, unknown>;
-    const sink = q.sink as { name?: string } | undefined;
-    if (sink?.name) {
-      const sinkName = sink.name;
-      return {
-        capability: "flow",
-        matchedSymbols: [sinkName],
-        primarySymbol: sinkName,
-      };
-    }
+  if (!Value.Check(MissingCheckRunArtifactSchema, parsed)) {
+    throw new DomainError(
+      "INVALID_INPUT",
+      "input",
+      `Seed run artifact does not conform to MissingCheckRunArtifactSchema: ${seedRunId}`,
+      false,
+    );
   }
 
-  // 3. Typestate Seed
-  if (parsed.events && Array.isArray(parsed.events)) {
-    const events = parsed.events as { id?: string; selector?: { name?: string } }[];
-    const names = events.map((e) => e.selector?.name).filter((n): n is string => typeof n === "string" && n.length > 0);
-    const primary = names[0];
-    if (primary !== undefined) {
-      return {
-        capability: "typestate",
-        matchedSymbols: names,
-        primarySymbol: primary,
-      };
-    }
+  const seedArtifact = Value.Parse(MissingCheckRunArtifactSchema, parsed) as MissingCheckRunArtifact;
+
+  if (!ACCEPTED_SEED_VERIFICATION_LEVELS.has(seedArtifact.verification_level)) {
+    throw new DomainError(
+      "INVALID_INPUT",
+      "input",
+      `Seed run ${seedRunId} verification level is "${seedArtifact.verification_level}"; Variant Search v1 requires seed verification level to be at least reproduced: seed verification level must be at least reproduced (got: ${seedArtifact.verification_level})`,
+      false,
+    );
   }
 
-  throw new DomainError(
-    "INVALID_INPUT",
-    "input",
-    `Unable to extract pattern facts from seed run artifact: ${seedRunId}`,
-    false,
-  );
+  const primarySymbol = seedArtifact.hypothesis.operation.name;
+  const checkSymbol = seedArtifact.hypothesis.required_check.name;
+  const enclosingFunction = seedArtifact.hypothesis.scope.entry?.name;
+  const matchedSymbols = [primarySymbol, checkSymbol].filter((s): s is string => typeof s === "string" && s.length > 0);
+
+  if (matchedSymbols.length === 0) {
+    throw new DomainError(
+      "INVALID_INPUT",
+      "input",
+      `Seed run ${seedRunId} missing_check hypothesis has no extractable symbols`,
+      false,
+    );
+  }
+
+  const seedDigest = stableDigest(rawArtifact);
+
+  return {
+    capability: "missing_check",
+    seedRunId,
+    seedDigest,
+    seedVerificationLevel: seedArtifact.verification_level,
+    analyzerProvenance: seedArtifact.analyzer,
+    primarySymbol,
+    checkSymbol,
+    matchedSymbols,
+    ...(enclosingFunction !== undefined ? { enclosingFunction } : {}),
+    ...(seedArtifact.target_fingerprints !== undefined ? { targetFingerprints: seedArtifact.target_fingerprints } : {}),
+  };
 }

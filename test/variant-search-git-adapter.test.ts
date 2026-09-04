@@ -21,6 +21,24 @@ async function gitOutput(repository: string, args: readonly string[]): Promise<s
   return result.stdout.trim();
 }
 
+function defaultSeedFacts(overrides: Partial<VariantSearchPortRequest["seedFacts"]> = {}): VariantSearchPortRequest["seedFacts"] {
+  return {
+    capability: "missing_check",
+    seedRunId: "run_seed123",
+    seedDigest: "a".repeat(64),
+    seedVerificationLevel: "differential",
+    analyzerProvenance: {
+      analyzerId: "javascript_cfg",
+      evidenceKind: "real_analyzer",
+      version: "autovul.javascript-cfg/1",
+      adapterVersion: "autovul.javascript-cfg/1",
+    },
+    primarySymbol: "handleSigninTokenExchangeInvoke",
+    matchedSymbols: ["handleSigninTokenExchangeInvoke"],
+    ...overrides,
+  };
+}
+
 describe("GitVariantSearchAdapter", () => {
   it("discovers candidate locations in a real git repository", async () => {
     const repository = await mkdtemp(join(tmpdir(), "autovul-variant-search-"));
@@ -63,11 +81,10 @@ describe("GitVariantSearchAdapter", () => {
           ],
           strategy: "symbol_call_pattern",
         },
-        seedFacts: {
-          capability: "missing_check",
+        seedFacts: defaultSeedFacts({
           matchedSymbols: ["handleSigninTokenExchangeInvoke"],
           primarySymbol: "handleSigninTokenExchangeInvoke",
-        },
+        }),
         resolvedBudget: {
           max_candidates: 50,
           max_files_per_target: 100,
@@ -77,6 +94,8 @@ describe("GitVariantSearchAdapter", () => {
 
       const observation = await adapter.search(request, {});
       expect(observation.candidates).toHaveLength(2);
+      expect(observation.completeness).toBe("complete");
+      expect(observation.gaps).toEqual([]);
       expect(observation.budgetExhausted).toBe(false);
       expect(observation.analyzer.analyzer_id).toBe("variant_search_git");
       expect(observation.candidates.map((c) => c.location.file)).toEqual([
@@ -85,8 +104,68 @@ describe("GitVariantSearchAdapter", () => {
       ]);
       expect(observation.candidates[0].location.start_line).toBe(2);
       expect(observation.candidates[0].location.enclosing_symbol).toBe("deviceHandler");
+      expect(observation.candidates[0].candidate_id).toMatch(/^[a-f0-9]{64}$/);
+      expect(observation.candidates[0].evidence_digest).toMatch(/^[a-f0-9]{64}$/);
+      expect(observation.candidates[0].evidence_ref).toBe(`research/variant-search/candidates/${observation.candidates[0].candidate_id}.json`);
     } finally {
       await rm(repository, { recursive: true, force: true });
+    }
+  });
+
+  it("generates identical portable candidate IDs across different repository checkout clones", async () => {
+    const repoA = await mkdtemp(join(tmpdir(), "autovul-variant-clone-a-"));
+    const repoB = await mkdtemp(join(tmpdir(), "autovul-variant-clone-b-"));
+    try {
+      await git(repoA, ["init", "--initial-branch=main"]);
+      await git(repoA, ["config", "user.email", "variant-test@example.invalid"]);
+      await git(repoA, ["config", "user.name", "Variant Test"]);
+      await mkdir(join(repoA, "src"), { recursive: true });
+      await writeFile(
+        join(repoA, "src", "service.ts"),
+        "export function run(req: any) {\n  handleExchange(req);\n}\n",
+        "utf8",
+      );
+      await git(repoA, ["add", "."]);
+      await git(repoA, ["commit", "-m", "initial"]);
+      const headOid = await gitOutput(repoA, ["rev-parse", "HEAD"]);
+
+      await git(repoB, ["clone", repoA, "."]);
+
+      const adapterA = new GitVariantSearchAdapter({ trustedRoots: [repoA] });
+      const adapterB = new GitVariantSearchAdapter({ trustedRoots: [repoB] });
+
+      const seedFacts = defaultSeedFacts({
+        primarySymbol: "handleExchange",
+        matchedSymbols: ["handleExchange"],
+      });
+
+      const obsA = await adapterA.search({
+        input: {
+          seed_run_id: "run_seed123",
+          corpus: [{ kind: "git_revision", repository: repoA, revision: headOid }],
+          strategy: "symbol_call_pattern",
+        },
+        seedFacts,
+        resolvedBudget: { max_candidates: 10, max_files_per_target: 10, timeout_ms: 10_000 },
+      }, {});
+
+      const obsB = await adapterB.search({
+        input: {
+          seed_run_id: "run_seed123",
+          corpus: [{ kind: "git_revision", repository: repoB, revision: headOid }],
+          strategy: "symbol_call_pattern",
+        },
+        seedFacts,
+        resolvedBudget: { max_candidates: 10, max_files_per_target: 10, timeout_ms: 10_000 },
+      }, {});
+
+      expect(obsA.candidates).toHaveLength(1);
+      expect(obsB.candidates).toHaveLength(1);
+      expect(obsA.candidates[0].candidate_id).toBe(obsB.candidates[0].candidate_id);
+      expect(obsA.candidates[0].evidence_digest).toBe(obsB.candidates[0].evidence_digest);
+    } finally {
+      await rm(repoA, { recursive: true, force: true });
+      await rm(repoB, { recursive: true, force: true });
     }
   });
 
@@ -120,11 +199,10 @@ describe("GitVariantSearchAdapter", () => {
           corpus: [{ kind: "git_revision", repository, revision: headOid }],
           strategy: "symbol_call_pattern",
         },
-        seedFacts: {
-          capability: "flow",
+        seedFacts: defaultSeedFacts({
           matchedSymbols: ["executeSink"],
           primarySymbol: "executeSink",
-        },
+        }),
         resolvedBudget: {
           max_candidates: 1,
           max_files_per_target: 100,
@@ -135,6 +213,13 @@ describe("GitVariantSearchAdapter", () => {
       const observation = await adapter.search(request, {});
       expect(observation.candidates).toHaveLength(1);
       expect(observation.budgetExhausted).toBe(true);
+      expect(observation.completeness).toBe("partial");
+      expect(observation.gaps).toEqual([
+        {
+          reason: "candidate_budget_exhausted",
+          detail: "Reached maximum candidate limit of 1",
+        },
+      ]);
     } finally {
       await rm(repository, { recursive: true, force: true });
     }
@@ -151,7 +236,7 @@ describe("GitVariantSearchAdapter", () => {
           corpus: [{ kind: "git_revision", repository: untrustedRepo, revision: "abc" }],
           strategy: "symbol_call_pattern",
         },
-        seedFacts: { capability: "flow", matchedSymbols: ["sink"] },
+        seedFacts: defaultSeedFacts({ matchedSymbols: ["sink"], primarySymbol: "sink" }),
         resolvedBudget: { max_candidates: 10, max_files_per_target: 10, timeout_ms: 10_000 },
       };
 
@@ -196,15 +281,15 @@ describe("GitVariantSearchAdapter", () => {
           corpus: [{ kind: "git_revision", repository, revision: headOid }],
           strategy: "symbol_call_pattern",
         },
-        seedFacts: {
-          capability: "flow",
+        seedFacts: defaultSeedFacts({
           matchedSymbols: ["authenticateUser"],
           primarySymbol: "authenticateUser",
-        },
+        }),
         resolvedBudget: { max_candidates: 10, max_files_per_target: 10, timeout_ms: 10_000 },
       }, {});
 
       expect(callObs.candidates).toHaveLength(1);
+      expect(callObs.completeness).toBe("complete");
       expect(callObs.candidates[0].location.file).toBe("src/Component.tsx");
       expect(callObs.candidates[0].location.enclosing_symbol).toBe("onClick");
 
@@ -215,15 +300,15 @@ describe("GitVariantSearchAdapter", () => {
           corpus: [{ kind: "git_revision", repository, revision: headOid }],
           strategy: "enclosing_signature",
         },
-        seedFacts: {
-          capability: "missing_check",
+        seedFacts: defaultSeedFacts({
           matchedSymbols: ["AuthButton"],
           primarySymbol: "AuthButton",
-        },
+        }),
         resolvedBudget: { max_candidates: 10, max_files_per_target: 10, timeout_ms: 10_000 },
       }, {});
 
       expect(sigObs.candidates).toHaveLength(1);
+      expect(sigObs.completeness).toBe("complete");
       expect(sigObs.candidates[0].location.file).toBe("src/Component.tsx");
       expect(sigObs.candidates[0].location.enclosing_symbol).toBe("AuthButton");
     } finally {

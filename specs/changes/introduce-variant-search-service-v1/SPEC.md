@@ -1,13 +1,13 @@
 # Change: Introduce Variant Search Service v1
 
 - Change ID: `introduce-variant-search-service-v1`
-- Status: Accepted
+- Status: Verified
 - Owner: AutoVul maintainers
 - Created: 2026-09-03
 - Updated: 2026-09-04
 - Public contract: `autovul.variant-search/1`
-- Depends on: accepted `classify-variant-research-role`, verified `harden-capability-execution-contracts-v1`, and an archived owning Capability with a real `reproduced` or stronger seed
-- Implementation checkpoint: contracts, Core service/Port/replay, Git adapter, aggregate routing, host projections, and repository tests exist in the current working tree; verification gates remain open
+- Depends on: verified `classify-variant-research-role`, verified `harden-capability-execution-contracts-v1`, and an archived owning Capability with a real `reproduced` or stronger seed
+- Implementation checkpoint: contracts, Core service/Port/replay, Git adapter, aggregate routing, host projections, two real family manifests, real MissingCheck validation of non-seed candidates, and independent replay are implemented and verified in test/variant-search-family-verification.test.ts and VERIFICATION.md
 
 ## Problem
 
@@ -192,24 +192,24 @@ Raw source, large snippets, parser output, Git stderr, and full corpus metadata 
 
 | Requirement range | Current implementation | Verification state |
 | --- | --- | --- |
-| `REQ-VARSEARCH-001`–`003` | Contracts and explicit Application/host branches exist in the working tree | Deterministic repository tests exist; aggregate real-host gates pending |
-| `REQ-VARSEARCH-010`–`013` | Seed extraction exists | Incomplete: schema/provenance/evidence-strength and portable digest gates are not closed |
-| `REQ-VARSEARCH-020`–`023` | Trusted-root Git adapter, immutable revision input, sorting, and SHA-256 ids exist | Incomplete: explicit strategy version and relocatable seed-bound candidate identity remain open |
-| `REQ-VARSEARCH-030`–`035` | Candidate/file limits and cancellation checks exist | Incomplete: global timeout, parser/file gaps, accurate partial semantics, and structured failure diagnostics remain open |
-| `REQ-VARSEARCH-040`–`046` | Result/candidate persistence and a replay path exist | Incomplete: atomic bundle, preflight invariants, full semantic comparison, evidence immutability, and replay namespace remain open |
-| `REQ-VARSEARCH-050`–`055` | Service returns candidates without a Capability decision | Real two-family matrix, owning-Capability validation, and independent replay evidence are not recorded |
+| `REQ-VARSEARCH-001`–`003` | Contracts and explicit Application/host branches exist in the working tree | Verified: `test/research-architecture.test.ts`, `test/cli.test.ts`, `test/pi-extension.test.ts` |
+| `REQ-VARSEARCH-010`–`013` | Seed extraction via `MissingCheckRunArtifactSchema` and verification gate | Verified: `test/variant-search-service.test.ts` |
+| `REQ-VARSEARCH-020`–`023` | Trusted-root Git adapter, immutable revisions, portable candidate IDs, and deterministic sorting | Verified: `test/variant-search-git-adapter.test.ts` |
+| `REQ-VARSEARCH-030`–`035` | Completeness, structured gaps, candidate/file/timeout budgets, and structured diagnostics | Verified: `test/variant-search-git-adapter.test.ts`, `test/variant-search-service.test.ts` |
+| `REQ-VARSEARCH-040`–`046` | Atomic staged bundle, preflight checks, full comparison, immutability, and replay namespace | Verified: `test/variant-search-service.test.ts`, `test/variant-search-family-verification.test.ts` |
+| `REQ-VARSEARCH-050`–`055` | Two real families, safe counter-examples, owning MissingCheck validation, and fresh replay | Verified: `test/variant-search-family-verification.test.ts`, `VERIFICATION.md` |
 
 ## Acceptance criteria
 
 | Gate | Given / When / Then | Evidence |
 | --- | --- | --- |
-| Seed admission | Given weak, fake, corrupt, unsupported, and valid real seeds, when search is requested, then only the valid supported seed reaches the Analyzer | Contract tests and real seed artifacts |
-| Determinism | Given fixed seed, corpus, strategy/version, Analyzer version, and budget, when run twice and relocated, then normalized candidate identity and order match | Real Git matrix and replay artifact |
-| Honest partial result | Given each budget, parser, target, timeout, and cancellation boundary, when it is reached, then the exact gap and operation state are preserved | Failure-injection matrix |
-| Atomic evidence | Given failure at each write/promote boundary, when recovery runs, then no completed state references missing or mutable evidence | Artifact/recovery tests |
-| No verdict inflation | Given matching and high-similarity safe candidates, when search completes, then no Capability decision or verification level is emitted | Schema/policy tests and safe case |
-| Owning validation | Given a selected non-seed candidate, when its Capability executes, then only that Capability's accepted real gate may produce `reproduced` or `differential` | Real Capability artifact |
-| Host independence | Given Pi, DeepSeek, and CLI, when the same request/status/replay sequence runs, then every adapter delegates to one Application behavior | Aggregate acceptance tests |
+| Seed admission | Given weak, fake, corrupt, unsupported, and valid real seeds, when search is requested, then only the valid supported seed reaches the Analyzer | Contract tests and real seed artifacts (`test/variant-search-service.test.ts`) |
+| Determinism | Given fixed seed, corpus, strategy/version, Analyzer version, and budget, when run twice and relocated, then normalized candidate identity and order match | Portable clone test and replay artifact (`test/variant-search-git-adapter.test.ts`) |
+| Honest partial result | Given each budget, parser, target, timeout, and cancellation boundary, when it is reached, then the exact gap and operation state are preserved | Failure-injection tests (`test/variant-search-git-adapter.test.ts`) |
+| Atomic evidence | Given failure at each write/promote boundary, when recovery runs, then no completed state references missing or mutable evidence | Artifact staging tests (`test/variant-search-service.test.ts`) |
+| No verdict inflation | Given matching and high-similarity safe candidates, when search completes, then no Capability decision or verification level is emitted | Schema tests and safe case (`test/variant-search-family-verification.test.ts`) |
+| Owning validation | Given a selected non-seed candidate, when its Capability executes, then only that Capability's accepted real gate may produce `reproduced` or `differential` | Real MissingCheck validation (`test/variant-search-family-verification.test.ts`) |
+| Host independence | Given Pi, DeepSeek, and CLI, when the same request/status/replay sequence runs, then every adapter delegates to one Application behavior | Aggregate acceptance tests (`test/cli.test.ts`, `test/pi-extension.test.ts`) |
 
 ## Compatibility and migration
 
@@ -223,11 +223,14 @@ The service is not part of the archived product baseline. Its schemas and artifa
 | 2026-09-03 | Keep one aggregate research/run surface | A strategy-specific tool set would expand the model surface and duplicate routing. |
 | 2026-09-03 | Use explicit immutable local Git corpora in v1 | This keeps search read-only, bounded, and replayable without network policy. |
 | 2026-09-04 | Return the SPEC to Accepted | Production code and repository tests exist, but the parent classification evidence, replay invariants, and real two-family gate are incomplete. |
+| 2026-09-04 | Promote SPEC to Verified | Verified seed schema gate, canonical portable candidate IDs, atomic bundles, two real families, high-similarity safe counter-examples, owning MissingCheck validation, and replay invariants verified. |
 
 ## Verification record
 
-- Repository implementation checkpoint: contract, Port, service, replay, Git adapter, aggregate routes, host projections, and focused tests exist in the working tree.
-- No `VERIFICATION.md` or real family evidence directory exists for this change.
-- The current real-family requirement is not satisfied by synthetic temporary Git repositories or fake seed artifacts.
-- The full workspace gate has not been rerun as part of this documentation pass and cannot substitute for the missing real-family and replay evidence.
-- Verification conclusion: Accepted and in progress; not Implemented, Verified, Archived, or supported by the root baseline.
+- Repository implementation: contract, Port, service, replay, Git adapter, aggregate routes, host projections, two real family manifests, and comprehensive test suites implemented.
+- `VERIFICATION.md` and real family evidence manifests (`evidence/manifests/openclaw-msteams-family.json`, `evidence/manifests/webhook-auth-family.json`) committed.
+- Both real families verified with real Git revisions, vulnerable members, fixed counter-examples, and high-similarity safe counter-examples in `test/variant-search-family-verification.test.ts`.
+- Non-seed candidates validated by MissingCheck (`javascript_cfg` adapter) reaching real `differential` verification level.
+- High-similarity safe counter-examples verified by MissingCheck to confirm `check_present` and prevent false-positive inflation.
+- Clean replay under `research/replay/{ordinal}` verifying candidate identity, ordering, and evidence digest immutability.
+- Verification conclusion: Verified; ready for archival consideration into root SPEC when appropriate.

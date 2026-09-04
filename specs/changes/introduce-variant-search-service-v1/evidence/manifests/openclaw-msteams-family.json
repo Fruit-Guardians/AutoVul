@@ -1,0 +1,39 @@
+{
+  "schema_version": "autovul.variant-family-manifest/1",
+  "family_id": "openclaw-token-exchange",
+  "description": "OpenClaw MSTeams monitor and action handlers calling handleSigninTokenExchangeInvoke without authorization check",
+  "license": "MIT",
+  "provenance": {
+    "repository": "https://github.com/openclaw/openclaw.git",
+    "cve": "CVE-2026-43572",
+    "vulnerable_commit": "75b4c059b8405dfbd50884b773346a9946fabd20",
+    "fixed_commit": "80b1fa17bfc3f6a668492f0326ea52f48bb89776"
+  },
+  "seed": {
+    "file": "extensions/msteams/src/monitor-handler.ts",
+    "entry_function": "registerMSTeamsHandlers",
+    "operation_symbol": "handleSigninTokenExchangeInvoke",
+    "required_check_symbol": "isSigninInvokeAuthorized"
+  },
+  "variants": [
+    {
+      "file": "extensions/msteams/src/action-handler.ts",
+      "entry_function": "registerActionHandlers",
+      "expected_role": "vulnerable_variant"
+    }
+  ],
+  "safe_counter_examples": [
+    {
+      "file": "extensions/msteams/src/monitor-handler.ts",
+      "entry_function": "registerMSTeamsHandlers",
+      "revision": "fixed",
+      "expected_role": "fixed_counter_example"
+    },
+    {
+      "file": "extensions/msteams/src/safe-handler.ts",
+      "entry_function": "registerSafeHandlers",
+      "revision": "vulnerable",
+      "expected_role": "high_similarity_safe"
+    }
+  ]
+}

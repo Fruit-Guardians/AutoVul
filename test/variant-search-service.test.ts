@@ -17,15 +17,49 @@ const seedRunId = "run_seed1234567890abcdef12345678";
 const seedOid = "75b4c059b8405dfbd50884b773346a9946fabd20";
 const targetOid = "80b1fa17bfc3f6a668492f0326ea52f48bb89776";
 
-function createSeedRunArtifact() {
+function createSeedRunArtifact(overrides: Partial<Record<string, unknown>> = {}) {
   return JSON.stringify({
     schema_version: "v2.contracts/1",
+    capability: "missing_check",
+    hypothesis_version: "autovul.missing-check/1",
     hypothesis: {
-      operation: { name: "handleSigninTokenExchangeInvoke" },
-      required_check: { name: "validateHostHeader" },
-      scope: { entry: { name: "authHandler" } },
+      schema_version: "autovul.missing-check/1",
+      hypothesis_id: "mcheck-test-seed",
+      language: "javascript",
+      operation: { kind: "direct_call", name: "handleSigninTokenExchangeInvoke" },
+      required_check: { kind: "direct_call", name: "validateHostHeader" },
+      required_relation: "same_callback_cfg_dominates_operation",
+      scope: {
+        kind: "single_file_named_entry_cfg",
+        file: "src/auth.js",
+        entry: { kind: "named_function", name: "authHandler" },
+      },
     },
-    verification: { level: "differential" },
+    target: {
+      vulnerable: {
+        kind: "git_revision",
+        repository: "/trusted/repo",
+        revision: seedOid,
+      },
+    },
+    mode: "reproduce",
+    analyzer: {
+      analyzer_id: "javascript_cfg",
+      available: true,
+      evidence_kind: "real_analyzer",
+      version: "autovul.javascript-cfg/1",
+      adapter_version: "autovul.javascript-cfg/1",
+    },
+    decision: {
+      capability: "missing_check",
+      outcome: "check_missing",
+    },
+    verification_level: "differential",
+    operation_status: "completed",
+    observations: [],
+    revision_hints: [],
+    allowed_next_actions: ["execute", "replay", "stop"],
+    ...overrides,
   });
 }
 
@@ -48,6 +82,8 @@ function fakeVariantSearchPort(candidates = [
     ): Promise<VariantSearchPortObservation> {
       return {
         candidates,
+        completeness: "complete",
+        gaps: [],
         budgetExhausted: false,
         targetsInspected: 1,
         filesInspected: 10,
@@ -129,6 +165,11 @@ describe("VariantSearchService Core", () => {
       expect(result.observation?.candidates).toHaveLength(1);
       expect(result.observation?.candidates[0].candidate_id).toBe(candidateSha256);
       expect(result.observation?.seed_capability).toBe("missing_check");
+      expect(result.observation?.seed_verification_level).toBe("differential");
+      expect(result.observation?.seed_digest).toBeDefined();
+      expect(result.observation?.completeness).toBe("complete");
+      expect(result.observation?.gaps).toEqual([]);
+      expect(result.observation?.strategy_version).toBe("autovul.variant-strategy/1");
       expect(result.allowed_next_actions).toEqual(["execute", "replay", "stop"]);
 
       // Verify individual candidate evidence artifact
@@ -149,6 +190,114 @@ describe("VariantSearchService Core", () => {
     } else {
       throw new Error("Unexpected result type");
     }
+  });
+
+  it("rejects seed run whose verification level is below reproduced (e.g. generated)", async () => {
+    const artifacts = new MemoryArtifactStore();
+    const clock = new FixedClock();
+    const ids = new FixedIdGenerator(["run_variant_unverified"]);
+
+    const weakSeedRunId = "run_seed_generated_12345678";
+    await artifacts.saveManifest({
+      schemaVersion: "v2.contracts/1" as const,
+      runId: weakSeedRunId,
+      status: "completed" as const,
+      verificationLevel: "generated" as const,
+      createdAt: clock.now(),
+      updatedAt: clock.now(),
+      artifactRoot: "/artifacts",
+    });
+    await artifacts.writeArtifact(
+      weakSeedRunId,
+      "research/operation.json",
+      JSON.stringify({
+        schema_version: "v2.contracts/1",
+        route_kind: "capability",
+        capability: "missing_check",
+        hypothesis_version: "autovul.missing-check/1",
+        result_artifact_ref: "research/missing-check/result.json",
+      }),
+    );
+    await artifacts.writeArtifact(
+      weakSeedRunId,
+      "research/missing-check/result.json",
+      createSeedRunArtifact({ verification_level: "generated" }),
+    );
+
+    const app = new Application({
+      codeql: new FakeCodeqlPort(),
+      artifacts,
+      clock,
+      ids,
+      variantSearch: fakeVariantSearchPort(),
+    });
+
+    const request: VariantSearchServiceRequest = {
+      action: "execute",
+      service: "variant_search",
+      service_version: "autovul.variant-search/1",
+      input: {
+        seed_run_id: weakSeedRunId,
+        corpus: [{ kind: "git_revision", repository: "/trusted/repo", revision: targetOid }],
+        strategy: "symbol_call_pattern",
+      },
+    };
+
+    await expect(app.research(request)).rejects.toThrow(/must be at least reproduced/);
+  });
+
+  it("rejects non-missing_check seed run", async () => {
+    const artifacts = new MemoryArtifactStore();
+    const clock = new FixedClock();
+    const ids = new FixedIdGenerator(["run_variant_flow_seed"]);
+
+    const flowSeedRunId = "run_seed_flow_1234567890ab";
+    await artifacts.saveManifest({
+      schemaVersion: "v2.contracts/1" as const,
+      runId: flowSeedRunId,
+      status: "completed" as const,
+      verificationLevel: "reproduced" as const,
+      createdAt: clock.now(),
+      updatedAt: clock.now(),
+      artifactRoot: "/artifacts",
+    });
+    await artifacts.writeArtifact(
+      flowSeedRunId,
+      "research/operation.json",
+      JSON.stringify({
+        schema_version: "v2.contracts/1",
+        route_kind: "capability",
+        capability: "flow",
+        hypothesis_version: "autovul.flow/1",
+        result_artifact_ref: "research/flow/result.json",
+      }),
+    );
+    await artifacts.writeArtifact(
+      flowSeedRunId,
+      "research/flow/result.json",
+      JSON.stringify({ schema_version: "v2.contracts/1", capability: "flow" }),
+    );
+
+    const app = new Application({
+      codeql: new FakeCodeqlPort(),
+      artifacts,
+      clock,
+      ids,
+      variantSearch: fakeVariantSearchPort(),
+    });
+
+    const request: VariantSearchServiceRequest = {
+      action: "execute",
+      service: "variant_search",
+      service_version: "autovul.variant-search/1",
+      input: {
+        seed_run_id: flowSeedRunId,
+        corpus: [{ kind: "git_revision", repository: "/trusted/repo", revision: targetOid }],
+        strategy: "symbol_call_pattern",
+      },
+    };
+
+    await expect(app.research(request)).rejects.toThrow(/Variant Search v1 only supports real MissingCheck seeds/);
   });
 
   it("fails when seed run does not exist", async () => {

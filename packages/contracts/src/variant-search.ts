@@ -1,10 +1,11 @@
 import { Type, type Static } from "typebox";
 
 import { CONTRACTS_VERSION } from "./errors.js";
-import { GitRevisionTargetRefSchema, RunIdSchema } from "./schemas.js";
+import { GitRevisionTargetRefSchema, RunIdSchema, VerificationLevelSchema } from "./schemas.js";
 
 export const VARIANT_SEARCH_SERVICE = "variant_search" as const;
 export const VARIANT_SEARCH_SERVICE_VERSION = "autovul.variant-search/1" as const;
+export const VARIANT_SEARCH_STRATEGY_VERSION = "autovul.variant-strategy/1" as const;
 
 export const VARIANT_SEARCH_LIMITS = {
   maxCorpusTargets: 32,
@@ -15,6 +16,28 @@ export const VARIANT_SEARCH_LIMITS = {
   defaultMaxFilesPerTarget: 500,
   defaultTimeoutMs: 60_000,
 } as const;
+
+export const VariantSearchGapReasonSchema = Type.Union([
+  Type.Literal("candidate_budget_exhausted"),
+  Type.Literal("file_budget_exhausted"),
+  Type.Literal("timeout_exhausted"),
+  Type.Literal("syntax_unsupported"),
+  Type.Literal("parser_failed"),
+  Type.Literal("object_unreadable"),
+  Type.Literal("revision_unavailable"),
+]);
+export type VariantSearchGapReason = Static<typeof VariantSearchGapReasonSchema>;
+
+export const VariantSearchGapSchema = Type.Object(
+  {
+    reason: VariantSearchGapReasonSchema,
+    target_revision: Type.Optional(Type.String()),
+    file: Type.Optional(Type.String()),
+    detail: Type.String({ minLength: 1 }),
+  },
+  { additionalProperties: false },
+);
+export type VariantSearchGap = Static<typeof VariantSearchGapSchema>;
 
 export const VariantSearchStrategySchema = Type.Union([
   Type.Literal("symbol_call_pattern"),
@@ -73,12 +96,13 @@ export type VariantCandidateLocation = Static<typeof VariantCandidateLocationSch
 
 export const VariantCandidateSchema = Type.Object(
   {
-    candidate_id: Type.String({ pattern: "^[a-f0-9]{64}$" }),
+    candidate_id: Type.String({ pattern: "^(?:[a-f0-9]{16}|[a-f0-9]{64})$" }),
     target: GitRevisionTargetRefSchema,
     location: VariantCandidateLocationSchema,
     match_kind: Type.Union([Type.Literal("exact_symbol"), Type.Literal("pattern_match")]),
     matched_symbols: Type.Array(Type.String({ minLength: 1, maxLength: 256 }), { minItems: 1, maxItems: 32 }),
     evidence_ref: Type.String({ minLength: 1, maxLength: 1024 }),
+    evidence_digest: Type.Optional(Type.String({ pattern: "^(?:[a-f0-9]{16}|[a-f0-9]{64})$" })),
   },
   { additionalProperties: false },
 );
@@ -88,8 +112,13 @@ export const VariantSearchObservationSchema = Type.Object(
   {
     schema_version: Type.Literal(VARIANT_SEARCH_SERVICE_VERSION),
     seed_run_id: RunIdSchema,
-    seed_capability: Type.String({ minLength: 1, maxLength: 64 }),
+    seed_capability: Type.Literal("missing_check"),
+    seed_digest: Type.String({ pattern: "^(?:[a-f0-9]{16}|[a-f0-9]{64})$" }),
+    seed_verification_level: VerificationLevelSchema,
     strategy: VariantSearchStrategySchema,
+    strategy_version: Type.Literal(VARIANT_SEARCH_STRATEGY_VERSION),
+    completeness: Type.Union([Type.Literal("complete"), Type.Literal("partial")]),
+    gaps: Type.Array(VariantSearchGapSchema),
     candidates: Type.Array(VariantCandidateSchema),
     budget_exhausted: Type.Boolean(),
     targets_inspected: Type.Integer({ minimum: 0 }),
@@ -166,6 +195,7 @@ export const VariantSearchReplayComparisonSchema = Type.Object(
       Type.Literal("identical"),
       Type.Literal("diverged"),
       Type.Literal("environment_blocked"),
+      Type.Literal("evidence_mutated"),
       Type.Literal("failed"),
       Type.Literal("cancelled"),
     ]),

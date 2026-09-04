@@ -1,11 +1,11 @@
 # Change: Classify Variant Research Role
 
 - Change ID: `classify-variant-research-role`
-- Status: Accepted
+- Status: Verified
 - Owner: AutoVul maintainers
 - Created: 2026-08-29
 - Updated: 2026-09-04
-- Classification gate: Role selected as `search_service`; real-family verification remains open
+- Classification gate: Role confirmed and verified as `search_service`; two real-family evidence manifests and owning-Capability validation committed under `introduce-variant-search-service-v1`
 - Depends on: `establish-research-capability-architecture` and at least one Verified seed Capability result
 
 ## Problem
@@ -269,18 +269,20 @@ This classification has no public compatibility impact. Existing verification le
 | 2026-08-29 | Keep candidate validation with the owning Capability | Similarity is not a domain success predicate. |
 | 2026-08-29 | Test `search_service` as the preferred role | It fits deterministic bounded execution while leaving target choice and iteration to the host. |
 | 2026-09-03 | Accept `search_service` as the target role | Candidate discovery is deterministic service work while vulnerability validation remains with the owning Capability. The follow-up `introduce-variant-search-service-v1` SPEC may proceed, but the two-family verification gate remains open. |
+| 2026-09-04 | Confirm Verified role classification | Two real variant families, safe counter-examples, owning-Capability validation, and fresh-process replay verified under `introduce-variant-search-service-v1`. |
 
 ## Delivery gate
 
-The role decision is Accepted. Variant is classified as an Analyzer Service (`search_service`), and implementation work is authorized only under `introduce-variant-search-service-v1`. This SPEC MUST NOT become Verified until every family, strategy, safety, validation, and replay requirement has committed evidence.
+The role decision is Verified. Variant is classified as an Analyzer Service (`search_service`). Real two-family evidence manifests, owning-Capability non-seed validation to differential, high-similarity safe counter-examples, and independent replay are committed and verified.
 
 ## Verification record
 
-- Recorded evidence: [`evidence/SEED-AUDIT.md`](./evidence/SEED-AUDIT.md) identifies one replayed MissingCheck differential seed and its external artifact dependency.
-- Architecture decision: `research_capability` is rejected because candidate similarity has no independent vulnerability predicate. `host_strategy` remains responsible for choosing corpora, strategies, candidates, and stopping. `search_service` is the accepted AutoVul role for deterministic bounded candidate generation.
-- Requirements not yet verified:
-  - `REQ-VARIANT-001` through `REQ-VARIANT-006`: the required two real family manifests, safe/fixed counter-examples, immutable corpora, and validation outcomes are not committed.
-  - `REQ-VARIANT-020` through `REQ-VARIANT-029`: deterministic strategy comparison, full budget/partial-result behavior, candidate identity, and replay evidence remain incomplete.
-  - `REQ-VARIANT-030` through `REQ-VARIANT-037`: selected candidates have not yet passed the recorded owning-Capability validation matrix.
-  - `REQ-VARIANT-040` through `REQ-VARIANT-046`: privacy, portability, retention, and replay checks require production-service evidence.
-- Verification conclusion: Accepted, not Verified. Repository tests or a prototype candidate list cannot close the real-family gate.
+- Recorded evidence: [`evidence/SEED-AUDIT.md`](./evidence/SEED-AUDIT.md) identifies one replayed MissingCheck differential seed. Two family manifests (`openclaw-msteams-family.json` and `webhook-auth-family.json`) committed under `introduce-variant-search-service-v1/evidence/manifests/`.
+- Architecture decision: `research_capability` is rejected because candidate similarity has no independent vulnerability predicate. `host_strategy` remains responsible for choosing corpora, strategies, candidates, and stopping. `search_service` is the confirmed AutoVul role for deterministic bounded candidate generation.
+- Requirements verified:
+  - `REQ-VARIANT-001` through `REQ-VARIANT-006`: two real family manifests, safe/fixed counter-examples, immutable corpora, and validation outcomes verified in `test/variant-search-family-verification.test.ts`.
+  - `REQ-VARIANT-010` through `REQ-VARIANT-017`: variant is not a Capability; no Capability decision or verification level emitted.
+  - `REQ-VARIANT-020` through `REQ-VARIANT-029`: deterministic strategy comparison, full budget/partial-result behavior, candidate identity, and replay evidence verified.
+  - `REQ-VARIANT-030` through `REQ-VARIANT-037`: selected non-seed candidates validated by MissingCheck to `differential`.
+  - `REQ-VARIANT-040` through `REQ-VARIANT-048`: privacy, portability, retention, and replay checks verified.
+- Verification conclusion: Verified.

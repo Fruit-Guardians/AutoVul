@@ -4,8 +4,10 @@ import ts from "typescript";
 
 import {
   DomainError,
+  VARIANT_SEARCH_STRATEGY_VERSION,
   type GitRevisionTargetRef,
   type VariantCandidate,
+  type VariantSearchGap,
   type VariantSearchStrategy,
 } from "@autovul/contracts";
 import type {
@@ -63,14 +65,25 @@ export class GitVariantSearchAdapter implements VariantSearchPort {
     const primarySymbol = request.seedFacts.primarySymbol;
     const candidates: VariantCandidate[] = [];
     const seenCandidateIds = new Set<string>();
+    const gaps: VariantSearchGap[] = [];
     let budgetExhausted = false;
     let targetsInspected = 0;
     let filesInspected = 0;
+    const deadline = Date.now() + request.resolvedBudget.timeout_ms;
 
     for (const target of request.input.corpus) {
       if (budgetExhausted) break;
       if (options.signal?.aborted) {
         throw new DomainError("PROCESS_CANCELLED", "process", "Variant search was cancelled", false);
+      }
+      const remainingForTarget = deadline - Date.now();
+      if (remainingForTarget <= 0) {
+        budgetExhausted = true;
+        gaps.push({
+          reason: "timeout_exhausted",
+          detail: `Variant search overall budget timeout reached (${request.resolvedBudget.timeout_ms}ms)`,
+        });
+        break;
       }
 
       const repository = await this.resolveTrustedRepository(target.repository);
@@ -86,19 +99,18 @@ export class GitVariantSearchAdapter implements VariantSearchPort {
           shell: false,
         },
         {
-          timeoutMs: 10_000,
+          timeoutMs: Math.min(10_000, Math.max(1000, remainingForTarget)),
           maxOutputBytes: 1024 * 1024,
           ...(options.signal === undefined ? {} : { signal: options.signal }),
         },
       );
       if (!processSucceeded(revResult)) {
-        throw new DomainError(
-          "DATABASE_FINGERPRINT_UNAVAILABLE",
-          "database",
-          `Target revision is not a valid commit in ${repository}: ${target.revision}`,
-          false,
-          { repository, revision: target.revision },
-        );
+        gaps.push({
+          reason: "revision_unavailable",
+          target_revision: target.revision,
+          detail: `Target revision is not a valid commit in ${repository}: ${target.revision}`,
+        });
+        continue;
       }
 
       const commitOid = revResult.stdout.trim();
@@ -113,6 +125,16 @@ export class GitVariantSearchAdapter implements VariantSearchPort {
       }
 
       // List files
+      const remainingForLs = deadline - Date.now();
+      if (remainingForLs <= 0) {
+        budgetExhausted = true;
+        gaps.push({
+          reason: "timeout_exhausted",
+          detail: `Variant search overall budget timeout reached (${request.resolvedBudget.timeout_ms}ms)`,
+        });
+        break;
+      }
+
       const lsResult = await this.process.execute(
         {
           executable: this.gitExecutable,
@@ -122,40 +144,85 @@ export class GitVariantSearchAdapter implements VariantSearchPort {
           shell: false,
         },
         {
-          timeoutMs: 15_000,
+          timeoutMs: Math.min(15_000, Math.max(1000, remainingForLs)),
           maxOutputBytes: 10 * 1024 * 1024,
           ...(options.signal === undefined ? {} : { signal: options.signal }),
         },
       );
-      if (!processSucceeded(lsResult)) continue;
+      if (!processSucceeded(lsResult)) {
+        gaps.push({
+          reason: "revision_unavailable",
+          target_revision: target.revision,
+          detail: `ls-tree failed for revision: ${target.revision}`,
+        });
+        continue;
+      }
 
-      const sourceFiles = lsResult.stdout
+      const allFiles = lsResult.stdout
         .split("\n")
         .map((line) => line.trim())
-        .filter((line) => isCandidateSourceFile(line))
-        .slice(0, request.resolvedBudget.max_files_per_target);
+        .filter((line) => isCandidateSourceFile(line));
+
+      if (allFiles.length > request.resolvedBudget.max_files_per_target) {
+        gaps.push({
+          reason: "file_budget_exhausted",
+          target_revision: target.revision,
+          detail: `Target revision has ${allFiles.length} candidate files, capped at budget limit ${request.resolvedBudget.max_files_per_target}`,
+        });
+      }
+
+      const sourceFiles = allFiles.slice(0, request.resolvedBudget.max_files_per_target);
 
       for (const filePath of sourceFiles) {
         if (options.signal?.aborted) {
           throw new DomainError("PROCESS_CANCELLED", "process", "Variant search was cancelled", false);
         }
-        if (candidates.length >= request.resolvedBudget.max_candidates) {
+        if (Date.now() >= deadline) {
           budgetExhausted = true;
+          gaps.push({
+            reason: "timeout_exhausted",
+            detail: `Variant search overall budget timeout reached (${request.resolvedBudget.timeout_ms}ms)`,
+          });
+          break;
+        }
+        if (candidates.length >= request.resolvedBudget.max_candidates) {
           break;
         }
 
         filesInspected++;
-        const sourceText = await this.readGitFile(repository, target.revision, filePath, options.signal);
-        if (sourceText === undefined) continue;
+        const remainingForFile = Math.max(1000, deadline - Date.now());
+        const sourceText = await this.readGitFile(repository, target.revision, filePath, options.signal, Math.min(10_000, remainingForFile));
+        if (sourceText === undefined) {
+          gaps.push({
+            reason: "object_unreadable",
+            target_revision: target.revision,
+            file: filePath,
+            detail: `Could not read git blob ${target.revision}:${filePath}`,
+          });
+          continue;
+        }
 
-        const fileCandidates = findCandidatesInSource(
-          sourceText,
-          filePath,
-          target,
-          matchedSymbols,
-          primarySymbol,
-          request.input.strategy,
-        );
+        let fileCandidates: readonly VariantCandidate[];
+        try {
+          fileCandidates = findCandidatesInSource(
+            sourceText,
+            filePath,
+            target,
+            matchedSymbols,
+            primarySymbol,
+            request.input.strategy,
+            request.seedFacts.seedDigest,
+            VARIANT_SEARCH_STRATEGY_VERSION,
+          );
+        } catch (err: unknown) {
+          gaps.push({
+            reason: "parser_failed",
+            target_revision: target.revision,
+            file: filePath,
+            detail: `TypeScript parser failed on ${filePath}: ${err instanceof Error ? err.message : String(err)}`,
+          });
+          continue;
+        }
 
         for (const candidate of fileCandidates) {
           if (!seenCandidateIds.has(candidate.candidate_id)) {
@@ -163,10 +230,22 @@ export class GitVariantSearchAdapter implements VariantSearchPort {
             candidates.push(candidate);
             if (candidates.length >= request.resolvedBudget.max_candidates) {
               budgetExhausted = true;
+              gaps.push({
+                reason: "candidate_budget_exhausted",
+                detail: `Reached maximum candidate limit of ${request.resolvedBudget.max_candidates}`,
+              });
               break;
             }
           }
         }
+
+        if (candidates.length >= request.resolvedBudget.max_candidates) {
+          break;
+        }
+      }
+
+      if (budgetExhausted || Date.now() >= deadline) {
+        break;
       }
     }
 
@@ -182,6 +261,8 @@ export class GitVariantSearchAdapter implements VariantSearchPort {
 
     return {
       candidates,
+      completeness: gaps.length === 0 ? "complete" : "partial",
+      gaps,
       budgetExhausted,
       targetsInspected,
       filesInspected,
@@ -200,6 +281,7 @@ export class GitVariantSearchAdapter implements VariantSearchPort {
     revision: string,
     filePath: string,
     signal?: AbortSignal,
+    timeoutMs: number = 10_000,
   ): Promise<string | undefined> {
     const result = await this.process.execute(
       {
@@ -210,7 +292,7 @@ export class GitVariantSearchAdapter implements VariantSearchPort {
         shell: false,
       },
       {
-        timeoutMs: 10_000,
+        timeoutMs,
         maxOutputBytes: 10 * 1024 * 1024,
         ...(signal === undefined ? {} : { signal }),
       },
@@ -274,8 +356,10 @@ function findCandidatesInSource(
   filePath: string,
   target: GitRevisionTargetRef,
   matchedSymbols: ReadonlySet<string>,
-  primarySymbol?: string,
-  strategy: VariantSearchStrategy = "symbol_call_pattern",
+  primarySymbol: string | undefined,
+  strategy: VariantSearchStrategy,
+  seedDigest: string,
+  strategyVersion: string,
 ): readonly VariantCandidate[] {
   const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true);
   const candidates: VariantCandidate[] = [];
@@ -303,7 +387,10 @@ function findCandidatesInSource(
       const endLine = end.line + 1;
 
       const candidateDigest = createHash("sha256")
-        .update(`${target.repository}:${target.revision}:${filePath}:${startLine}:${nextEnclosing}`)
+        .update(`${seedDigest}:${target.revision}:${filePath}:${startLine}:${nextEnclosing}:${strategy}:${strategyVersion}`)
+        .digest("hex");
+      const evidenceDigest = createHash("sha256")
+        .update(`${candidateDigest}:${nextEnclosing}`)
         .digest("hex");
 
       candidates.push({
@@ -318,6 +405,7 @@ function findCandidatesInSource(
         match_kind: primarySymbol !== undefined && nextEnclosing === primarySymbol ? "exact_symbol" : "pattern_match",
         matched_symbols: [nextEnclosing],
         evidence_ref: `research/variant-search/candidates/${candidateDigest}.json`,
+        evidence_digest: evidenceDigest,
       });
     }
 
@@ -330,7 +418,10 @@ function findCandidatesInSource(
         const endLine = end.line + 1;
 
         const candidateDigest = createHash("sha256")
-          .update(`${target.repository}:${target.revision}:${filePath}:${startLine}:${calleeName}`)
+          .update(`${seedDigest}:${target.revision}:${filePath}:${startLine}:${calleeName}:${strategy}:${strategyVersion}`)
+          .digest("hex");
+        const evidenceDigest = createHash("sha256")
+          .update(`${candidateDigest}:${calleeName}`)
           .digest("hex");
 
         candidates.push({
@@ -345,6 +436,7 @@ function findCandidatesInSource(
           match_kind: primarySymbol !== undefined && calleeName === primarySymbol ? "exact_symbol" : "pattern_match",
           matched_symbols: [calleeName],
           evidence_ref: `research/variant-search/candidates/${candidateDigest}.json`,
+          evidence_digest: evidenceDigest,
         });
       }
     }
