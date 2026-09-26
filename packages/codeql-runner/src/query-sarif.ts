@@ -195,5 +195,3 @@ function parseLocation(value: unknown): QueryLocation | undefined {
     ...(typeof endColumn === "number" && Number.isInteger(endColumn) && endColumn > 0 ? { end_column: endColumn } : {}),
   };
 }
-
-
