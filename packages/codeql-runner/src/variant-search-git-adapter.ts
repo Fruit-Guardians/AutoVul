@@ -364,6 +364,32 @@ function findCandidatesInSource(
   const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true);
   const candidates: VariantCandidate[] = [];
 
+  function addCandidate(node: ts.Node, symbol: string, enclosingSymbol: string | undefined): void {
+    const startLine = sourceFile.getLineAndCharacterOfPosition(node.getStart()).line + 1;
+    const endLine = sourceFile.getLineAndCharacterOfPosition(node.getEnd()).line + 1;
+    const candidateDigest = createHash("sha256")
+      .update(`${seedDigest}:${target.revision}:${filePath}:${startLine}:${symbol}:${strategy}:${strategyVersion}`)
+      .digest("hex");
+    const evidenceDigest = createHash("sha256")
+      .update(`${candidateDigest}:${symbol}`)
+      .digest("hex");
+
+    candidates.push({
+      candidate_id: candidateDigest,
+      target: { ...target },
+      location: {
+        file: filePath,
+        start_line: startLine,
+        end_line: endLine,
+        ...(enclosingSymbol === undefined ? {} : { enclosing_symbol: enclosingSymbol }),
+      },
+      match_kind: primarySymbol !== undefined && symbol === primarySymbol ? "exact_symbol" : "pattern_match",
+      matched_symbols: [symbol],
+      evidence_ref: `research/variant-search/candidates/${candidateDigest}.json`,
+      evidence_digest: evidenceDigest,
+    });
+  }
+
   function visit(node: ts.Node, currentEnclosingFunction?: string): void {
     let nextEnclosing = currentEnclosingFunction;
 
@@ -381,63 +407,13 @@ function findCandidatesInSource(
     }
 
     if (strategy === "enclosing_signature" && nextEnclosing && nextEnclosing !== currentEnclosingFunction && matchedSymbols.has(nextEnclosing)) {
-      const start = sourceFile.getLineAndCharacterOfPosition(node.getStart());
-      const end = sourceFile.getLineAndCharacterOfPosition(node.getEnd());
-      const startLine = start.line + 1;
-      const endLine = end.line + 1;
-
-      const candidateDigest = createHash("sha256")
-        .update(`${seedDigest}:${target.revision}:${filePath}:${startLine}:${nextEnclosing}:${strategy}:${strategyVersion}`)
-        .digest("hex");
-      const evidenceDigest = createHash("sha256")
-        .update(`${candidateDigest}:${nextEnclosing}`)
-        .digest("hex");
-
-      candidates.push({
-        candidate_id: candidateDigest,
-        target: { ...target },
-        location: {
-          file: filePath,
-          start_line: startLine,
-          end_line: endLine,
-          enclosing_symbol: nextEnclosing,
-        },
-        match_kind: primarySymbol !== undefined && nextEnclosing === primarySymbol ? "exact_symbol" : "pattern_match",
-        matched_symbols: [nextEnclosing],
-        evidence_ref: `research/variant-search/candidates/${candidateDigest}.json`,
-        evidence_digest: evidenceDigest,
-      });
+      addCandidate(node, nextEnclosing, nextEnclosing);
     }
 
     if (ts.isCallExpression(node)) {
       const calleeName = getCalleeName(node.expression);
       if (calleeName && matchedSymbols.has(calleeName)) {
-        const start = sourceFile.getLineAndCharacterOfPosition(node.getStart());
-        const end = sourceFile.getLineAndCharacterOfPosition(node.getEnd());
-        const startLine = start.line + 1;
-        const endLine = end.line + 1;
-
-        const candidateDigest = createHash("sha256")
-          .update(`${seedDigest}:${target.revision}:${filePath}:${startLine}:${calleeName}:${strategy}:${strategyVersion}`)
-          .digest("hex");
-        const evidenceDigest = createHash("sha256")
-          .update(`${candidateDigest}:${calleeName}`)
-          .digest("hex");
-
-        candidates.push({
-          candidate_id: candidateDigest,
-          target: { ...target },
-          location: {
-            file: filePath,
-            start_line: startLine,
-            end_line: endLine,
-            ...(nextEnclosing !== undefined ? { enclosing_symbol: nextEnclosing } : {}),
-          },
-          match_kind: primarySymbol !== undefined && calleeName === primarySymbol ? "exact_symbol" : "pattern_match",
-          matched_symbols: [calleeName],
-          evidence_ref: `research/variant-search/candidates/${candidateDigest}.json`,
-          evidence_digest: evidenceDigest,
-        });
+        addCandidate(node, calleeName, nextEnclosing);
       }
     }
 
